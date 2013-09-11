@@ -14,9 +14,11 @@ void fun(corountines::naive_channel<int> ch)
     std::cout << "received: " << x << std::endl;
 }
 
-void fun2(int x)
+void fun2(int x, corountines::naive_channel<int> ch)
 {
     std::cout << "x = " << x << std::endl;
+    int y = ch.get();
+    std::cout << "fun2, received: " << y << std::endl;
 }
 
 int main(int , char** )
@@ -26,12 +28,11 @@ int main(int , char** )
     auto int_channel = scheduler.make_channel<int>(3);
 
     scheduler.go(fun, int_channel);
-    scheduler.go(fun2, 42);
+    scheduler.go(fun2, 42, int_channel);
     std::cout << "Hello" << std::endl;
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    std::cout << "sending int..." << std::endl;
-    int_channel.put(5);
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    std::cout << "sending ints..." << std::endl;
+    int_channel.put(1);
+    int_channel.put(2);
 
 
 }

@@ -25,6 +25,10 @@ public:
     // launches corountine
     template<typename Callable, typename... Args>
     void go(Callable&& fn, Args&&... args);
+
+private:
+
+    std::list<std::thread> _threads;
 };
     
 
@@ -38,7 +42,8 @@ template<typename Callable, typename... Args>
 void naive_scheduler::go(Callable&& fn, Args&&... args)
 {
     std::thread t(std::bind(std::forward<Callable>(fn), std::forward<Args>(args)...));
-    t.detach();
+
+    _threads.push_back(std::move(t));
 }
 
 }
