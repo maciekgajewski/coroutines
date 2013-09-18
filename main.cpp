@@ -62,7 +62,7 @@ void test_generator(GeneratorType& generator)
     {
         for(;;)
         {
-            int r = generator.get();
+            int r = generator();
             std::cout << "generator returned: " << r << std::endl;
         }
     }
@@ -71,12 +71,12 @@ void test_generator(GeneratorType& generator)
         std::cout << "generator threw: " << e.what() << std::endl;
     }
 
-    std::cout << std::boolalpha << "generator stopped? : " << generator.stopped() << std::endl;
+    std::cout << std::boolalpha << "generator finished? : " << generator.finished() << std::endl;
 
     std::cout << "one more call, exception expected..." << std::endl;
     try
     {
-        int r = generator.get();
+        int r = generator();
         std::cout << "unexpected: generator returned: " << r << std::endl;
     }
     catch(const std::exception& e)
@@ -96,7 +96,7 @@ void benchmark_generator(GeneratorType& generator)
         {
             for(;;)
             {
-                generator.get();
+                generator();
             }
         }
         catch(const std::exception& e)
@@ -107,6 +107,8 @@ void benchmark_generator(GeneratorType& generator)
     auto end = std::chrono::steady_clock::now();
     std::cout << "becnhmark result: rep: " << repetitions << ", duration: " << (end-start)/std::chrono::nanoseconds(1) << " ns" << std::endl;
 }
+
+
 
 
 int main(int , char** )
