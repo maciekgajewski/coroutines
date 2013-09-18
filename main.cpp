@@ -1,7 +1,9 @@
 // (c) 2013 Maciej Gajewski, <maciej.gajewski0@gmail.com>
 
 #include <boost/context/all.hpp>
+#include <boost/optional.hpp>
 #include <iostream>
+#include <iomanip>
 #include <functional>
 #include <exception>
 
@@ -11,11 +13,12 @@ struct generator_finished : public std::exception
     virtual const char* what() const noexcept { return "generator finished"; }
 };
 
+template<typename ReturnType>
 class generator
 {
 public:
 
-    typedef std::function<void(intptr_t)> yield_function_type;
+    typedef std::function<void(const ReturnType&)> yield_function_type;
     typedef std::function<void(yield_function_type)> generator_function_type;
 
     // former 'init()'
@@ -32,6 +35,9 @@ public:
                     &generator::static_generator_function); // will call generator wrapper
     }
 
+    // prevent copying
+    generator(const generator&) = delete;
+
     // former 'cleanup()'
     ~generator()
     {
@@ -40,18 +46,18 @@ public:
         _new_context = nullptr;
     }
 
-    intptr_t next()
+    ReturnType next()
     {
         // prevent calling when the generator function already finished
         if (_exception)
             std::rethrow_exception(_exception);
 
         // switch to function context. May set _exception
-        intptr_t result = boost::context::jump_fcontext(&_main_context, _new_context, reinterpret_cast<intptr_t>(this));
+        boost::context::jump_fcontext(&_main_context, _new_context, reinterpret_cast<intptr_t>(this));
         if (_exception)
             std::rethrow_exception(_exception);
         else
-            return result;
+            return *_return_value;
     }
 
 private:
@@ -65,6 +71,7 @@ private:
     generator_function_type _generator; // generator function
 
     std::exception_ptr _exception = nullptr;// pointer to exception thrown by generator function
+    boost::optional<ReturnType> _return_value; // optional allows for using typed without defautl constructor
 
 
     // the actual generator function used to create context
@@ -74,16 +81,17 @@ private:
         _this->generator_wrapper();
     }
 
-    void yield(intptr_t value)
+    void yield(const ReturnType& value)
     {
-        boost::context::jump_fcontext(_new_context, &_main_context, value); // switch back to the main context
+        _return_value = value;
+        boost::context::jump_fcontext(_new_context, &_main_context, 0); // switch back to the main context
     }
 
     void generator_wrapper()
     {
         try
         {
-            _generator([this](intptr_t value) // use lambda to bind this to yield
+            _generator([this](const ReturnType& value) // use lambda to bind this to yield
             {
                 yield(value);
             });
@@ -98,14 +106,15 @@ private:
     }
 };
 
-void fibonacci(const generator::yield_function_type& yield)
+template<typename NumericType> // now we can choose in which flavour do we want our fibonacci numbers
+void fibonacci(const typename generator<NumericType>::yield_function_type& yield)
 {
-    intptr_t last = 1;
-    intptr_t current = 1;
+    NumericType last = 1;
+    NumericType current = 1;
     for(;;)
     {
         yield(current);
-        intptr_t nxt = last + current;
+        NumericType nxt = last + current;
         last = current;
         current = nxt;
     }
@@ -115,15 +124,16 @@ int main(int , char** )
 {
     const int N = 10;
     std::cout << "Two fibonacci sequences generated in parallel::" << std::endl;
-    generator generator1(fibonacci);
+    std::cout << std::setprecision(3) << std::fixed; // to make floating point number distinguishable
+    generator<int> generator1(fibonacci<int>);
     std::cout << "seq #1: " << generator1.next() << std::endl;
     std::cout << "seq #1: " << generator1.next() << std::endl;
 
-    generator generator2(fibonacci);
+    generator<double> generator2(fibonacci<double>);
     for(int i = 0; i < N; i++)
     {
         std::cout << "seq #1: " << generator1.next() << std::endl;
-        std::cout << "seq #2:       " << generator2.next() << std::endl;
+        std::cout << "seq #2:       "  << generator2.next() << std::endl;
     }
 }
 
