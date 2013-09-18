@@ -13,148 +13,105 @@
 
 namespace corountines {
 
-// exceptioin used to signalize that the generator has finished
+// exception thrown where generator function exists
 struct generator_finished : public std::exception
 {
-public:
-
     virtual const char* what() const noexcept { return "generator finished"; }
 };
 
-// Python-style generator
 template<typename ReturnType>
 class generator
 {
 public:
 
-    typedef std::function<void(std::function<void (ReturnType)>)> CallableType;
-    typedef ReturnType return_type;
+    typedef std::function<void(const ReturnType&)> yield_function_type;
+    typedef std::function<void(yield_function_type)> generator_function_type;
 
-    generator(const CallableType& c, std::size_t stack_size);
-    ~generator();
+    // former 'init()'
+    generator(generator_function_type generator, std::size_t stack_size = DEFAULT_STACK_SIZE)
+        : _generator(std::move(generator))
+    {
+        // allocate stack for new context
+        _stack = new char[stack_size];
 
-    bool finished() const noexcept { return !_stack; }
+        // make a new context. The returned fcontext_t is created on the new stack, so there is no need to delete it
+        _new_context = boost::context::make_fcontext(
+                    _stack + stack_size, // new stack pointer. On x86/64 it hast be the TOP of the stack (hence the "+ STACK_SIZE")
+                    stack_size,
+                    &generator::static_generator_function); // will call generator wrapper
+    }
 
-    // executes callable until the next yeld, or throw generator_stopped exception
-    ReturnType operator()();
+    // prevent copying
+    generator(const generator&) = delete;
+
+    // former 'cleanup()'
+    ~generator()
+    {
+        delete _stack;
+        _stack = nullptr;
+        _new_context = nullptr;
+    }
+
+    ReturnType next()
+    {
+        // prevent calling when the generator function already finished
+        if (_exception)
+            std::rethrow_exception(_exception);
+
+        // switch to function context. May set _exception
+        boost::context::jump_fcontext(&_main_context, _new_context, reinterpret_cast<intptr_t>(this));
+        if (_exception)
+            std::rethrow_exception(_exception);
+        else
+            return *_return_value;
+    }
 
 private:
 
-    static void static_context_function(intptr_t);
-    void context_function();
-    void yield(ReturnType val);
+    // former global variables
+    boost::context::fcontext_t _main_context; // will hold the main execution context
+    boost::context::fcontext_t* _new_context = nullptr; // will point to the new context
+    static const int DEFAULT_STACK_SIZE= 64*1024; // completely arbitrary value
+    char* _stack = nullptr;
 
-    CallableType _callable;
-    char* _stack;
+    generator_function_type _generator; // generator function
 
-    boost::optional<ReturnType> _return_value;
-    std::exception_ptr _exception;
+    std::exception_ptr _exception = nullptr;// pointer to exception thrown by generator function
+    boost::optional<ReturnType> _return_value; // optional allows for using typed without defautl constructor
 
-    boost::context::fcontext_t* _own_context;
-    boost::context::fcontext_t _caller_context;
-};
 
-template<typename ReturnType, typename CallableType>
-generator<ReturnType> make_generator(const CallableType& c, std::size_t stack_size = 64*1024)
-{
-    return generator<ReturnType>(c, stack_size);
-}
-
-template<typename ReturnType>
-generator<ReturnType>::generator(const CallableType& c, std::size_t stack_size)
-    : _callable(c), _stack(nullptr)
-{
-    // allocate stack
-    _stack = new char[stack_size];
-
-    // create context
-    char* sp = _stack + stack_size; // TODO this is architecture specific. How to make it universal?
-    _own_context = boost::context::make_fcontext(sp, stack_size, &generator<ReturnType>::static_context_function);
-}
-
-template<typename ReturnType>
-generator<ReturnType>::~generator()
-{
-    delete _stack;
-}
-
-template<typename ReturnType>
-ReturnType generator<ReturnType>::operator()()
-{
-    if (!_stack)
+    // the actual generator function used to create context
+    static void static_generator_function(intptr_t param)
     {
-        throw generator_finished();
+        generator* _this = reinterpret_cast<generator*>(param);
+        _this->generator_wrapper();
     }
 
-    // clear return variables
-    _return_value.reset();
-    _exception = nullptr;
-
-    // jump into the context
-    boost::context::jump_fcontext(&_caller_context, _own_context, intptr_t(this));
-
-    if (_return_value)
+    void yield(const ReturnType& value)
     {
-        return *_return_value;
+        _return_value = value;
+        boost::context::jump_fcontext(_new_context, &_main_context, 0); // switch back to the main context
     }
-    else
+
+    void generator_wrapper()
     {
-        // the generator has finished, stack can be deleted
-        delete _stack;
-        _stack = nullptr;
-        if (_exception)
+        try
         {
-            std::rethrow_exception(_exception);
-        }
-        else
-        {
+            _generator([this](const ReturnType& value) // use lambda to bind this to yield
+            {
+                yield(value);
+            });
             throw generator_finished();
         }
+        catch(...)
+        {
+            // store the exception, is it can be thrown back in the main context
+            _exception = std::current_exception();
+            boost::context::jump_fcontext(_new_context, &_main_context, 0); // switch back to the main context
+        }
     }
-}
-
-template<typename ReturnType>
-void generator<ReturnType>::yield(ReturnType val)
-{
-    // called by the function
-    _return_value = val;
-    boost::context::jump_fcontext(_own_context, &_caller_context, 0);
-}
-
-template<typename ReturnType>
-void generator<ReturnType>::static_context_function(intptr_t _this_intptr)
-{
-    auto _this = (generator<ReturnType>*)(_this_intptr);
-    _this->context_function();
-}
-
-template<typename ReturnType>
-void generator<ReturnType>::context_function()
-{
-    try
-    {
-        _callable([this](ReturnType val) { yield(val); });
-    }
-    catch(...)
-    {
-        _exception = std::current_exception();
-    }
-
-    // jump back
-    boost::context::jump_fcontext(_own_context, &_caller_context, 0);
-}
-
-
-
-// usage:
-// generator<int> g = make_generator<int>([](yield)
-// {
-//      ...
-//      yield(7);
-//      ...
-//      yield(42);
-// }
-
 };
+
+}
 
 #endif

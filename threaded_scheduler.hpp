@@ -5,26 +5,27 @@
 #include <thread>
 #include <functional>
 #include <utility>
+#include <list>
 
-#include "naive_channel.hpp"
+#include "threaded_channel.hpp"
 
-namespace corountines {
-
-// Naive scheduler simply starts each 'corountine as a separate thread
-class naive_scheduler
+namespace coroutines {
+// Naive scheduler simply starts each corountine as separate thread
+class threaded_scheduler
 {
 public:
 
-    naive_scheduler();
-    naive_scheduler(const naive_scheduler&) = delete;
-    ~naive_scheduler();
-
-    template<typename T>
-    naive_channel<T> make_channel(std::size_t capacity);
+    threaded_scheduler();
+    threaded_scheduler(const threaded_scheduler&) = delete;
+    ~threaded_scheduler();
 
     // launches corountine
     template<typename Callable, typename... Args>
     void go(Callable&& fn, Args&&... args);
+
+    // create channek
+    template<typename T>
+    channel_pair<T> make_channel(std::size_t capacity) { return threaded_channel<T>::make(capacity); }
 
 private:
 
@@ -32,20 +33,13 @@ private:
 };
     
 
-template<typename T>
-naive_channel<T> naive_scheduler::make_channel(std::size_t capacity)
-{
-    return naive_channel<T>(capacity);
-}
-
 template<typename Callable, typename... Args>
-void naive_scheduler::go(Callable&& fn, Args&&... args)
+void threaded_scheduler::go(Callable&& fn, Args&&... args)
 {
     std::thread t(std::bind(std::forward<Callable>(fn), std::forward<Args>(args)...));
 
     _threads.push_back(std::move(t));
 }
-
 }
 
 #endif

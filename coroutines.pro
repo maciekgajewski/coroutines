@@ -4,10 +4,14 @@ CONFIG -= app_bundle
 CONFIG -= qt
 QMAKE_CXXFLAGS += -std=c++11
 
-SOURCES += main.cpp naive_scheduler.cpp
-HEADERS += naive_scheduler.hpp \
-    naive_channel.hpp \
-    generator.hpp
+SOURCES += main.cpp threaded_scheduler.cpp \
+    generator_tests.cpp
+HEADERS += threaded_scheduler.hpp \
+    threaded_channel.hpp \
+    generator.hpp \
+    channel.hpp \
+    generator_tests.hpp \
+    mutex.hpp
 
 INCLUDEPATH += /usr/local/boost_1_54/include
 
