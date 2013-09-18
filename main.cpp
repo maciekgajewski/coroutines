@@ -6,18 +6,9 @@
 boost::context::fcontext_t main_context; // will hold the main execution context
 boost::context::fcontext_t* new_context = nullptr; // will point to the new context
 static const int STACK_SIZE= 64*1024; // completely arbitrary value
+char* stack = nullptr;
 
-void fun(intptr_t) // the singature has to be like this
-{
-    for(intptr_t i = 0;; i++)
-    {
-        std::cout <<"fun, i=" << i << std::endl;
-        boost::context::jump_fcontext(new_context, &main_context, i*10); // switch back to the main context
-    }
-    // jump_fcontext MUST be the last executed statement. The function can not return, nor throw an exception!
-}
-
-int main(int , char** )
+void init(void(* fun)(intptr_t))
 {
     // allocate stack for new context
     char* stack = new char[STACK_SIZE];
@@ -27,16 +18,50 @@ int main(int , char** )
                 stack + STACK_SIZE, // new stack pointer. On x86/64 it hast be the TOP of the stack (hence the "+ STACK_SIZE")
                 STACK_SIZE,
                 fun);
+}
 
-    // switch to the new context several times
-    for(intptr_t i = 0; i < 5; i++)
+void cleanup()
+{
+    delete stack;
+    stack = nullptr;
+    new_context = nullptr;
+}
+
+intptr_t next()
+{
+    return boost::context::jump_fcontext(&main_context, new_context, 0); // switch to function context
+}
+
+void yield(intptr_t value)
+{
+    boost::context::jump_fcontext(new_context, &main_context, value); // switch back to the main context
+}
+
+void fibonacci(intptr_t) // the singature has to be like this
+{
+    intptr_t last = 1;
+    intptr_t current = 1;
+    for(;;)
     {
-        intptr_t ret = boost::context::jump_fcontext(&main_context, new_context, 0);
-        std::cout << "ret=" << ret << std::endl;
+        yield(current);
+        intptr_t nxt = last + current;
+        last = current;
+        current = nxt;
     }
+}
 
-    // cleanup
-    delete[] stack;
+int main(int , char** )
+{
+    init(fibonacci);
+
+    const int N = 10;
+    std::cout << "first " << N << " numbers of fibonacci sequence:" << std::endl;
+
+    for(int i = 0; i < N; i++)
+    {
+        std::cout << next() << std::endl;
+    }
+    cleanup();
 }
 
 
