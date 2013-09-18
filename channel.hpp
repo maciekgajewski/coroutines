@@ -120,6 +120,12 @@ struct channel_pair
     , writer(std::move(o.writer))
     { }
 
+    channel_pair(channel_reader<T>&& r, channel_writer<T>&& w)
+    : reader(std::move(r))
+    , writer(std::move(w))
+    { }
+
+
     channel_reader<T> reader;
     channel_writer<T> writer;
 };

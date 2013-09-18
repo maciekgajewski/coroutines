@@ -25,10 +25,9 @@ public:
     {
         std::shared_ptr<threaded_channel<T>> me(new threaded_channel<T>(capacity));
         return channel_pair<T>({
-            std::unique_ptr<i_reader_impl<T>>(new reader(me)),
-            std::unique_ptr<i_writer_impl<T>>(new writer(me))}
+            channel_reader<T>(std::unique_ptr<i_reader_impl<T>>(new reader_impl(me))),
+            channel_writer<T>(std::unique_ptr<i_writer_impl<T>>(new writer_impl(me)))}
             );
-        return channel_pair<T>();
     }
 
     threaded_channel(const threaded_channel&) = delete;
@@ -45,35 +44,35 @@ private:
 
     threaded_channel(std::size_t capacity);
 
-    class reader : public i_reader_impl<T>
+    class reader_impl : public i_reader_impl<T>
     {
     public:
-        virtual ~reader() noexcept override  = default;
+        virtual ~reader_impl() noexcept override  = default;
         virtual T get() override { return _parent->get(); }
 
     private:
 
-        reader() = delete;
-        reader(const reader&) = delete;
-        reader(std::shared_ptr<threaded_channel> parent) : _parent(parent) { }
+        reader_impl() = delete;
+        reader_impl(const reader_impl&) = delete;
+        reader_impl(std::shared_ptr<threaded_channel> parent) : _parent(parent) { }
         std::shared_ptr<threaded_channel> _parent;
 
         friend class threaded_channel<T>;
     };
 
-    class writer : public i_writer_impl<T>
+    class writer_impl : public i_writer_impl<T>
     {
     public:
-        virtual ~writer() noexcept override { _parent->close(); }
+        virtual ~writer_impl() noexcept override { _parent->close(); }
         virtual void put(const T& v) override { _parent->put(v); }
         virtual void put(T&& v) override { _parent->put(v); }
         virtual void close() override { _parent->close(); }
 
     private:
 
-        writer() = delete;
-        writer(const writer&) = delete;
-        writer(std::shared_ptr<threaded_channel> parent) : _parent(parent) { }
+        writer_impl() = delete;
+        writer_impl(const writer_impl&) = delete;
+        writer_impl(std::shared_ptr<threaded_channel> parent) : _parent(parent) { }
         std::shared_ptr<threaded_channel> _parent;
 
         friend class threaded_channel<T>;
@@ -95,7 +94,6 @@ private:
     std::size_t _wr = 0; // index of nex item to write
     mutex _mutex;
     std::condition_variable _cv;
-    writer* _wrtier = nullptr;
     bool _closed = false;
 };
 
