@@ -2,42 +2,103 @@
 
 #include <boost/context/all.hpp>
 #include <iostream>
+#include <functional>
+#include <exception>
 
-boost::context::fcontext_t main_context; // will hold the main execution context
-boost::context::fcontext_t* new_context = nullptr; // will point to the new context
-static const int STACK_SIZE= 64*1024; // completely arbitrary value
-char* stack = nullptr;
-
-void init(void(* fun)(intptr_t))
+// exception thrown where generator function exists
+struct generator_finished : public std::exception
 {
-    // allocate stack for new context
-    char* stack = new char[STACK_SIZE];
+    virtual const char* what() const noexcept { return "generator finished"; }
+};
 
-    // make a new context. The returned fcontext_t is created on the new stack, so there is no need to delete it
-    new_context = boost::context::make_fcontext(
-                stack + STACK_SIZE, // new stack pointer. On x86/64 it hast be the TOP of the stack (hence the "+ STACK_SIZE")
-                STACK_SIZE,
-                fun);
-}
-
-void cleanup()
+class generator
 {
-    delete stack;
-    stack = nullptr;
-    new_context = nullptr;
-}
+public:
 
-intptr_t next()
-{
-    return boost::context::jump_fcontext(&main_context, new_context, 0); // switch to function context
-}
+    typedef std::function<void(intptr_t)> yield_function_type;
+    typedef std::function<void(yield_function_type)> generator_function_type;
 
-void yield(intptr_t value)
-{
-    boost::context::jump_fcontext(new_context, &main_context, value); // switch back to the main context
-}
+    // former 'init()'
+    generator(generator_function_type generator, std::size_t stack_size = DEFAULT_STACK_SIZE)
+        : _generator(std::move(generator))
+    {
+        // allocate stack for new context
+        _stack = new char[stack_size];
 
-void fibonacci(intptr_t) // the singature has to be like this
+        // make a new context. The returned fcontext_t is created on the new stack, so there is no need to delete it
+        _new_context = boost::context::make_fcontext(
+                    _stack + stack_size, // new stack pointer. On x86/64 it hast be the TOP of the stack (hence the "+ STACK_SIZE")
+                    stack_size,
+                    &generator::static_generator_function); // will call generator wrapper
+    }
+
+    // former 'cleanup()'
+    ~generator()
+    {
+        delete _stack;
+        _stack = nullptr;
+        _new_context = nullptr;
+    }
+
+    intptr_t next()
+    {
+        // prevent calling when the generator function already finished
+        if (_exception)
+            std::rethrow_exception(_exception);
+
+        // switch to function context. May set _exception
+        intptr_t result = boost::context::jump_fcontext(&_main_context, _new_context, reinterpret_cast<intptr_t>(this));
+        if (_exception)
+            std::rethrow_exception(_exception);
+        else
+            return result;
+    }
+
+private:
+
+    // former global variables
+    boost::context::fcontext_t _main_context; // will hold the main execution context
+    boost::context::fcontext_t* _new_context = nullptr; // will point to the new context
+    static const int DEFAULT_STACK_SIZE= 64*1024; // completely arbitrary value
+    char* _stack = nullptr;
+
+    generator_function_type _generator; // generator function
+
+    std::exception_ptr _exception = nullptr;// pointer to exception thrown by generator function
+
+
+    // the actual generator function used to create context
+    static void static_generator_function(intptr_t param)
+    {
+        generator* _this = reinterpret_cast<generator*>(param);
+        _this->generator_wrapper();
+    }
+
+    void yield(intptr_t value)
+    {
+        boost::context::jump_fcontext(_new_context, &_main_context, value); // switch back to the main context
+    }
+
+    void generator_wrapper()
+    {
+        try
+        {
+            _generator([this](intptr_t value) // use lambda to bind this to yield
+            {
+                yield(value);
+            });
+            throw generator_finished();
+        }
+        catch(...)
+        {
+            // store the exception, is it can be thrown back in the main context
+            _exception = std::current_exception();
+            boost::context::jump_fcontext(_new_context, &_main_context, 0); // switch back to the main context
+        }
+    }
+};
+
+void fibonacci(const generator::yield_function_type& yield)
 {
     intptr_t last = 1;
     intptr_t current = 1;
@@ -52,16 +113,18 @@ void fibonacci(intptr_t) // the singature has to be like this
 
 int main(int , char** )
 {
-    init(fibonacci);
-
     const int N = 10;
-    std::cout << "first " << N << " numbers of fibonacci sequence:" << std::endl;
+    std::cout << "Two fibonacci sequences generated in parallel::" << std::endl;
+    generator generator1(fibonacci);
+    std::cout << "seq #1: " << generator1.next() << std::endl;
+    std::cout << "seq #1: " << generator1.next() << std::endl;
 
+    generator generator2(fibonacci);
     for(int i = 0; i < N; i++)
     {
-        std::cout << next() << std::endl;
+        std::cout << "seq #1: " << generator1.next() << std::endl;
+        std::cout << "seq #2:       " << generator2.next() << std::endl;
     }
-    cleanup();
 }
 
 
