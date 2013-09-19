@@ -6,4 +6,7 @@ add_library(libcoroutines STATIC
 		threaded_channel.hpp
 		threaded_scheduler.cpp threaded_scheduler.hpp
 )
-target_link_libraries(libcoroutines ${Boost_LIBRARIES})
+target_link_libraries(libcoroutines
+    ${Boost_LIBRARIES}
+    pthread
+)

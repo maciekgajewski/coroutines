@@ -22,8 +22,7 @@ class i_writer_impl
 public:
     virtual ~i_writer_impl() = default;
 
-    virtual void put(const T& val) = 0;
-    virtual void put(T&& val) = 0;
+    virtual void put(T val) = 0;
     virtual void close() = 0;
 };
 
@@ -39,19 +38,17 @@ public:
         std::swap(o._impl, _impl);
     }
 
-    channel_writer(std::unique_ptr<i_writer_impl<T>>&& impl) noexcept
+    channel_writer(std::shared_ptr<i_writer_impl<T>>&& impl) noexcept
         : _impl(std::move(impl))
     { }
 
-    void put(const T& val)
+    ~channel_writer()
     {
         if (_impl)
-            _impl->put(val);
-        else
-            throw channel_closed();
+            _impl->close();
     }
 
-    void put(T&& val)
+    void put(T val)
     {
         if (_impl)
             _impl->put(std::move(val));
@@ -73,7 +70,7 @@ public:
 
 private:
 
-    std::unique_ptr<i_writer_impl<T>> _impl;
+    std::shared_ptr<i_writer_impl<T>> _impl;
 };
 
 //reader implementation interface
@@ -98,7 +95,7 @@ public:
         std::swap(o._impl, _impl);
     }
 
-    channel_reader(std::unique_ptr<i_reader_impl<T>>&& impl)
+    channel_reader(std::shared_ptr<i_reader_impl<T>>&& impl)
     : _impl(std::move(impl))
     { }
 
@@ -117,7 +114,7 @@ public:
 
 private:
 
-    std::unique_ptr<i_reader_impl<T>> _impl;
+    std::shared_ptr<i_reader_impl<T>> _impl;
 };
 
 template<typename T>
