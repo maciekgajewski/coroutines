@@ -5,6 +5,7 @@ add_library(libcoroutines STATIC
 		mutex.hpp
 		threaded_channel.hpp
 		threaded_scheduler.cpp threaded_scheduler.hpp
+                globals.cpp globals.hpp
 )
 target_link_libraries(libcoroutines
     ${Boost_LIBRARIES}

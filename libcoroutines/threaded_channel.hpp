@@ -8,6 +8,7 @@
 #include <cassert>
 #include <utility>
 #include <iostream> // for debugging
+
 #include "channel.hpp"
 #include "mutex.hpp"
 
@@ -76,7 +77,7 @@ void threaded_channel<T>::put(T v)
     // wait for the queue to be not-full
     _cv.wait(lock, [this](){ return size() < _capacity-1; });
 
-    std::swap(_queue[_wr], v);
+    std::swap<T>(_queue[_wr], v);
     _wr = (_wr + 1) % _capacity;
     if(size() == 1)
         _cv.notify_all();
@@ -90,8 +91,11 @@ T threaded_channel<T>::get()
     // wait for the queue to be not-empty
     _cv.wait(lock, [this](){ return size() > 0 || _closed; });
 
-    if (_closed)
+    if (empty())
+    {
+        assert(_closed);
         throw channel_closed();
+    }
 
     T v(std::move(_queue[_rd]));
     _rd = (_rd + 1) % _capacity;
