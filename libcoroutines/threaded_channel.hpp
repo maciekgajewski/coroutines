@@ -24,9 +24,9 @@ public:
     static channel_pair<T> make(std::size_t capacity)
     {
         std::shared_ptr<threaded_channel<T>> me(new threaded_channel<T>(capacity));
-        return channel_pair<T>({
+        return channel_pair<T>(
             channel_reader<T>(std::unique_ptr<i_reader_impl<T>>(new reader_impl(me))),
-            channel_writer<T>(std::unique_ptr<i_writer_impl<T>>(new writer_impl(me)))}
+            channel_writer<T>(std::unique_ptr<i_writer_impl<T>>(new writer_impl(me)))
             );
     }
 

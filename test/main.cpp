@@ -1,7 +1,7 @@
 // (c) 2013 Maciej Gajewski, <maciej.gajewski0@gmail.com>
 
-#include "channel.hpp"
-#include "threaded_channel.hpp"
+#include "libcoroutines/channel.hpp"
+#include "libcoroutines/threaded_channel.hpp"
 
 #include <iostream>
 

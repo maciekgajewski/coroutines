@@ -34,7 +34,11 @@ class channel_writer
 public:
 
     channel_writer() noexcept = default;
-    channel_writer(channel_writer&&) noexcept = default;
+    channel_writer(channel_writer&& o) noexcept
+    {
+        std::swap(o._impl, _impl);
+    }
+
     channel_writer(std::unique_ptr<i_writer_impl<T>>&& impl) noexcept
         : _impl(std::move(impl))
     { }
@@ -89,7 +93,11 @@ class channel_reader
 public:
 
     channel_reader() noexcept = default;
-    channel_reader(channel_reader&&) = default;
+    channel_reader(channel_reader&& o)
+    {
+        std::swap(o._impl, _impl);
+    }
+
     channel_reader(std::unique_ptr<i_reader_impl<T>>&& impl)
     : _impl(std::move(impl))
     { }
