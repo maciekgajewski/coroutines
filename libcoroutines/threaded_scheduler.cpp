@@ -1,3 +1,4 @@
+// (c) 2013 Maciej Gajewski, <maciej.gajewski0@gmail.com>
 #include "threaded_scheduler.hpp"
 
 namespace coroutines {
