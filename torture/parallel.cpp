@@ -73,8 +73,8 @@ void parallel(const char* in, const char* out)
         {
             if (it->path().extension() == ".xz" && it->status().type() == bfs::regular_file)
             {
-                bfs::path output_path = output_dir /= it->path().filename().stem();
-                go(process_file, it->path(), output_path);
+                bfs::path output_path = output_dir / it->path().filename().stem();
+                go(std::string("proces_file ") + it->path().string(), process_file, it->path(), output_path);
             }
 
         }
@@ -92,7 +92,7 @@ void parallel(const char* in, const char* out)
 
 void process_file(const bfs::path& input_file, const bfs::path& output_file)
 {
-    std::cout << "process file: " << input_file << " -> " << output_file << std::endl;
+    //std::cout << "process file: " << input_file << " -> " << output_file << std::endl;
 
     channel_pair<buffer> compressed = make_channel<buffer>(BUFFERS);
     channel_pair<buffer> decompressed = make_channel<buffer>(BUFFERS);
@@ -101,10 +101,12 @@ void process_file(const bfs::path& input_file, const bfs::path& output_file)
 
 
     // start writer
-    go(write_output, std::move(decompressed.reader), std::move(decompressed_return.writer), output_file);
+    go(std::string("write_output ") + output_file.string(),
+        write_output, std::move(decompressed.reader), std::move(decompressed_return.writer), output_file);
 
     // start decompressor
-    go(lzma_decompress,
+    go(std::string("lzma_decompress") + input_file.string(),
+        lzma_decompress,
         std::move(compressed.reader), std::move(compressed_return.writer),
         std::move(decompressed_return.reader), std::move(decompressed.writer));
 
@@ -118,9 +120,9 @@ void read_input(buffer_writer& compressed, buffer_reader& compressed_return, con
     {
         file f(input_file.string().c_str(), "rb");
 
+        unsigned counter = 0;
         for(;;)
         {
-            unsigned counter = 0;
             buffer b;
             if (counter++ < BUFFERS)
                 b = buffer(BUFFER_SIZE);

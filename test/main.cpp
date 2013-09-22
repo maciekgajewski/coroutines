@@ -12,7 +12,7 @@ void _TEST_EQUAL(const T1& a, const T2& b, const char* msg)
 {
     if (a != b)
     {
-        std::cout << msg << " failed" << std::endl;
+        std::cout << msg << " failed (" << a << " != " << b << ")" << std::endl;
         assert(false);
     }
 }
@@ -28,16 +28,16 @@ void test_reading_after_close()
     // create channel
     channel_pair<int> pair = make_channel<int>(10);
 
-    int last_wrtitten = -1;
+    int last_written = -1;
     int last_read = -1;
 
     // writer coroutine
-    go([&last_wrtitten](channel_writer<int>& writer)
+    go([&last_written](channel_writer<int>& writer)
     {
         for(int i = 0; i < 5; i++)
         {
             writer.put(i);
-            last_wrtitten = i;
+            last_written = i;
         }
     }, std::move(pair.writer));
 
@@ -63,7 +63,7 @@ void test_reading_after_close()
     set_scheduler(nullptr);
     sched.reset();
 
-    TEST_EQUAL(last_wrtitten, 4);
+    TEST_EQUAL(last_written, 4);
     TEST_EQUAL(last_read, 4);
 }
 
@@ -136,10 +136,62 @@ void test_writer_exit_when_closed()
     TEST_EQUAL(writer_threw, true);
 }
 
+// send more items than channels capacity
+void test_large_transfer()
+{
+    std::unique_ptr<threaded_scheduler> sched(new threaded_scheduler);
+    set_scheduler(sched.get());
+
+    // create channel
+    channel_pair<int> pair = make_channel<int>(10);
+
+    int last_written = -1;
+    int last_read = -1;
+
+    // writer coroutine
+    go([&last_written](channel_writer<int>& writer)
+    {
+        for(int i = 0; i < 100; i++)
+        {
+            writer.put(i);
+            last_written = i;
+            if (i % 7)
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+    }, std::move(pair.writer));
+
+    // reader coroutine
+    go([&last_read](channel_reader<int>& reader)
+    {
+        for(int i = 0;;i++)
+        {
+            try
+            {
+                last_read = reader.get();
+                if (i % 13)
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
+            catch(const channel_closed&)
+            {
+                break;
+            }
+        }
+    }, std::move(pair.reader));
+
+
+    // TEST
+    set_scheduler(nullptr);
+    sched.reset();
+
+    TEST_EQUAL(last_written, 99);
+    TEST_EQUAL(last_read, 99);
+}
+
 int main(int , char** )
 {
     test_reading_after_close();
     test_reader_blocking();
     test_writer_exit_when_closed();
+    test_large_transfer();
 }
 

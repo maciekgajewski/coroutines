@@ -2,13 +2,15 @@
 #ifndef COROUTINES_NAIVE_SCHEDULER_HPP
 #define COROUTINES_NAIVE_SCHEDULER_HPP
 
+#include "threaded_channel.hpp"
+
 #include <thread>
 #include <functional>
 // (c) 2013 Maciej Gajewski, <maciej.gajewski0@gmail.com>
 #include <utility>
 #include <list>
 
-#include "threaded_channel.hpp"
+#include <pthread.h>
 
 namespace coroutines {
 // Naive scheduler simply starts each corountine as separate thread
@@ -23,6 +25,10 @@ public:
     // launches corountine
     template<typename Callable, typename... Args>
     void go(Callable&& fn, Args&&... args);
+
+    // debug version, with coroutine's name
+    template<typename Callable, typename... Args>
+    void go(std::string name, Callable&& fn, Args&&... args);
 
     // create channel
     template<typename T>
@@ -43,35 +49,39 @@ namespace detail {
 template<typename Callable>
 struct coroutine_wrapper
 {
-    coroutine_wrapper(Callable&& c)
-    : _coroutine(std::move(c))
+    coroutine_wrapper(std::string name, Callable&& c)
+    : _name(std::move(name)), _coroutine(std::move(c))
     { }
 
     void operator()()
     {
+        // name thread
+        ::pthread_setname_np(::pthread_self(), _name.substr(0, 15).c_str());
+
         try
         {
             _coroutine();
-            std::cout << "Coroutine exit cleanly" << std::endl;
+            std::cout << "Coroutine " << _name << " exit cleanly" << std::endl;
         }
         catch(const channel_closed& )
         {
-            std::cout << "Coroutine exit due to a closed channel" << std::endl;
+            std::cout << "Coroutine " << _name << " exit due to a closed channel" << std::endl;
         }
         catch(...)
         {
-            std::cout << "Unhandled exception in coroutine, terminating" << std::endl;
+            std::cout << "Unhandled exception in coroutine " << _name << ", terminating" << std::endl;
             std::terminate();
         }
     }
 
+    std::string _name;
     Callable _coroutine;
 };
 
 template<typename Callable>
-coroutine_wrapper<Callable> make_coroutine_wrapper(Callable&& c)
+coroutine_wrapper<Callable> make_coroutine_wrapper(std::string name, Callable&& c)
 {
-    return coroutine_wrapper<Callable>(std::move(c));
+    return coroutine_wrapper<Callable>(std::move(name), std::move(c));
 }
 
 }
@@ -79,8 +89,14 @@ coroutine_wrapper<Callable> make_coroutine_wrapper(Callable&& c)
 template<typename Callable, typename... Args>
 void threaded_scheduler::go(Callable&& fn, Args&&... args)
 {
+    go(std::string(), std::forward<Callable>(fn), std::forward<Args>(args)...);
+}
+
+template<typename Callable, typename... Args>
+void threaded_scheduler::go(std::string name, Callable&& fn, Args&&... args)
+{
     //auto functor = std::bind(std::forward<Callable>(fn), std::forward<Args>(args)...);
-    auto functor = detail::make_coroutine_wrapper(std::bind(std::forward<Callable>(fn), std::forward<Args>(args)...));
+    auto functor = detail::make_coroutine_wrapper(std::move(name), std::bind(std::forward<Callable>(fn), std::forward<Args>(args)...));
     std::thread t(std::move(functor));
 
     _threads.push_back(std::move(t));

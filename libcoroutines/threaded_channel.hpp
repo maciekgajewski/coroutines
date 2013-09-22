@@ -80,7 +80,7 @@ void threaded_channel<T>::put(T v)
     _cv.wait(lock, [this](){ return size() < _capacity-1 || _closed; });
 
     if (_closed)
-        throw channel_closed();
+        return; // writing to closed channel is a no-op
 
     std::swap<T>(_queue[_wr], v);
 
