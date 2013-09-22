@@ -31,7 +31,7 @@ public:
     threaded_channel(const threaded_channel&) = delete;
 
     // called by writer
-    virtual void put(const T v) override;
+    virtual void put(T v) override;
     virtual void close() override;
 
     // caled by reader
@@ -65,7 +65,7 @@ threaded_channel<T>::threaded_channel(std::size_t capacity)
     : _capacity(capacity+1)
 {
     assert(capacity > 0);
-    _queue.reserve(_capacity);
+    _queue.resize(_capacity); // thisis why queue items have to be default-constructible
 }
 
 
@@ -77,7 +77,9 @@ void threaded_channel<T>::put(T v)
     // wait for the queue to be not-full
     _cv.wait(lock, [this](){ return size() < _capacity-1; });
 
+    //_queue[_wr] = std::move(v);
     std::swap<T>(_queue[_wr], v);
+
     _wr = (_wr + 1) % _capacity;
     if(size() == 1)
         _cv.notify_all();

@@ -18,8 +18,7 @@ public:
     typedef const char* const_iterator;
 
     // null buffer
-    buffer() : _capacity(0), _size(0)
-    { }
+    buffer() = default;
 
     // alocated buffer
     buffer(std::size_t capacity)
@@ -34,7 +33,8 @@ public:
 
     buffer& operator=(buffer&& o)
     {
-
+        swap(o);
+        return *this;
     }
 
     // iterators
@@ -60,16 +60,21 @@ public:
 
 private:
 
-    std::size_t _capacity;  // buffer capacity
-    std::size_t _size;      // amount of data in
+    std::size_t _capacity = 0;  // buffer capacity
+    std::size_t _size = 0;      // amount of data in
     std::unique_ptr<char[]> _data;
 };
 
-inline void swap(buffer& a, buffer& b) noexcept
+}
+
+namespace std {
+
+template<>
+inline
+void swap<torture::buffer>(torture::buffer& a, torture::buffer& b)
 {
     a.swap(b);
 }
 
 }
-
 #endif

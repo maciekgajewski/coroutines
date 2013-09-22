@@ -16,7 +16,7 @@ namespace bfs = boost::filesystem;
 
 namespace torture {
 
-static const unsigned BUFFERS = 10;
+static const unsigned BUFFERS = 2;
 static const unsigned BUFFER_SIZE = 4*1024;
 
 class file
@@ -37,12 +37,12 @@ public:
 
     std::size_t read(void* buf, std::size_t max)
     {
-        return ::fread(buf, max, 1, _f);
+        return ::fread(buf, 1, max, _f);
     }
 
     std::size_t write(void* buf, std::size_t size)
     {
-        return ::fwrite(buf, size, 1, _f);
+        return ::fwrite(buf, 1, size, _f);
     }
 
 private:
@@ -52,7 +52,8 @@ private:
 
 
 void process_file(const bfs::path& in_path, const bfs::path& out_path);
-void write_output(buffer_reader& decompressed, buffer_writer& decompressed_return, const  bfs::path& output_file);
+void write_output(buffer_reader& decompressed, buffer_writer& decompressed_return, const bfs::path& output_file);
+void read_input(buffer_writer& compressed, buffer_reader& compressed_return, const bfs::path& input_file);
 
 // Main entry point
 void parallel(const char* in, const char* out)
@@ -84,58 +85,68 @@ void parallel(const char* in, const char* out)
         std::cerr << "Error :" << e.what() << std::endl;
     }
 
+    sched->wait();
     set_scheduler(nullptr);
     sched.reset();
 }
 
-void process_file(const bfs::path& in_path, const bfs::path& out_path)
+void process_file(const bfs::path& input_file, const bfs::path& output_file)
 {
+    std::cout << "process file: " << input_file << " -> " << output_file << std::endl;
+
     channel_pair<buffer> compressed = make_channel<buffer>(BUFFERS);
     channel_pair<buffer> decompressed = make_channel<buffer>(BUFFERS);
     channel_pair<buffer> compressed_return = make_channel<buffer>(BUFFERS);
     channel_pair<buffer> decompressed_return = make_channel<buffer>(BUFFERS);
 
-    // open file, allocate buffers
+
+    // start writer
+    go(write_output, std::move(decompressed.reader), std::move(decompressed_return.writer), output_file);
+
+    // start decompressor
+    go(lzma_decompress,
+        std::move(compressed.reader), std::move(compressed_return.writer),
+        std::move(decompressed_return.reader), std::move(decompressed.writer));
+
+    // read (in this coroutine)
+    read_input(compressed.writer, compressed_return.reader, input_file);
+}
+
+void read_input(buffer_writer& compressed, buffer_reader& compressed_return, const bfs::path& input_file)
+{
     try
     {
-        file f(in_path.string().c_str(), "rb");
+        file f(input_file.string().c_str(), "rb");
 
-        for(int i = 0; i < BUFFERS; i++)
-        {
-            compressed_return.writer.put(buffer(BUFFER_SIZE)); // DODGY!!!!! what if this blocks?
-        }
-
-
-        // start writer
-        go(write_output, std::move(decompressed.reader), std::move(decompressed_return.writer), out_path);
-
-        // start decompressor
-        go(lzma_decompress,
-            std::move(compressed.reader), std::move(compressed_return.writer),
-            std::move(decompressed_return.reader), std::move(decompressed.writer));
-
-        // read
         for(;;)
         {
-            buffer b = compressed_return.reader.get();
+            unsigned counter = 0;
+            buffer b;
+            if (counter++ < BUFFERS)
+                b = buffer(BUFFER_SIZE);
+            else
+                b = compressed_return.get();
             std::size_t r = f.read(b.begin(), b.capacity());
             if (r == 0)
-                break;
+                break; // this will close the channel
             else
             {
                 b.set_size(r);
-                compressed.writer.put(std::move(b));
+                compressed.put(std::move(b));
             }
         }
     }
     catch(const std::exception& e)
     {
-        std::cerr << "Error processing file " << in_path << " : " << e.what() << std::endl;
+        std::cerr << "Error processing file " << input_file << " : " << e.what() << std::endl;
     }
 }
 
+
 void write_output(buffer_reader& decompressed, buffer_writer& decompressed_return, const  bfs::path& output_file)
 {
+    std::cout << "write_output: " << output_file << std::endl;
+
     try
     {
         // open file

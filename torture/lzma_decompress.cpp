@@ -16,6 +16,8 @@ void lzma_decompress(
     buffer_writer& decopressed
 )
 {
+    std::cout << "lzma decompress" << std::endl;
+
     lzma_stream stream = LZMA_STREAM_INIT;
     lzma_ret ret = lzma_stream_decoder(&stream, UINT64_MAX, LZMA_CONCATENATED);
     if (ret != LZMA_OK)
@@ -24,7 +26,7 @@ void lzma_decompress(
     }
 
     buffer inbuf;
-    buffer outbuf = decompressed_return.get(); // get allocated buffer from reader
+    buffer outbuf = decompressed_return.get(); // get allocated buffer from writer
 
     stream.next_in = nullptr;
     stream.avail_in = 0;
