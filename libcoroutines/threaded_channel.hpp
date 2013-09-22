@@ -32,10 +32,12 @@ public:
 
     // called by writer
     virtual void put(T v) override;
-    virtual void close() override;
 
     // caled by reader
     virtual T get() override;
+
+    // caled by both
+    virtual void close() override;
 
 private:
 
@@ -75,9 +77,11 @@ void threaded_channel<T>::put(T v)
     std::unique_lock<mutex> lock(_mutex);
 
     // wait for the queue to be not-full
-    _cv.wait(lock, [this](){ return size() < _capacity-1; });
+    _cv.wait(lock, [this](){ return size() < _capacity-1 || _closed; });
 
-    //_queue[_wr] = std::move(v);
+    if (_closed)
+        throw channel_closed();
+
     std::swap<T>(_queue[_wr], v);
 
     _wr = (_wr + 1) % _capacity;
@@ -114,10 +118,7 @@ void threaded_channel<T>::close()
     if (!_closed)
     {
         _closed = true;
-        if (empty()) // someone may be waiting
-        {
-            _cv.notify_all();
-        }
+        _cv.notify_all();
     }
 }
 

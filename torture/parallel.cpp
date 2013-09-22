@@ -27,7 +27,7 @@ public:
     {
         _f = ::fopen(path, mode);
         if (!_f)
-            std::runtime_error("Unable to open file");
+            throw std::runtime_error("Unable to open file");
     }
 
     ~file()
@@ -42,7 +42,7 @@ public:
 
     std::size_t write(void* buf, std::size_t size)
     {
-        return ::fwrite(buf, 1, size, _f);
+        return ::fwrite(buf, size, 1, _f);
     }
 
 private:
@@ -138,7 +138,7 @@ void read_input(buffer_writer& compressed, buffer_reader& compressed_return, con
     }
     catch(const std::exception& e)
     {
-        std::cerr << "Error processing file " << input_file << " : " << e.what() << std::endl;
+        std::cerr << "Error reading file " << input_file << " : " << e.what() << std::endl;
     }
 }
 
@@ -170,7 +170,7 @@ void write_output(buffer_reader& decompressed, buffer_writer& decompressed_retur
     }
     catch(const std::exception& e)
     {
-        std::cout << "Error writing to output file " << output_file << " : " << e.what() << std::endl;
+        std::cerr << "Error writing to output file " << output_file << " : " << e.what() << std::endl;
     }
 }
 

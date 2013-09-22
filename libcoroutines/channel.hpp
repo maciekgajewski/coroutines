@@ -82,6 +82,7 @@ public:
     virtual ~i_reader_impl() = default;
 
     virtual T get() = 0;
+    virtual void close() = 0;
 };
 
 template<typename T>
@@ -99,12 +100,26 @@ public:
     : _impl(std::move(impl))
     { }
 
+    ~channel_reader()
+    {
+        if (_impl)
+            _impl->close();
+    }
+
+
     T get()
     {
         if (_impl)
             return _impl->get();
         else
             throw channel_closed();
+    }
+
+    void close()
+    {
+        if (_impl)
+            _impl->close();
+        _impl.reset();
     }
 
     bool is_closed() const noexcept

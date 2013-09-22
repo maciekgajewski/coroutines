@@ -100,9 +100,46 @@ void test_reader_blocking()
     TEST_EQUAL(writer_finished, true);
 }
 
+// test - writer.put() should exit with an exception if reader closes channel
+void test_writer_exit_when_closed()
+{
+    std::unique_ptr<threaded_scheduler> sched(new threaded_scheduler);
+    set_scheduler(sched.get());
+
+    // create channel
+    channel_pair<int> pair = make_channel<int>(1);
+
+
+    go([](channel_reader<int>& r)
+    {
+        // do nothing, close the chanel on exit
+    }, std::move(pair.reader));
+
+    bool writer_threw = false;
+    go([&writer_threw](channel_writer<int>& w)
+    {
+        try
+        {
+            w.put(1);
+            w.put(2); // this will block
+        }
+        catch(const channel_closed&)
+        {
+            writer_threw = true;
+        }
+
+    }, std::move(pair.writer));
+
+    set_scheduler(nullptr);
+    sched.reset();
+
+    TEST_EQUAL(writer_threw, true);
+}
+
 int main(int , char** )
 {
     test_reading_after_close();
     test_reader_blocking();
+    test_writer_exit_when_closed();
 }
 

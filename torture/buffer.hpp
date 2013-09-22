@@ -23,7 +23,12 @@ public:
     // alocated buffer
     buffer(std::size_t capacity)
     : _capacity(capacity), _size(0), _data(new char[_capacity])
-    { }
+    {
+    }
+
+    ~buffer()
+    {
+    }
 
     buffer(const buffer&) = delete;
     buffer(buffer&& o) noexcept
