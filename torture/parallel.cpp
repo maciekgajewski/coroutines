@@ -16,8 +16,8 @@ namespace bfs = boost::filesystem;
 
 namespace torture {
 
-static const unsigned BUFFERS = 10;
-static const unsigned BUFFER_SIZE = 4*1024;
+static const unsigned BUFFERS = 800;
+static const unsigned BUFFER_SIZE = 1*1024;
 
 class file
 {
@@ -105,7 +105,7 @@ void process_file(const bfs::path& input_file, const bfs::path& output_file)
         write_output, std::move(decompressed.reader), std::move(decompressed_return.writer), output_file);
 
     // start decompressor
-    go(std::string("lzma_decompress") + input_file.string(),
+    go(std::string("lzma_decompress ") + input_file.string(),
         lzma_decompress,
         std::move(compressed.reader), std::move(compressed_return.writer),
         std::move(decompressed_return.reader), std::move(decompressed.writer));
@@ -164,7 +164,7 @@ void write_output(buffer_reader& decompressed, buffer_writer& decompressed_retur
         {
             buffer b = decompressed.get();
             f.write(b.begin(), b.size());
-            decompressed_return.put(std::move(b));
+            decompressed_return.put_nothrow(std::move(b));
         }
     }
     catch(const channel_closed&)

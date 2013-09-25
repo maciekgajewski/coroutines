@@ -56,6 +56,19 @@ public:
             throw channel_closed();
     }
 
+    // does not throw when channel is closed
+    void put_nothrow(T val)
+    {
+        try
+        {
+            if (_impl)
+                _impl->put(std::move(val));
+        }
+        catch(const channel_closed&)
+        {
+        }
+    }
+
     void close()
     {
         if (_impl)

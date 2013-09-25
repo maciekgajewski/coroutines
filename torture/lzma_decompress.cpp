@@ -43,7 +43,7 @@ void lzma_decompress(
         {
             // return previous used buffer
             if (!inbuf.is_null())
-                compressed_return.put(std::move(inbuf));
+                compressed_return.put_nothrow(std::move(inbuf));
             try
             {
                 // read one
