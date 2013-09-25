@@ -40,6 +40,7 @@ public:
 private:
 
     std::list<std::thread> _threads;
+    std::mutex _threads_mutex;
 };
 
 // functor with thread routine wrapping user-provided coroutine.
@@ -95,6 +96,8 @@ void threaded_scheduler::go(Callable&& fn, Args&&... args)
 template<typename Callable, typename... Args>
 void threaded_scheduler::go(std::string name, Callable&& fn, Args&&... args)
 {
+    std::lock_guard<std::mutex> lock(_threads_mutex);
+
     //auto functor = std::bind(std::forward<Callable>(fn), std::forward<Args>(args)...);
     auto functor = detail::make_coroutine_wrapper(std::move(name), std::bind(std::forward<Callable>(fn), std::forward<Args>(args)...));
     std::thread t(std::move(functor));

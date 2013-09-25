@@ -15,11 +15,14 @@ threaded_scheduler::~threaded_scheduler()
 void threaded_scheduler::wait()
 {
     // join all threads
-    for (std::thread& t : _threads)
+    while(!_threads.empty())
     {
-        t.join();
+        _threads.front().join();
+        {
+            std::lock_guard<std::mutex> lock(_threads_mutex);
+            _threads.pop_front();
+        }
     }
-    _threads.clear();
 }
 
 
