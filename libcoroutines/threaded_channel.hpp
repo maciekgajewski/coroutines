@@ -58,7 +58,7 @@ private:
     std::size_t _rd = 0; // index of the next item to read
     std::size_t _wr = 0; // index of nex item to write
     mutex _mutex;
-    std::condition_variable _cv;
+    std::condition_variable_any _cv;
     bool _closed = false;
 };
 

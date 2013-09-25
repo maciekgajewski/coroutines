@@ -5,7 +5,7 @@ OUTDIR=$2
 
 for i in $INDIR/*.xz
 do
-	o=$OUTDIR/`basename -s .xz $i`
+	o=$OUTDIR/`basename  $i .xz`
 	echo $i "->" $o
-	xzcat $i > $o
+	time xzcat $i > $o
 done
