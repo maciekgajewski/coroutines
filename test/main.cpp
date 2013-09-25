@@ -1,6 +1,6 @@
 // (c) 2013 Maciej Gajewski, <maciej.gajewski0@gmail.com>
 
-#include "libcoroutines/globals.hpp"
+#include "coroutines/globals.hpp"
 
 #include <iostream>
 #include <thread>
@@ -8,15 +8,15 @@
 using namespace coroutines;
 
 template<typename T1, typename T2>
-void _TEST_EQUAL(const T1& a, const T2& b, const char* msg)
+void _TEST_EQUAL(const T1& a, const T2& b, long line, const char* msg)
 {
     if (a != b)
     {
-        std::cout << msg << " failed (" << a << " != " << b << ")" << std::endl;
+        std::cout << "Line " << line << " : " << msg << " failed (" << a << " != " << b << ")" << std::endl;
         assert(false);
     }
 }
-#define TEST_EQUAL(a, b) _TEST_EQUAL(a, b, #a "==" #b)
+#define TEST_EQUAL(a, b) _TEST_EQUAL(a, b,  __LINE__, #a "==" #b)
 
 // simple reader-wrtier test, wrtier closes before reader finishes
 // expected: reader will read all data, and then throw channel_closed
@@ -193,5 +193,6 @@ int main(int , char** )
     test_reader_blocking();
     test_writer_exit_when_closed();
     test_large_transfer();
+    std::cout << "test completed" << std::endl;
 }
 

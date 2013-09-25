@@ -33,6 +33,9 @@ public:
 
     bool empty() const;
     bool full() const;
+    std::size_t size() const; // approx. size
+
+    std::size_t capacity() const { return _capacity; }
 
 private:
 
@@ -45,10 +48,10 @@ private:
 
 template<typename T>
 spsc_queue<T>::spsc_queue(std::size_t capacity)
-: _capacity(capacity)
-, _data(std::malloc(sizeof(T) * capacity),
-, _rd(0)
-, _wr(0)
+    : _capacity(capacity)
+    , _data(static_cast<T*>(std::malloc(sizeof(T) * capacity)))
+    , _rd(0)
+    , _wr(0)
 {
     assert(capacity >= 2);
     if (!_data)
@@ -70,12 +73,14 @@ spsc_queue<T>::~spsc_queue()
     }
 }
 
-bool spsc_queue::empty() const
+template<typename T>
+bool spsc_queue<T>::empty() const
 {
     return _rd.load(std::memory_order_consume) = _wr.load(std::memory_order_consume);
 }
 
-bool spsc_queue::full() const
+template<typename T>
+bool spsc_queue<T>::full() const
 {
     auto wr_next = _wr.load(std::memory_order_consume) + 1;
     if (wr_next == _capacity)
@@ -121,6 +126,15 @@ bool spsc_queue<T>::get(T& b)
     }
 
     return false;
+}
+
+template<typename T>
+std::size_t spsc_queue<T>::size() const
+{
+    int s = _wr.load(std::memory_order_consume) - _rd.load(std::memory_order_consume);
+    if (s < 0 )
+        s+= _capacity;
+    return s;
 }
 
 }

@@ -3,4 +3,4 @@ add_executable(test
 	generator_tests.cpp generator_tests.hpp
 )
 
-target_link_libraries(test libcoroutines)
+target_link_libraries(test coroutines)

@@ -1,7 +1,7 @@
 // Copyright (c) 2013 Maciej Gajewski
 
 #include "generator_tests.hpp"
-#include "libcoroutines/generator.hpp"
+#include "coroutines/generator.hpp"
 
 #include <iostream>
 #include <iomanip>

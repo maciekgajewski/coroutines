@@ -11,6 +11,7 @@
 
 #include "channel.hpp"
 #include "mutex.hpp"
+#include "spsc_queue.hpp"
 
 namespace coroutines {
 
@@ -43,83 +44,82 @@ private:
 
     threaded_channel(std::size_t capacity);
 
-    std::size_t size() const noexcept
-    {
-        return (_wr - _rd + _capacity) % _capacity;
-    }
 
-    bool empty() const noexcept
-    {
-        return _wr == _rd;
-    }
+    spsc_queue<T> _queue;
 
-    std::vector<T> _queue;
-    const std::size_t _capacity;
-    std::size_t _rd = 0; // index of the next item to read
-    std::size_t _wr = 0; // index of nex item to write
-    mutex _mutex;
+    mutex _read_mutex, _write_mutex;
     std::condition_variable_any _cv;
+
     bool _closed = false;
 };
 
 template<typename T>
 threaded_channel<T>::threaded_channel(std::size_t capacity)
-    : _capacity(capacity+1)
+    : _queue(capacity+1)
 {
-    assert(capacity > 0);
-    _queue.resize(_capacity); // thisis why queue items have to be default-constructible
 }
 
 
 template<typename T>
 void threaded_channel<T>::put(T v)
 {
-    std::unique_lock<mutex> lock(_mutex);
-
-    // wait for the queue to be not-full
-    _cv.wait(lock, [this](){ return size() < _capacity-1 || _closed; });
+    std::lock_guard<mutex> lock(_write_mutex);
 
     if (_closed)
-        return; // writing to closed channel is a no-op
+        return;
 
-    std::swap<T>(_queue[_wr], v);
+    // try to insert without locking
+    if (!_queue.put(v))
+    {
+        // failed, locking (and possiibly waiting) needed
+        std::lock_guard<mutex> lock(_read_mutex);
+        _cv.wait(_read_mutex, [this, &v](){ return  _queue.put(v) || _closed; });
+    }
 
-    _wr = (_wr + 1) % _capacity;
-    if(size() == 1)
+    if(_queue.size() == 1)
         _cv.notify_all();
 }
 
 template<typename T>
 T threaded_channel<T>::get()
 {
-    std::unique_lock<mutex> lock(_mutex);
+    std::lock_guard<mutex> lock(_read_mutex);
+    T result;
+    bool success = true;
 
-    // wait for the queue to be not-empty
-    _cv.wait(lock, [this](){ return size() > 0 || _closed; });
+    // try to read wihtout blocking
+    if(!_queue.get(result))
+    {
+        // failed, locking (and possiibly waiting) needed
+        std::lock_guard<mutex> lock(_write_mutex);
+        // wait for the queue to be filled
+        _cv.wait(_write_mutex, [this, &result, &success](){ return (success = _queue.get(result)) || _closed; });
+    }
 
-    if (empty())
+    if (!success)
     {
         assert(_closed);
         throw channel_closed();
     }
 
-    T v(std::move(_queue[_rd]));
-    _rd = (_rd + 1) % _capacity;
-    if (size() == _capacity - 2)
+    if (_queue.size() == _queue.capacity() - 1)
         _cv.notify_all();
-    return v;
+    return result;
 }
 
 template<typename T>
 void threaded_channel<T>::close()
 {
-    std::unique_lock<mutex> lock(_mutex);
+    std::lock(_read_mutex, _write_mutex);
 
     if (!_closed)
     {
         _closed = true;
         _cv.notify_all();
     }
+    _read_mutex.unlock();
+    _write_mutex.unlock();
+
 }
 
 }

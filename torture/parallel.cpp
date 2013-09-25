@@ -1,6 +1,6 @@
 // (c) 2013 Maciej Gajewski, <maciej.gajewski0@gmail.com>
 
-#include "libcoroutines/globals.hpp"
+#include "coroutines/globals.hpp"
 
 #include "parallel.hpp"
 #include "lzma_decompress.hpp"

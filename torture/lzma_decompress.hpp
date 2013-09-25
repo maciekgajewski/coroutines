@@ -4,7 +4,7 @@
 
 #include "buffer.hpp"
 
-#include "libcoroutines/channel.hpp"
+#include "coroutines/channel.hpp"
 
 namespace torture {
 
