@@ -69,10 +69,12 @@ void threaded_channel<T>::put(T v)
     if (!_queue.put(v))
     {
         // failed, locking (and possiibly waiting) needed
-        std::lock_guard<mutex> lock(_read_mutex);
+        _write_mutex.unlock();
+        std::lock(_write_mutex, _read_mutex);
         //std::cout << "PUT: waiting" << std::endl;
         _cv.wait(_read_mutex, [this, &v](){ return  _queue.put(v) || _closed; });
         //std::cout  << "PUT: resuming" << std::endl;
+        _read_mutex.unlock();
     }
 
     if (_closed)
@@ -97,11 +99,14 @@ T threaded_channel<T>::get()
     if(!_queue.get(result))
     {
         // failed, locking (and possiibly waiting) needed
-        std::lock_guard<mutex> lock(_write_mutex);
+        _read_mutex.unlock();
+        std::lock(_read_mutex, _write_mutex);
+
         // wait for the queue to be filled
         //std::cout << "GET: waiting" << std::endl;
         _cv.wait(_write_mutex, [this, &result, &success](){ return (success = _queue.get(result)) || _closed; });
         //std::cout  << "GET: resuming" << std::endl;
+        _write_mutex.unlock();
     }
 
     if (!success)
