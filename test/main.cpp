@@ -156,7 +156,7 @@ void test_large_transfer()
         {
             writer.put(i);
             last_written = i;
-            if (i % 7)
+            if ((i % 7) == 0)
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
                 std::cout << "long write progress: " << i << "/" << 10000 << std::endl;
@@ -172,7 +172,7 @@ void test_large_transfer()
             try
             {
                 last_read = reader.get();
-                if (i % 13)
+                if ((i % 13) == 0)
                 {
                     std::this_thread::sleep_for(std::chrono::milliseconds(1));
                     std::cout << "long read progress: " << i << "/" << 10000 << std::endl;
@@ -190,8 +190,8 @@ void test_large_transfer()
     set_scheduler(nullptr);
     sched.reset();
 
-    TEST_EQUAL(last_written, 99);
-    TEST_EQUAL(last_read, 99);
+    TEST_EQUAL(last_written, MESSAGES-1);
+    TEST_EQUAL(last_read, MESSAGES-1);
 }
 
 int main(int , char** )

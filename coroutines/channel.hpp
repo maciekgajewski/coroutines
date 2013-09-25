@@ -23,7 +23,7 @@ public:
     virtual ~i_writer_impl() = default;
 
     virtual void put(T val) = 0;
-    virtual void close() = 0;
+    virtual void writer_close() = 0;
 };
 
 // wrtier enppoint to a channel
@@ -45,7 +45,7 @@ public:
     ~channel_writer()
     {
         if (_impl)
-            _impl->close();
+            _impl->writer_close();
     }
 
     void put(T val)
@@ -59,7 +59,7 @@ public:
     void close()
     {
         if (_impl)
-            _impl->close();
+            _impl->writer_close();
         _impl.reset();
     }
 
@@ -82,7 +82,7 @@ public:
     virtual ~i_reader_impl() = default;
 
     virtual T get() = 0;
-    virtual void close() = 0;
+    virtual void reader_close() = 0;
 };
 
 template<typename T>
@@ -103,7 +103,7 @@ public:
     ~channel_reader()
     {
         if (_impl)
-            _impl->close();
+            _impl->reader_close();
     }
 
 
@@ -118,7 +118,7 @@ public:
     void close()
     {
         if (_impl)
-            _impl->close();
+            _impl->reader_close();
         _impl.reset();
     }
 

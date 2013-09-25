@@ -31,19 +31,19 @@ public:
 
     threaded_channel(const threaded_channel&) = delete;
 
-    // called by writer
+    // called by producer
     virtual void put(T v) override;
+    virtual void writer_close() override;
 
-    // caled by reader
+    // caled by consumer
     virtual T get() override;
+    virtual void reader_close();
 
-    // caled by both
-    virtual void close() override;
 
 private:
 
     threaded_channel(std::size_t capacity);
-
+    void do_close();
 
     spsc_queue<T> _queue;
 
@@ -70,14 +70,20 @@ void threaded_channel<T>::put(T v)
     {
         // failed, locking (and possiibly waiting) needed
         std::lock_guard<mutex> lock(_read_mutex);
+        //std::cout << "PUT: waiting" << std::endl;
         _cv.wait(_read_mutex, [this, &v](){ return  _queue.put(v) || _closed; });
+        //std::cout  << "PUT: resuming" << std::endl;
     }
 
     if (_closed)
         throw channel_closed();
 
+    //std::cout << "PUT: q size after put: " << _queue.size() << "/" << _queue.capacity() << std::endl;
     if(_queue.size() == 1)
+    {
+        //std::cout << "PUT: waking up consumer" << std::endl;
         _cv.notify_all();
+    }
 }
 
 template<typename T>
@@ -93,7 +99,9 @@ T threaded_channel<T>::get()
         // failed, locking (and possiibly waiting) needed
         std::lock_guard<mutex> lock(_write_mutex);
         // wait for the queue to be filled
+        //std::cout << "GET: waiting" << std::endl;
         _cv.wait(_write_mutex, [this, &result, &success](){ return (success = _queue.get(result)) || _closed; });
+        //std::cout  << "GET: resuming" << std::endl;
     }
 
     if (!success)
@@ -102,23 +110,37 @@ T threaded_channel<T>::get()
         throw channel_closed();
     }
 
-    if (_queue.size() == _queue.capacity() - 1)
+    //std::cout << "GET: q size after get: " << _queue.size() << "/" << _queue.capacity() << std::endl;
+    if (_queue.size() == _queue.capacity() - 2)
+    {
+         //std::cout << "GET: waking up producer" << std::endl;
         _cv.notify_all();
+    }
     return result;
 }
 
 template<typename T>
-void threaded_channel<T>::close()
+void threaded_channel<T>::writer_close()
 {
-    std::lock(_read_mutex, _write_mutex);
+    std::lock_guard<mutex> lock(_write_mutex);
+    do_close();
+}
 
+template<typename T>
+void threaded_channel<T>::reader_close()
+{
+    std::lock_guard<mutex> lock(_read_mutex);
+    do_close();
+}
+
+template<typename T>
+void threaded_channel<T>::do_close()
+{
     if (!_closed)
     {
         _closed = true;
         _cv.notify_all();
     }
-    _read_mutex.unlock();
-    _write_mutex.unlock();
 
 }
 
