@@ -65,9 +65,6 @@ void threaded_channel<T>::put(T v)
 {
     std::lock_guard<mutex> lock(_write_mutex);
 
-    if (_closed)
-        return;
-
     // try to insert without locking
     if (!_queue.put(v))
     {
@@ -75,6 +72,9 @@ void threaded_channel<T>::put(T v)
         std::lock_guard<mutex> lock(_read_mutex);
         _cv.wait(_read_mutex, [this, &v](){ return  _queue.put(v) || _closed; });
     }
+
+    if (_closed)
+        throw channel_closed();
 
     if(_queue.size() == 1)
         _cv.notify_all();

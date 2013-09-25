@@ -100,7 +100,7 @@ void test_reader_blocking()
     TEST_EQUAL(writer_finished, true);
 }
 
-// test - writer.put() should exit with an exception if reader closes channel
+// test - writer.put() should exit with exception if reader closes channel
 void test_writer_exit_when_closed()
 {
     std::unique_ptr<threaded_scheduler> sched(new threaded_scheduler);
@@ -147,16 +147,20 @@ void test_large_transfer()
 
     int last_written = -1;
     int last_read = -1;
+    static const int MESSAGES = 10000;
 
     // writer coroutine
     go([&last_written](channel_writer<int>& writer)
     {
-        for(int i = 0; i < 100; i++)
+        for(int i = 0; i < MESSAGES; i++)
         {
             writer.put(i);
             last_written = i;
             if (i % 7)
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                std::cout << "long write progress: " << i << "/" << 10000 << std::endl;
+            }
         }
     }, std::move(pair.writer));
 
@@ -169,7 +173,10 @@ void test_large_transfer()
             {
                 last_read = reader.get();
                 if (i % 13)
-                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                    std::cout << "long read progress: " << i << "/" << 10000 << std::endl;
+                }
             }
             catch(const channel_closed&)
             {
