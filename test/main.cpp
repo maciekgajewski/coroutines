@@ -22,7 +22,7 @@ void _TEST_EQUAL(const T1& a, const T2& b, long line, const char* msg)
 // expected: reader will read all data, and then throw channel_closed
 void test_reading_after_close()
 {
-    std::unique_ptr<threaded_scheduler> sched(new threaded_scheduler);
+    std::unique_ptr<scheduler> sched(new scheduler);
     set_scheduler(sched.get());
 
     // create channel
@@ -70,7 +70,7 @@ void test_reading_after_close()
 // Reader blocking:  reader should block until wrtier writes
 void test_reader_blocking()
 {
-    std::unique_ptr<threaded_scheduler> sched(new threaded_scheduler);
+    std::unique_ptr<scheduler> sched(new scheduler);
     set_scheduler(sched.get());
 
     // create channel
@@ -103,7 +103,7 @@ void test_reader_blocking()
 // test - writer.put() should exit with exception if reader closes channel
 void test_writer_exit_when_closed()
 {
-    std::unique_ptr<threaded_scheduler> sched(new threaded_scheduler);
+    std::unique_ptr<scheduler> sched(new scheduler);
     set_scheduler(sched.get());
 
     // create channel
@@ -139,7 +139,7 @@ void test_writer_exit_when_closed()
 // send more items than channels capacity
 void test_large_transfer()
 {
-    std::unique_ptr<threaded_scheduler> sched(new threaded_scheduler);
+    std::unique_ptr<scheduler> sched(new scheduler);
     set_scheduler(sched.get());
 
     // create channel

@@ -5,6 +5,7 @@
 #include "coroutine.hpp"
 #include "context.hpp"
 #include "threaded_channel.hpp"
+#include "condition_variable.hpp"
 
 #include <thread>
 #include <mutex>
@@ -16,7 +17,7 @@ class coroutine_scheduler
 {
 public:
     // creates and sets no of max coroutines runnig in parallel
-    coroutine_scheduler(unsigned max_running_coroutines);
+    coroutine_scheduler(unsigned max_running_coroutines = 1);
 
     coroutine_scheduler(const coroutine_scheduler&) = delete;
 
@@ -32,7 +33,10 @@ public:
 
     // create channel
     template<typename T>
-    channel_pair<T> make_channel(std::size_t capacity) { return threaded_channel<T>::make(capacity); }
+    channel_pair<T> make_channel(std::size_t capacity)
+    {
+        return threaded_channel<T, condition_variable>::make(capacity);
+    }
 
     // wait for all coroutines to complete
     void wait();
@@ -63,10 +67,7 @@ void coroutine_scheduler::go(Callable&& fn, Args&&... args)
 template<typename Callable, typename... Args>
 void coroutine_scheduler::go(std::string name, Callable&& fn, Args&&... args)
 {
-    std::lock_guard<std::mutex> lock(_threads_mutex);
-
     schedule(make_coroutine(std::move(name), std::bind(std::forward<Callable>(fn), std::forward<Args>(args)...)));
-
 }
 
 } // namespace coroutines

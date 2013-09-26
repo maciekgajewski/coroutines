@@ -19,10 +19,16 @@ public:
     // adds coro to queue
     void enqueue(coroutine&& c);
 
+    // version for multiple coros
+    void enqueue(std::list<coroutine>& cs);
+
     // thread rountine
     void run();
 
     void swap(context& o);
+
+    // returns pointer to context serving current thread
+    static context* current_context();
 
 private:
 

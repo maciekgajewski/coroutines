@@ -32,7 +32,10 @@ public:
 
     // create channel
     template<typename T>
-    channel_pair<T> make_channel(std::size_t capacity) { return threaded_channel<T>::make(capacity); }
+    channel_pair<T> make_channel(std::size_t capacity)
+    {
+        return threaded_channel<T, std::condition_variable_any>::make(capacity);
+    }
 
     // wait for all coroutines to complete
     void wait();

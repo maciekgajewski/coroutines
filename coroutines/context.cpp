@@ -2,7 +2,7 @@
 
 namespace coroutines {
 
-thread_local context* __current_context;
+static thread_local context* __current_context;
 
 context::context(coroutine_scheduler* parent)
     : _parent(parent)
@@ -20,11 +20,22 @@ void context::swap(context& o)
     std::swap(_parent, o._parent);
 }
 
+context*context::current_context()
+{
+    return __current_context;
+}
+
 
 void context::enqueue(coroutine&& c)
 {
     _queue.push(std::move(c));
 }
+
+void  context::enqueue(std::list<coroutine>& cs)
+{
+    _queue.push(cs);
+}
+
 
 void context::run()
 {
@@ -43,6 +54,7 @@ void context::run()
         }
         else
         {
+            // TODO try to steal from another running thread
             break;
         }
 

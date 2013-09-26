@@ -4,6 +4,6 @@
 namespace coroutines
 {
 
-threaded_scheduler* __scheduler = nullptr;
+scheduler* __scheduler = nullptr;
 
 }

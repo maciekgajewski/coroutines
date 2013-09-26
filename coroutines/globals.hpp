@@ -3,16 +3,23 @@
 #define COROUTINES_GLOBALS_HPP
 
 #include "threaded_scheduler.hpp"
+#include "coroutine_scheduler.hpp"
 
 // global functions used in channle-based concurent programming
 
 namespace coroutines
 {
 
-extern threaded_scheduler* __scheduler;
+#ifdef USE_THREADED_SCHEDULER
+typedef threaded_scheduler scheduler;
+#else
+typedef coroutine_scheduler scheduler;
+#endif
+
+extern scheduler* __scheduler;
 
 
-inline void set_scheduler(threaded_scheduler* sched) { __scheduler = sched; }
+inline void set_scheduler(scheduler* sched) { __scheduler = sched; }
 
 template<typename Callable, typename... Args>
 void go(Callable&& fn, Args&&... args)

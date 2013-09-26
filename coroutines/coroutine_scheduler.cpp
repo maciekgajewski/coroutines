@@ -4,8 +4,6 @@
 
 namespace coroutines {
 
-extern thread_local context* __current_context;
-
 coroutine_scheduler::coroutine_scheduler(unsigned max_running_coroutines)
 {
     assert(max_running_coroutines > 0);
@@ -66,9 +64,9 @@ void coroutine_scheduler::schedule(coroutine&& coro)
     }
 
     // called from withing working context
-    if (__current_context)
+    if (context::current_context())
     {
-        __current_context->enqueue(std::move(coro));
+        context::current_context()->enqueue(std::move(coro));
     }
     else
     {

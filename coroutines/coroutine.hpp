@@ -12,9 +12,10 @@ class coroutine
 {
 public:
     typedef std::function<void()> function_type;
+    typedef std::function<void()> epilogue_type;
 
     coroutine() = default;
-    coroutine(std::string name, function_type& fun);
+    coroutine(std::string name, function_type&& fun);
     ~coroutine();
 
     coroutine(const coroutine&) = delete;
@@ -25,12 +26,13 @@ public:
 
     void run();
 
-    // can only be called from running coroutine
-    static void yield_current();
+    // returns currently runnig coroutine
+    static coroutine* current_corutine();
+
+    void yield(epilogue_type epilogue = epilogue_type());
 
 private:
 
-    void yield();
 
     static void static_context_function(intptr_t param);
     void context_function();
@@ -41,13 +43,48 @@ private:
     boost::context::fcontext_t _caller_context;
     boost::context::fcontext_t* _new_context = nullptr;
     char* _stack = nullptr;
+    epilogue_type _epilogue;
 
+};
+
+template <typename Callable>
+class callable_wrapper
+{
+public:
+    callable_wrapper(Callable&& c)
+    : _callable(std::move(c))
+    {
+    }
+
+    void operator()()
+    {
+        _callable();
+    }
+
+private:
+
+    Callable _callable;
 };
 
 template<typename Callable>
 coroutine make_coroutine(std::string name, Callable&& c)
 {
-    return coroutine(std::move(name), std::move(c));
+    callable_wrapper<Callable>* wrapper = new callable_wrapper<Callable>(std::move(c));
+
+    return coroutine(std::move(name), [wrapper]()
+    {
+        try
+        {
+            (*wrapper)();
+            delete wrapper;
+        }
+        catch(...)
+        {
+            delete wrapper;
+            throw;
+        }
+
+    });
 }
 
 

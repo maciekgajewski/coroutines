@@ -17,7 +17,7 @@ namespace coroutines {
 
 
 // simple channel
-template<typename T>
+template<typename T, typename ConditionVariable>
 class threaded_channel : public i_writer_impl<T>, public i_reader_impl<T>
 {
 public:
@@ -25,7 +25,7 @@ public:
     // factory
     static channel_pair<T> make(std::size_t capacity)
     {
-        std::shared_ptr<threaded_channel<T>> me(new threaded_channel<T>(capacity));
+        std::shared_ptr<threaded_channel<T, ConditionVariable>> me(new threaded_channel<T, ConditionVariable>(capacity));
         return channel_pair<T>(channel_reader<T>(me), channel_writer<T>(me));
     }
 
@@ -48,20 +48,20 @@ private:
     spsc_queue<T> _queue;
 
     mutex _read_mutex, _write_mutex;
-    std::condition_variable_any _cv;
+    ConditionVariable _cv;
 
     bool _closed = false;
 };
 
-template<typename T>
-threaded_channel<T>::threaded_channel(std::size_t capacity)
+template<typename T, typename ConditionVariable>
+threaded_channel<T, ConditionVariable>::threaded_channel(std::size_t capacity)
     : _queue(capacity+1)
 {
 }
 
 
-template<typename T>
-void threaded_channel<T>::put(T v)
+template<typename T, typename ConditionVariable>
+void threaded_channel<T, ConditionVariable>::put(T v)
 {
     std::lock_guard<mutex> lock(_write_mutex);
 
@@ -88,8 +88,8 @@ void threaded_channel<T>::put(T v)
     }
 }
 
-template<typename T>
-T threaded_channel<T>::get()
+template<typename T, typename ConditionVariable>
+T threaded_channel<T, ConditionVariable>::get()
 {
     std::lock_guard<mutex> lock(_read_mutex);
     T result;
@@ -124,22 +124,22 @@ T threaded_channel<T>::get()
     return result;
 }
 
-template<typename T>
-void threaded_channel<T>::writer_close()
+template<typename T, typename ConditionVariable>
+void threaded_channel<T, ConditionVariable>::writer_close()
 {
     std::lock_guard<mutex> lock(_write_mutex);
     do_close();
 }
 
-template<typename T>
-void threaded_channel<T>::reader_close()
+template<typename T, typename ConditionVariable>
+void threaded_channel<T, ConditionVariable>::reader_close()
 {
     std::lock_guard<mutex> lock(_read_mutex);
     do_close();
 }
 
-template<typename T>
-void threaded_channel<T>::do_close()
+template<typename T, typename ConditionVariable>
+void threaded_channel<T, ConditionVariable>::do_close()
 {
     if (!_closed)
     {

@@ -33,10 +33,22 @@ public:
         return false;
     }
 
+    void get_all(std::list<T>& out)
+    {
+        std::lock_guard<std::mutex> lock(_mutex);
+        out.splice(out.end(), _data);
+    }
+
     void push(T&& v)
     {
         std::lock_guard<std::mutex> lock(_mutex);
         _data.push_back(std::move(v));
+    }
+
+    void push(std::list<T>& in)
+    {
+        std::lock_guard<std::mutex> lock(_mutex);
+        _data.splice(_data.end(), in);
     }
 
     void swap(thread_safe_queue<T>& o) noexcept
@@ -45,6 +57,11 @@ public:
         std::swap(_data, o._data);
         _mutex.unlock();
         o._mutex.unlock();
+    }
+
+    bool empty() const
+    {
+        return _data.empty();
     }
 
 private:
