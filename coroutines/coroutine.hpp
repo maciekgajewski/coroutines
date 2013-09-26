@@ -31,6 +31,8 @@ public:
 
     void yield(epilogue_type epilogue = epilogue_type());
 
+    std::string name() const { return _name; }
+
 private:
 
 

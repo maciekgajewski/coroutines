@@ -6,6 +6,7 @@
 #include "context.hpp"
 #include "threaded_channel.hpp"
 #include "condition_variable.hpp"
+#include "thread_safe_queue.hpp"
 
 #include <thread>
 #include <mutex>
@@ -41,6 +42,11 @@ public:
     // wait for all coroutines to complete
     void wait();
 
+    void get_all_from_global_queue(std::list<coroutine>& out)
+    {
+        _global_queue.get_all(out);
+    }
+
 private:
 
     void schedule(coroutine&& coro);
@@ -52,8 +58,7 @@ private:
     std::list<context> _active_contexts;
     std::mutex _contexts_mutex;
 
-    std::list<coroutine> _global_queue; // coroutines not assigned to any context
-    std::mutex _global_queue_mutex;
+    thread_safe_queue<coroutine> _global_queue; // coroutines not assigned to any context
 
 };
 

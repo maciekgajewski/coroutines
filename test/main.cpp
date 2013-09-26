@@ -22,8 +22,8 @@ void _TEST_EQUAL(const T1& a, const T2& b, long line, const char* msg)
 // expected: reader will read all data, and then throw channel_closed
 void test_reading_after_close()
 {
-    std::unique_ptr<scheduler> sched(new scheduler);
-    set_scheduler(sched.get());
+    scheduler sched;
+    set_scheduler(&sched);
 
     // create channel
     channel_pair<int> pair = make_channel<int>(10);
@@ -32,7 +32,7 @@ void test_reading_after_close()
     int last_read = -1;
 
     // writer coroutine
-    go([&last_written](channel_writer<int>& writer)
+    go(std::string("reading after close writer"), [&last_written](channel_writer<int>& writer)
     {
         for(int i = 0; i < 5; i++)
         {
@@ -42,7 +42,7 @@ void test_reading_after_close()
     }, std::move(pair.writer));
 
     // reader coroutine
-    go([&last_read](channel_reader<int>& reader)
+    go(std::string("reading after close reader"), [&last_read](channel_reader<int>& reader)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         for(;;)
@@ -61,7 +61,7 @@ void test_reading_after_close()
 
     // TEST
     set_scheduler(nullptr);
-    sched.reset();
+    sched.wait();
 
     TEST_EQUAL(last_written, 4);
     TEST_EQUAL(last_read, 4);
@@ -77,7 +77,7 @@ void test_reader_blocking()
     channel_pair<int> pair = make_channel<int>(10);
 
     bool reader_finished = false;
-    go([&reader_finished](channel_reader<int>& r)
+    go(std::string("test_reader_blocking reader"), [&reader_finished](channel_reader<int>& r)
     {
         r.get();
         reader_finished = true;
@@ -86,7 +86,7 @@ void test_reader_blocking()
     TEST_EQUAL(reader_finished, false);
 
     bool writer_finished = false;
-    go([&writer_finished](channel_writer<int>& w)
+    go(std::string("test_reader_blocking writer"), [&writer_finished](channel_writer<int>& w)
     {
         w.put(7);
         writer_finished = true;
@@ -110,13 +110,13 @@ void test_writer_exit_when_closed()
     channel_pair<int> pair = make_channel<int>(1);
 
 
-    go([](channel_reader<int>& r)
+    go(std::string("test_writer_exit_when_closed reader"), [](channel_reader<int>& r)
     {
         // do nothing, close the chanel on exit
     }, std::move(pair.reader));
 
     bool writer_threw = false;
-    go([&writer_threw](channel_writer<int>& w)
+    go(std::string("test_writer_exit_when_closed writer"), [&writer_threw](channel_writer<int>& w)
     {
         try
         {
@@ -150,7 +150,7 @@ void test_large_transfer()
     static const int MESSAGES = 10000;
 
     // writer coroutine
-    go([&last_written](channel_writer<int>& writer)
+    go(std::string("large_transfer writer"), [&last_written](channel_writer<int>& writer)
     {
         for(int i = 0; i < MESSAGES; i++)
         {
@@ -165,7 +165,7 @@ void test_large_transfer()
     }, std::move(pair.writer));
 
     // reader coroutine
-    go([&last_read](channel_reader<int>& reader)
+    go(std::string("large_transfer reader"), [&last_read](channel_reader<int>& reader)
     {
         for(int i = 0;;i++)
         {
@@ -196,10 +196,18 @@ void test_large_transfer()
 
 int main(int , char** )
 {
+    std::cout << "Staring test: test_reading_after_close" << std::endl;
     test_reading_after_close();
+
+    std::cout << "Staring test: test_reader_blocking" << std::endl;
     test_reader_blocking();
+
+    std::cout << "Staring test: test_writer_exit_when_closed" << std::endl;
     test_writer_exit_when_closed();
+
+    std::cout << "Staring test: test_large_transfer" << std::endl;
     test_large_transfer();
+
     std::cout << "test completed" << std::endl;
 }
 

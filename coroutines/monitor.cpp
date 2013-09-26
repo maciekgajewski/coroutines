@@ -19,6 +19,8 @@ void monitor::wait()
     coroutine* coro = coroutine::current_corutine();
     assert(coro);
 
+    std::cout << "MONITOR: '" << coro->name() << "' will wait" << std::endl;
+
     coro->yield([coro, this]()
     {
         _waiting.push(std::move(*coro));
@@ -32,6 +34,9 @@ void monitor::wake_all()
 
     std::list<coroutine> waiting;
     _waiting.get_all(waiting);
+
+    std::cout << "MONITOR: waking up " << waiting.size() << " coroutines" << std::endl;
+
     ctx->enqueue(waiting);
 }
 

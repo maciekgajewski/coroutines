@@ -1,4 +1,5 @@
 #include "context.hpp"
+#include "coroutine_scheduler.hpp"
 
 namespace coroutines {
 
@@ -59,6 +60,9 @@ void context::run()
         }
 
         // TODO take on any job from global queue
+        std::list<coroutine> globals;
+        _parent->get_all_from_global_queue(globals);
+        _queue.push(globals);
     }
 }
 

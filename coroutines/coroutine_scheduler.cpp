@@ -35,11 +35,14 @@ void coroutine_scheduler::wait()
 
 void coroutine_scheduler::schedule(coroutine&& coro)
 {
+    std::cout << "SCHED: scheduling corountine '" << coro.name() << "'" << std::endl;
+
     // put the coro on indle context, if available
     {
         std::lock_guard<std::mutex> contexts_lock(_contexts_mutex);
         if (!_idle_contexts.empty())
         {
+            std::cout << "SCHED: scheduling corountine, idle context exists, adding there" << std::endl;
             std::lock_guard<std::mutex> threads_lock(_threads_mutex);
 
             // from idle, push to active
@@ -59,8 +62,9 @@ void coroutine_scheduler::schedule(coroutine&& coro)
                     _active_contexts.splice(_idle_contexts.end(), _active_contexts, it);
                 }
             });
+
+            return;
         }
-        return;
     }
 
     // called from withing working context
@@ -70,9 +74,9 @@ void coroutine_scheduler::schedule(coroutine&& coro)
     }
     else
     {
+        std::cout << "SCHED: scheduling corountine: adding to global list" << std::endl;
         // put into global queue
-        std::lock_guard<std::mutex> gq_lock(_global_queue_mutex);
-        _global_queue.push_back(std::move(coro));
+        _global_queue.push(std::move(coro));
     }
 }
 

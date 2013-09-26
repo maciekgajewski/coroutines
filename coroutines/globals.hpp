@@ -22,11 +22,19 @@ extern scheduler* __scheduler;
 inline void set_scheduler(scheduler* sched) { __scheduler = sched; }
 
 template<typename Callable, typename... Args>
+void go(std::string name, Callable&& fn, Args&&... args)
+{
+    assert(__scheduler);
+    __scheduler->go(name, std::forward<Callable>(fn), std::forward<Args>(args)...);
+}
+
+template<typename Callable, typename... Args>
 void go(Callable&& fn, Args&&... args)
 {
     assert(__scheduler);
     __scheduler->go(std::forward<Callable>(fn), std::forward<Args>(args)...);
 }
+
 
 // create channek
 template<typename T>
