@@ -18,10 +18,12 @@ public:
     // called from corotunie context. Will cause the corountine to yield
     void wait();
 
-    // wakes any waiting corotunies
+    // wakes all waiting corotunies
     void wake_all();
 
-    // TODO: is wake_one needed?
+    // wakes one of the waiting corountines
+    void wake_one();
+
 
 private:
 

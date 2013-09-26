@@ -1,10 +1,12 @@
 #ifndef COROUTINES_THREAD_SAFE_QUEUE_HPP
 #define COROUTINES_THREAD_SAFE_QUEUE_HPP
 
+#include "mutex.hpp"
+
 #include <boost/optional.hpp>
 
 #include <list>
-#include <mutex>
+
 
 namespace coroutines {
 
@@ -23,7 +25,7 @@ public:
 
     bool pop(T& b)
     {
-        std::lock_guard<std::mutex> lock(_mutex);
+        std::lock_guard<mutex> lock(_mutex);
         if (!_data.empty())
         {
             b = std::move(_data.front());
@@ -35,19 +37,19 @@ public:
 
     void get_all(std::list<T>& out)
     {
-        std::lock_guard<std::mutex> lock(_mutex);
+        std::lock_guard<mutex> lock(_mutex);
         out.splice(out.end(), _data);
     }
 
     void push(T&& v)
     {
-        std::lock_guard<std::mutex> lock(_mutex);
+        std::lock_guard<mutex> lock(_mutex);
         _data.push_back(std::move(v));
     }
 
     void push(std::list<T>& in)
     {
-        std::lock_guard<std::mutex> lock(_mutex);
+        std::lock_guard<mutex> lock(_mutex);
         _data.splice(_data.end(), in);
     }
 
@@ -67,7 +69,7 @@ public:
 private:
 
     std::list<T> _data;
-    std::mutex _mutex;
+    mutex _mutex;
 };
 
 }

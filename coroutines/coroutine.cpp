@@ -45,7 +45,7 @@ void coroutine::swap(coroutine& o)
 
 void coroutine::run()
 {
-    std::cout << "CORO running '" << _name << "'" << std::endl;
+    std::cout << "CORO starting or resuming '" << _name << "'" << std::endl;
     assert(_new_context);
 
     coroutine* previous = __current_coroutine;
@@ -83,6 +83,7 @@ void coroutine::static_context_function(intptr_t param)
 
 void coroutine::context_function()
 {
+    std::cout << "CORO: starting '" << _name << "'" << std::endl;
     try
     {
         _function();

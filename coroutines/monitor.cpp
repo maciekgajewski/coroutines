@@ -40,4 +40,19 @@ void monitor::wake_all()
     ctx->enqueue(waiting);
 }
 
+void monitor::wake_one()
+{
+    context* ctx = context::current_context();
+    assert(ctx);
+
+    coroutine waiting;
+    bool r = _waiting.pop(waiting);
+
+    if (r)
+    {
+        std::cout << "MONITOR: waking up one coroutine ('" << waiting.name() << "')" << std::endl;
+        ctx->enqueue(std::move(waiting));
+    }
+}
+
 }

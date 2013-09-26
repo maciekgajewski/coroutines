@@ -104,6 +104,7 @@ T threaded_channel<T, ConditionVariable>::get()
 
         // wait for the queue to be filled
         //std::cout << "GET: waiting" << std::endl;
+
         _cv.wait(_write_mutex, [this, &result, &success](){ return (success = _queue.get(result)) || _closed; });
         //std::cout  << "GET: resuming" << std::endl;
         _write_mutex.unlock();

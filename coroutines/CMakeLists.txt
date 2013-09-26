@@ -13,6 +13,7 @@ add_library(coroutines STATIC
     thread_safe_queue.hpp
     monitor.cpp monitor.hpp
     condition_variable.hpp
+    coroutine_channel.hpp
 )
 target_link_libraries(coroutines
     ${Boost_LIBRARIES}
