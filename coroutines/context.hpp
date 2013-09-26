@@ -2,9 +2,7 @@
 #define COROUTINES_CONTEXT_HPP
 
 #include "coroutine.hpp"
-
-#include <mutex>
-#include <list>
+#include "thread_safe_queue.hpp"
 
 namespace coroutines {
 
@@ -16,12 +14,19 @@ class context
 {
 public:
     context(coroutine_scheduler* parent);
+    context(context&& o);
+
+    // adds coro to queue
+    void enqueue(coroutine&& c);
+
+    // thread rountine
+    void run();
+
+    void swap(context& o);
 
 private:
 
-    std::list<coroutine> _queue;
-    std::mutex _queue_mutex;
-
+    thread_safe_queue<coroutine> _queue;
     coroutine_scheduler* _parent;
 };
 

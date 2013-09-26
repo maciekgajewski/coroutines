@@ -39,11 +39,13 @@ public:
 
 private:
 
+    void schedule(coroutine&& coro);
+
     std::list<std::thread> _threads;
     std::mutex _threads_mutex;
 
     std::list<context> _idle_contexts;
-    std::list<context> _active_cotexts;
+    std::list<context> _active_contexts;
     std::mutex _contexts_mutex;
 
     std::list<coroutine> _global_queue; // coroutines not assigned to any context
@@ -63,8 +65,8 @@ void coroutine_scheduler::go(std::string name, Callable&& fn, Args&&... args)
 {
     std::lock_guard<std::mutex> lock(_threads_mutex);
 
-    coroutine coro = make_coroutine(std::move(name), std::bind(std::forward<Callable>(fn), std::forward<Args>(args)...));
-    // TODO launch it
+    schedule(make_coroutine(std::move(name), std::bind(std::forward<Callable>(fn), std::forward<Args>(args)...)));
+
 }
 
 } // namespace coroutines

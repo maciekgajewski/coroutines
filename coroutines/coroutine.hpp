@@ -1,6 +1,8 @@
 #ifndef COROUTINES_COROUTINE_HPP
 #define COROUTINES_COROUTINE_HPP
 
+#include <boost/context/all.hpp>
+
 #include <functional>
 #include <string>
 
@@ -11,20 +13,35 @@ class coroutine
 public:
     typedef std::function<void()> function_type;
 
-    coroutine(std::string name, function_type& fun)
-    : _name(std::move(name))
-    , _function(std::move(fun))
-    { }
+    coroutine() = default;
+    coroutine(std::string name, function_type& fun);
+    ~coroutine();
 
     coroutine(const coroutine&) = delete;
     coroutine(coroutine&&);
+    coroutine& operator=(coroutine&& o) { swap(o); return *this; }
 
     void swap(coroutine& o);
 
+    void run();
+
+    // can only be called from running coroutine
+    static void yield_current();
+
 private:
+
+    void yield();
+
+    static void static_context_function(intptr_t param);
+    void context_function();
 
     std::string _name;
     std::function<void()> _function;
+
+    boost::context::fcontext_t _caller_context;
+    boost::context::fcontext_t* _new_context = nullptr;
+    char* _stack = nullptr;
+
 };
 
 template<typename Callable>

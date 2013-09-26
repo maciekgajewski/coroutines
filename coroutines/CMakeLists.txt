@@ -10,6 +10,7 @@ add_library(coroutines STATIC
         coroutine.cpp coroutine.hpp
         coroutine_scheduler.cpp coroutine_scheduler.hpp
         context.cpp context.hpp
+        thread_safe_queue.hpp
 )
 target_link_libraries(coroutines
     ${Boost_LIBRARIES}
