@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <iostream>
+#include <cstdlib>
 
 namespace coroutines {
 
@@ -32,6 +33,26 @@ void coroutine_scheduler::wait()
             std::lock_guard<std::mutex> lock(_threads_mutex);
             _threads.pop_front();
         }
+    }
+}
+
+void coroutine_scheduler::steal(std::list<coroutine_ptr>& out)
+{
+    std::lock_guard<std::mutex> lock(_contexts_mutex);
+
+    unsigned all_active = _active_contexts.size();
+
+    int idx = std::rand() % all_active;
+    auto it = _active_contexts.begin();
+    std::advance(it, idx);
+    for(int i = 0; i < all_active; ++i)
+    {
+        unsigned stolen = (*it)->steal(out);
+        if (stolen > 0 )
+            break;
+        it ++;
+        if (it == _active_contexts.end())
+            it = _active_contexts.begin();
     }
 }
 

@@ -48,6 +48,9 @@ public:
         _global_queue.get_all(out);
     }
 
+    // steals half the queue of one of the active contexts
+    void steal(std::list<coroutine_ptr>& out);
+
 private:
 
     void schedule(coroutine_ptr&& coro);

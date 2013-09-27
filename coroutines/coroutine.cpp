@@ -26,6 +26,7 @@ coroutine::coroutine(std::string name, function_type&& fun)
 
 coroutine::~coroutine()
 {
+    assert(!_new_context);
     delete[] _stack;
 //    if (!_name.empty())
 //        std::cout << "CORO: '" << _name << "' destroyed" << std::endl;

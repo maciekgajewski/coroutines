@@ -4,14 +4,14 @@
 
 namespace coroutines {
 
-static thread_local context* __current_context;
+static thread_local context* __current_context = nullptr;
 
 context::context(coroutine_scheduler* parent)
     : _parent(parent)
 {
 }
 
-context*context::current_context()
+context* context::current_context()
 {
     return __current_context;
 }
@@ -45,15 +45,35 @@ void context::run()
         }
         else
         {
-            // TODO try to steal from another running thread
-            break;
+            std::list<coroutine_ptr> stolen;
+            _parent->steal(stolen);
+            if (stolen.empty())
+                break;
+            _queue.push(stolen);
         }
 
-        // TODO take on any job from global queue
         std::list<coroutine_ptr> globals;
         _parent->get_all_from_global_queue(globals);
         _queue.push(globals);
     }
 }
+
+
+unsigned context::steal(std::list<coroutine_ptr>& out)
+{
+    unsigned result = 0;
+    _queue.perform([&result, &out](std::list<coroutine_ptr>& queue)
+    {
+        unsigned all = queue.size();
+        result = all/2;
+
+        auto it = queue.begin();
+        std::advance(it, all-result);
+        out.splice(out.end(), queue, it, queue.end());
+    });
+
+    return result;
+}
+
 
 }

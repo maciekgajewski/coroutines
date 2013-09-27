@@ -22,6 +22,9 @@ public:
     // version for multiple coros
     void enqueue(std::list<coroutine_ptr>& cs);
 
+    // takes half of the queue, returns number of the coros taken
+    unsigned steal(std::list<coroutine_ptr>& out);
+
     // thread rountine
     void run();
 

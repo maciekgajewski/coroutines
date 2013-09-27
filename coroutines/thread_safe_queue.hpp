@@ -74,6 +74,14 @@ public:
         return _data.size();
     }
 
+    // performas locked operation on data
+    template<typename Operation>
+    void perform(Operation oper)
+    {
+        std::lock_guard<mutex> lock(_mutex);
+        oper(_data);
+    }
+
 private:
 
     std::list<T> _data;
