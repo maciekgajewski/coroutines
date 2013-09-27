@@ -11,17 +11,6 @@ context::context(coroutine_scheduler* parent)
 {
 }
 
-context::context(context&& o)
-{
-    swap(o);
-}
-
-void context::swap(context& o)
-{
-    std::swap(_queue, o._queue);
-    std::swap(_parent, o._parent);
-}
-
 context*context::current_context()
 {
     return __current_context;

@@ -113,6 +113,7 @@ void test_writer_exit_when_closed()
 
     go(std::string("test_writer_exit_when_closed reader"), [](channel_reader<int>& r)
     {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
         // do nothing, close the chanel on exit
     }, std::move(pair.reader));
 

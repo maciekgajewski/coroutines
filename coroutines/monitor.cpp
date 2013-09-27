@@ -12,7 +12,7 @@ monitor::monitor()
 
 monitor::~monitor()
 {
-    std::cout << "MONITOR: this=" << this << " deleting" << std::endl;
+    //std::cout << "MONITOR: this=" << this << " deleting" << std::endl;
     assert(_waiting.empty());
 }
 
@@ -21,11 +21,11 @@ void monitor::wait()
     coroutine* coro = coroutine::current_corutine();
     assert(coro);
 
-    std::cout << "MONITOR: this=" << this << " '" << coro->name() << "' will wait" << std::endl;
+    //std::cout << "MONITOR: this=" << this << " '" << coro->name() << "' will wait" << std::endl;
 
     coro->yield([this](coroutine_ptr& coro)
     {
-        std::cout << "MONITOR: this=" << this << " '" << coro->name() << "' added to queue" << std::endl;
+        //std::cout << "MONITOR: this=" << this << " '" << coro->name() << "' added to queue" << std::endl;
         _waiting.push(std::move(coro));
     });
 }
@@ -38,7 +38,7 @@ void monitor::wake_all()
     std::list<coroutine_ptr> waiting;
     _waiting.get_all(waiting);
 
-    std::cout << "MONITOR: waking up " << waiting.size() << " coroutines" << std::endl;
+    //std::cout << "MONITOR: waking up " << waiting.size() << " coroutines" << std::endl;
 
     ctx->enqueue(waiting);
 }
@@ -48,20 +48,20 @@ void monitor::wake_one()
     context* ctx = context::current_context();
     assert(ctx);
 
-    std::cout << "MONITOR: this=" << this << " will wake one. q contains: '" << _waiting.size() << std::endl;
+    //std::cout << "MONITOR: this=" << this << " will wake one. q contains: '" << _waiting.size() << std::endl;
     coroutine_ptr waiting;
     bool r = _waiting.pop(waiting);
 
     if (r)
     {
-        std::cout << "MONITOR: this=" << this << " waking up one coroutine ('" << waiting->name()
-            << "'), " << _waiting.size() << " left in q" << std::endl;
+        //std::cout << "MONITOR: this=" << this << " waking up one coroutine ('" << waiting->name()
+        //    << "'), " << _waiting.size() << " left in q" << std::endl;
         ctx->enqueue(std::move(waiting));
     }
-    else
-    {
-        std::cout << "MONITOR: this=" << this << " nothign to wake" << std::endl;
-    }
+//    else
+//    {
+//        std::cout << "MONITOR: this=" << this << " nothign to wake" << std::endl;
+//    }
 }
 
 }

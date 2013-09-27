@@ -26,13 +26,13 @@ coroutine::coroutine(std::string name, function_type&& fun)
 coroutine::~coroutine()
 {
     delete[] _stack;
-    if (!_name.empty())
-        std::cout << "CORO: '" << _name << "' destroyed" << std::endl;
+//    if (!_name.empty())
+//        std::cout << "CORO: '" << _name << "' destroyed" << std::endl;
 }
 
 void coroutine::run(coroutine_ptr& me)
 {
-    std::cout << "CORO starting or resuming '" << _name << "'" << std::endl;
+//    std::cout << "CORO starting or resuming '" << _name << "'" << std::endl;
     assert(_new_context);
 
     coroutine* previous = __current_coroutine;
@@ -42,7 +42,7 @@ void coroutine::run(coroutine_ptr& me)
 
     __current_coroutine = previous;
 
-    std::cout << "CORO '" << _name << "' finished or preemepted" << std::endl;
+//    std::cout << "CORO '" << _name << "' finished or preemepted" << std::endl;
 
     if (_epilogue)
     {
@@ -71,7 +71,7 @@ void coroutine::static_context_function(intptr_t param)
 
 void coroutine::context_function()
 {
-    std::cout << "CORO: starting '" << _name << "'" << std::endl;
+//    std::cout << "CORO: starting '" << _name << "'" << std::endl;
     try
     {
         _function();
@@ -85,7 +85,7 @@ void coroutine::context_function()
         std::terminate();
     }
 
-    std::cout << "CORO: finished cleanly '" << _name << "'" << std::endl;
+//    std::cout << "CORO: finished cleanly '" << _name << "'" << std::endl;
 
     auto temp = _new_context;
     _new_context = nullptr;// to mark the completion

@@ -12,7 +12,7 @@ coroutine_scheduler::coroutine_scheduler(unsigned max_running_coroutines)
     // create contexts
     while(max_running_coroutines--)
     {
-        _idle_contexts.emplace_back(this);
+        _idle_contexts.emplace_back(new context(this));
     }
 }
 
@@ -47,16 +47,16 @@ void coroutine_scheduler::schedule(coroutine_ptr&& coro)
             std::lock_guard<std::mutex> threads_lock(_threads_mutex);
 
             // from idle, push to active
-            context ctx = std::move(_idle_contexts.front());
+            context_ptr ctx = std::move(_idle_contexts.front());
             _idle_contexts.pop_front();
 
             auto it = _active_contexts.insert(_active_contexts.end(), std::move(ctx));
 
-            it->enqueue(std::move(coro));
+            (*it)->enqueue(std::move(coro));
 
             _threads.emplace_back([it, this]()
             {
-                it->run();
+                (*it)->run();
                 // move back to idle when finished
                 {
                     std::lock_guard<std::mutex> contexts_lock(_contexts_mutex);

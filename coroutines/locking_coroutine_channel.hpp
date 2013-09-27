@@ -121,6 +121,7 @@ void locking_coroutine_channel<T>::do_close()
 {
     std::lock_guard<mutex> lock(_mutex);
     _closed = true;
+    _cv.notify_all();
 }
 
 

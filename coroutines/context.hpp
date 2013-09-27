@@ -15,7 +15,6 @@ class context
 {
 public:
     context(coroutine_scheduler* parent);
-    context(context&& o);
 
     // adds coro to queue
     void enqueue(coroutine_ptr&& c);
@@ -26,8 +25,6 @@ public:
     // thread rountine
     void run();
 
-    void swap(context& o);
-
     // returns pointer to context serving current thread
     static context* current_context();
 
@@ -36,6 +33,8 @@ private:
     thread_safe_queue<coroutine_ptr> _queue;
     coroutine_scheduler* _parent;
 };
+
+typedef std::unique_ptr<context> context_ptr;
 
 }
 

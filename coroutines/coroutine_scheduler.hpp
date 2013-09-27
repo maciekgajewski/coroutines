@@ -55,8 +55,8 @@ private:
     std::list<std::thread> _threads;
     std::mutex _threads_mutex;
 
-    std::list<context> _idle_contexts;
-    std::list<context> _active_contexts;
+    std::list<context_ptr> _idle_contexts;
+    std::list<context_ptr> _active_contexts;
     std::mutex _contexts_mutex;
 
     thread_safe_queue<coroutine_ptr> _global_queue; // coroutines not assigned to any context
