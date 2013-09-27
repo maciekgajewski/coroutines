@@ -237,25 +237,44 @@ void test_muchos_coros()
     const int MSGS = 1000;
     std::atomic<int> received(0);
     std::atomic<int> sent(0);
+    std::atomic<int> coros(0);
     for(int i = 0; i < NUM; i++)
     {
          channel_pair<int> pair = make_channel<int>(10);
 
-         go(std::string("test_muchos_coros reader"), [&received](channel_reader<int>& r)
+         go(std::string("test_muchos_coros reader"), [&received, &coros](channel_reader<int>& r)
          {
+            coros++;
             for(int i = 0; i < MSGS; i++)
             {
-                r.get();
-                received++;
+                try
+                {
+                    r.get();
+                    received++;
+                }
+                catch(const channel_closed&)
+                {
+                    std::cout << "channel closed after readig only " << i << " msgs" << std::endl;
+                    throw;
+                }
             }
          }, std::move(pair.reader));
 
-         go(std::string("test_muchos_coros writer"), [&sent](channel_writer<int>& w)
+         go(std::string("test_muchos_coros writer"), [&sent, &coros](channel_writer<int>& w)
          {
+            coros++;
             for(int i = 0; i < MSGS; i++)
             {
-                w.put(i);
-                sent++;
+                try
+                {
+                    w.put(i);
+                    sent++;
+                }
+                catch(const channel_closed&)
+                {
+                    std::cout << "channel closed after writing only " << i << " msgs" << std::endl;
+                    throw;
+                }
             }
          }, std::move(pair.writer));
     }
@@ -263,6 +282,7 @@ void test_muchos_coros()
     sched.wait();
     set_scheduler(nullptr);
 
+    TEST_EQUAL(coros, NUM*2);
     TEST_EQUAL(received, NUM*MSGS);
     TEST_EQUAL(sent, NUM*MSGS);
 }
