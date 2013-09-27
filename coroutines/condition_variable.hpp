@@ -35,17 +35,17 @@ public:
 private:
 
     monitor _monitor;
-
 };
 
 
 template<typename Lock>
 void condition_variable::wait(Lock& lock)
 {
-    lock.unlock();
-    _monitor.wait();
+    _monitor.wait([&lock]()
+    {
+        lock.unlock();
+    });
     lock.lock();
-    // TODO is this correct? maybe the lock should be released only in coroutine's epilogue?
 }
 
 }

@@ -233,8 +233,8 @@ void test_muchos_coros()
     scheduler sched(4);
     set_scheduler(&sched);
 
-    const int NUM = 100;
-    const int MSGS = 1000;
+    const int NUM = 1000;
+    const int MSGS = 10000;
     std::atomic<int> received(0);
     std::atomic<int> sent(0);
     std::atomic<int> coros(0);
