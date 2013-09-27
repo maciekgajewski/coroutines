@@ -1,3 +1,4 @@
+// (c) 2013 Maciej Gajewski, <maciej.gajewski0@gmail.com>
 #ifndef COROUTINES_COROUTINE_HPP
 #define COROUTINES_COROUTINE_HPP
 
@@ -19,7 +20,7 @@ public:
     ~coroutine();
 
     coroutine(const coroutine&) = delete;
-    coroutine(coroutine&&);
+    coroutine(coroutine&&) = delete;
     coroutine& operator=(coroutine&& o) { swap(o); return *this; }
 
     void swap(coroutine& o);

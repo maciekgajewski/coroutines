@@ -1,3 +1,4 @@
+// (c) 2013 Maciej Gajewski, <maciej.gajewski0@gmail.com>
 #ifndef COROUTINES_MONITOR_HPP
 #define COROUTINES_MONITOR_HPP
 

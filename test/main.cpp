@@ -44,7 +44,7 @@ void test_reading_after_close()
     // reader coroutine
     go(std::string("reading after close reader"), [&last_read](channel_reader<int>& reader)
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
         for(;;)
         {
             try
@@ -88,6 +88,7 @@ void test_reader_blocking()
     bool writer_finished = false;
     go(std::string("test_reader_blocking writer"), [&writer_finished](channel_writer<int>& w)
     {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
         w.put(7);
         writer_finished = true;
 

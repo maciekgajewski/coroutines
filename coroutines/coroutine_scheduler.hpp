@@ -1,10 +1,11 @@
+// (c) 2013 Maciej Gajewski, <maciej.gajewski0@gmail.com>
 #ifndef COROUTINES_COROUTINE_SCHEDULER_HPP
 #define COROUTINES_COROUTINE_SCHEDULER_HPP
 
 #include "channel.hpp"
 #include "coroutine.hpp"
 #include "context.hpp"
-#include "coroutine_channel.hpp"
+#include "locking_coroutine_channel.hpp"
 #include "condition_variable.hpp"
 #include "thread_safe_queue.hpp"
 
@@ -36,7 +37,7 @@ public:
     template<typename T>
     channel_pair<T> make_channel(std::size_t capacity)
     {
-        return coroutine_channel<T>::make(capacity);
+        return locking_coroutine_channel<T>::make(capacity);
     }
 
     // wait for all coroutines to complete

@@ -1,3 +1,4 @@
+// (c) 2013 Maciej Gajewski, <maciej.gajewski0@gmail.com>
 #ifndef COROUTINES_CONTEXT_HPP
 #define COROUTINES_CONTEXT_HPP
 

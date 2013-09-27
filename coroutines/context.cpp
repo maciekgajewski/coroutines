@@ -1,3 +1,4 @@
+// (c) 2013 Maciej Gajewski, <maciej.gajewski0@gmail.com>
 #include "context.hpp"
 #include "coroutine_scheduler.hpp"
 

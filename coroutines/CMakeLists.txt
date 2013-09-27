@@ -14,6 +14,7 @@ add_library(coroutines STATIC
     monitor.cpp monitor.hpp
     condition_variable.hpp
     coroutine_channel.hpp
+    locking_coroutine_channel.hpp
 )
 target_link_libraries(coroutines
     ${Boost_LIBRARIES}

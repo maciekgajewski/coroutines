@@ -1,3 +1,4 @@
+// (c) 2013 Maciej Gajewski, <maciej.gajewski0@gmail.com>
 #ifndef COROUTINES_THREAD_SAFE_QUEUE_HPP
 #define COROUTINES_THREAD_SAFE_QUEUE_HPP
 

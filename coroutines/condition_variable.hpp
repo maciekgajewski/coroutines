@@ -1,3 +1,4 @@
+// (c) 2013 Maciej Gajewski, <maciej.gajewski0@gmail.com>
 #ifndef CONDITION_VARIABLE_HPP
 #define CONDITION_VARIABLE_HPP
 
@@ -14,6 +15,11 @@ public:
     void notify_all()
     {
         _monitor.wake_all();
+    }
+
+    void notify_one()
+    {
+        _monitor.wake_one();
     }
 
     template<typename Lock>
