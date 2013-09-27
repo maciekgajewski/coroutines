@@ -28,7 +28,7 @@ public:
 
 private:
 
-    thread_safe_queue<coroutine> _waiting;
+    thread_safe_queue<coroutine_ptr> _waiting;
 };
 
 }

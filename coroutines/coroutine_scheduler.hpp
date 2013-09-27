@@ -43,14 +43,14 @@ public:
     // wait for all coroutines to complete
     void wait();
 
-    void get_all_from_global_queue(std::list<coroutine>& out)
+    void get_all_from_global_queue(std::list<coroutine_ptr>& out)
     {
         _global_queue.get_all(out);
     }
 
 private:
 
-    void schedule(coroutine&& coro);
+    void schedule(coroutine_ptr&& coro);
 
     std::list<std::thread> _threads;
     std::mutex _threads_mutex;
@@ -59,7 +59,7 @@ private:
     std::list<context> _active_contexts;
     std::mutex _contexts_mutex;
 
-    thread_safe_queue<coroutine> _global_queue; // coroutines not assigned to any context
+    thread_safe_queue<coroutine_ptr> _global_queue; // coroutines not assigned to any context
 
 };
 

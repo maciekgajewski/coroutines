@@ -34,9 +34,9 @@ void coroutine_scheduler::wait()
     }
 }
 
-void coroutine_scheduler::schedule(coroutine&& coro)
+void coroutine_scheduler::schedule(coroutine_ptr&& coro)
 {
-    std::cout << "SCHED: scheduling corountine '" << coro.name() << "'" << std::endl;
+    std::cout << "SCHED: scheduling corountine '" << coro->name() << "'" << std::endl;
 
     // put the coro on indle context, if available
     {

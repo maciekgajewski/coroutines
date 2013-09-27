@@ -109,7 +109,7 @@ T locking_coroutine_channel<T>::get()
     _data[_rd].~T();
     _rd++;
     if (_rd == _capacity)
-        _rd == 0;
+        _rd = 0;
 
     _cv.notify_one();
 

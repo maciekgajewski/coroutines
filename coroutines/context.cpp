@@ -28,12 +28,12 @@ context*context::current_context()
 }
 
 
-void context::enqueue(coroutine&& c)
+void context::enqueue(coroutine_ptr&& c)
 {
     _queue.push(std::move(c));
 }
 
-void  context::enqueue(std::list<coroutine>& cs)
+void  context::enqueue(std::list<coroutine_ptr>& cs)
 {
     _queue.push(cs);
 }
@@ -46,13 +46,13 @@ void context::run()
 
     for(;;)
     {
-        coroutine current_coro;
+        coroutine_ptr current_coro;
         bool has_next = _queue.pop(current_coro);
 
         // run the coroutine
         if (has_next)
         {
-            current_coro.run();
+            current_coro->run(current_coro);
         }
         else
         {
@@ -61,7 +61,7 @@ void context::run()
         }
 
         // TODO take on any job from global queue
-        std::list<coroutine> globals;
+        std::list<coroutine_ptr> globals;
         _parent->get_all_from_global_queue(globals);
         _queue.push(globals);
     }

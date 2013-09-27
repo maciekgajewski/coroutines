@@ -6,6 +6,7 @@
 
 #include <functional>
 #include <string>
+#include <memory>
 
 namespace coroutines {
 
@@ -13,7 +14,7 @@ class coroutine
 {
 public:
     typedef std::function<void()> function_type;
-    typedef std::function<void()> epilogue_type;
+    typedef std::function<void(std::unique_ptr<coroutine>&)> epilogue_type;
 
     coroutine() = default;
     coroutine(std::string name, function_type&& fun);
@@ -21,11 +22,11 @@ public:
 
     coroutine(const coroutine&) = delete;
     coroutine(coroutine&&) = delete;
-    coroutine& operator=(coroutine&& o) { swap(o); return *this; }
 
-    void swap(coroutine& o);
-
-    void run();
+    // 'me' can be used transfer corotuine ownership in epilogue
+    // I don't like this solution too much, but it seems to be much better than
+    // shared_ptr + enable_shared_from_this
+    void run(std::unique_ptr<coroutine>& me);
 
     // returns currently runnig coroutine
     static coroutine* current_corutine();
@@ -69,12 +70,14 @@ private:
     Callable _callable;
 };
 
+typedef std::unique_ptr<coroutine> coroutine_ptr;
+
 template<typename Callable>
-coroutine make_coroutine(std::string name, Callable&& c)
+coroutine_ptr make_coroutine(std::string name, Callable&& c)
 {
     callable_wrapper<Callable>* wrapper = new callable_wrapper<Callable>(std::move(c));
 
-    return coroutine(std::move(name), [wrapper]()
+    return coroutine_ptr(new coroutine(std::move(name), [wrapper]()
     {
         try
         {
@@ -87,7 +90,7 @@ coroutine make_coroutine(std::string name, Callable&& c)
             throw;
         }
 
-    });
+    }));
 }
 
 

@@ -30,21 +30,7 @@ coroutine::~coroutine()
         std::cout << "CORO: '" << _name << "' destroyed" << std::endl;
 }
 
-coroutine::coroutine(coroutine&& o)
-{
-    swap(o);
-}
-
-void coroutine::swap(coroutine& o)
-{
-    std::swap(_name, o._name);
-    std::swap(_function, o._function);
-    std::swap(_stack, o._stack);
-    std::swap(_new_context, o._new_context);
-    std::swap(_caller_context, o._caller_context);
-}
-
-void coroutine::run()
+void coroutine::run(coroutine_ptr& me)
 {
     std::cout << "CORO starting or resuming '" << _name << "'" << std::endl;
     assert(_new_context);
@@ -60,7 +46,8 @@ void coroutine::run()
 
     if (_epilogue)
     {
-        _epilogue();
+        _epilogue(me);
+        _epilogue = nullptr;
     }
 }
 

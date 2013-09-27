@@ -18,10 +18,10 @@ public:
     context(context&& o);
 
     // adds coro to queue
-    void enqueue(coroutine&& c);
+    void enqueue(coroutine_ptr&& c);
 
     // version for multiple coros
-    void enqueue(std::list<coroutine>& cs);
+    void enqueue(std::list<coroutine_ptr>& cs);
 
     // thread rountine
     void run();
@@ -33,7 +33,7 @@ public:
 
 private:
 
-    thread_safe_queue<coroutine> _queue;
+    thread_safe_queue<coroutine_ptr> _queue;
     coroutine_scheduler* _parent;
 };
 

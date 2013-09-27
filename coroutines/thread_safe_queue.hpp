@@ -62,9 +62,16 @@ public:
         o._mutex.unlock();
     }
 
-    bool empty() const
+    bool empty()
     {
+        std::lock_guard<mutex> lock(_mutex);
         return _data.empty();
+    }
+
+    std::size_t size()
+    {
+        std::lock_guard<mutex> lock(_mutex);
+        return _data.size();
     }
 
 private:

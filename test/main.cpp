@@ -197,17 +197,17 @@ void test_large_transfer()
 
 int main(int , char** )
 {
-    //std::cout << "Staring test: test_reading_after_close" << std::endl;
-    //test_reading_after_close();
+    std::cout << "Staring test: test_reading_after_close" << std::endl;
+    test_reading_after_close();
 
     std::cout << "Staring test: test_reader_blocking" << std::endl;
     test_reader_blocking();
 
-//    std::cout << "Staring test: test_writer_exit_when_closed" << std::endl;
-//    test_writer_exit_when_closed();
+    std::cout << "Staring test: test_writer_exit_when_closed" << std::endl;
+    test_writer_exit_when_closed();
 
-//    std::cout << "Staring test: test_large_transfer" << std::endl;
-//    test_large_transfer();
+    std::cout << "Staring test: test_large_transfer" << std::endl;
+    test_large_transfer();
 
     std::cout << "test completed" << std::endl;
 }
