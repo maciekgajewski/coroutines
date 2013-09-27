@@ -8,7 +8,8 @@
 
 namespace coroutines {
 
-static const unsigned DEFAULT_STACK_SIZE = 64*1024; // 64kb should be enough for anyone :)
+//static const unsigned DEFAULT_STACK_SIZE = 64*1024; // 64kb should be enough for anyone :)
+static const unsigned DEFAULT_STACK_SIZE = 1024*1024;
 static thread_local coroutine* __current_coroutine = nullptr;
 
 coroutine::coroutine(std::string name, function_type&& fun)

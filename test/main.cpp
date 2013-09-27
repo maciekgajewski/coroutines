@@ -196,19 +196,97 @@ void test_large_transfer()
     TEST_EQUAL(last_read, MESSAGES-1);
 }
 
+
+void test_nestet_coros()
+{
+    scheduler sched(4);
+    set_scheduler(&sched);
+
+    channel_pair<int> pair1 = make_channel<int>(10);
+
+    go(std::string("test_nestet_coros reader1"), [](channel_reader<int>& reader)
+    {
+        reader.get();
+    }, std::move(pair1.reader));
+
+    go(std::string("test_nestet_coros reader2"), [](channel_writer<int>& writer)
+    {
+        channel_pair<int> pair2 = make_channel<int>(10);
+
+
+        go(std::string("test_nestet_coros nested"), [](channel_writer<int>& w1, channel_writer<int>& w2)
+        {
+            w1.put(1);
+            w2.put(3);
+        }, std::move(writer), std::move(pair2.writer));
+
+        pair2.reader.get();
+
+    }, std::move(pair1.writer));
+
+    sched.wait();
+    set_scheduler(nullptr);
+}
+
+void test_muchos_coros()
+{
+    scheduler sched(4);
+    set_scheduler(&sched);
+
+    const int NUM = 100;
+    const int MSGS = 1000;
+    std::atomic<int> received(0);
+    std::atomic<int> sent(0);
+    for(int i = 0; i < NUM; i++)
+    {
+         channel_pair<int> pair = make_channel<int>(10);
+
+         go(std::string("test_muchos_coros reader"), [&received](channel_reader<int>& r)
+         {
+            for(int i = 0; i < MSGS; i++)
+            {
+                r.get();
+                received++;
+            }
+         }, std::move(pair.reader));
+
+         go(std::string("test_muchos_coros writer"), [&sent](channel_writer<int>& w)
+         {
+            for(int i = 0; i < MSGS; i++)
+            {
+                w.put(i);
+                sent++;
+            }
+         }, std::move(pair.writer));
+    }
+
+    sched.wait();
+    set_scheduler(nullptr);
+
+    TEST_EQUAL(received, NUM*MSGS);
+    TEST_EQUAL(sent, NUM*MSGS);
+}
+
+
 int main(int , char** )
 {
-    std::cout << "Staring test: test_reading_after_close" << std::endl;
-    test_reading_after_close();
+//    std::cout << "Staring test: test_reading_after_close" << std::endl;
+//    test_reading_after_close();
 
-    std::cout << "Staring test: test_reader_blocking" << std::endl;
-    test_reader_blocking();
+//    std::cout << "Staring test: test_reader_blocking" << std::endl;
+//    test_reader_blocking();
 
-    std::cout << "Staring test: test_writer_exit_when_closed" << std::endl;
-    test_writer_exit_when_closed();
+//    std::cout << "Staring test: test_writer_exit_when_closed" << std::endl;
+//    test_writer_exit_when_closed();
 
-    std::cout << "Staring test: test_large_transfer" << std::endl;
-    test_large_transfer();
+//    std::cout << "Staring test: test_large_transfer" << std::endl;
+//    test_large_transfer();
+
+    std::cout << "Staring test: test_nestet_coros" << std::endl;
+    test_nestet_coros();
+
+    std::cout << "Staring test: test_muchos_coros" << std::endl;
+    test_muchos_coros();
 
     std::cout << "test completed" << std::endl;
 }
