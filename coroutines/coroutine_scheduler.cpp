@@ -54,20 +54,20 @@ void coroutine_scheduler::steal(std::list<coroutine_ptr>& out)
 
 void coroutine_scheduler::context_finished(context* ctx)
 {
-    std::cout << "SCHED: context " << ctx << " finished" << std::endl;
+    //std::cout << "SCHED: context " << ctx << " finished" << std::endl;
 
     std::lock_guard<std::mutex> lock(_contexts_mutex);
     auto it = find_ptr(_active_contexts, ctx);
     if (it == _active_contexts.end())
     {
-        std::cout << "SCHED: it was a blocked context" << std::endl;
+        //std::cout << "SCHED: it was a blocked context" << std::endl;
         it = find_ptr(_blocked_contexts, ctx);
         assert(it != _blocked_contexts.end());
         _blocked_contexts.erase(it);
     }
     else
     {
-        std::cout << "SCHED: it was an active context" << std::endl;
+        //std::cout << "SCHED: it was an active context" << std::endl;
         _active_contexts.erase(it);
     }
 }
@@ -83,7 +83,7 @@ void coroutine_scheduler::context_blocked(context* ctx, std::list<coroutine_ptr>
         context_ptr moved = std::move(*it);
         _active_contexts.erase(it);
         _blocked_contexts.push_back(std::move(moved));
-        std::cout << "SCHED: context " << ctx << " blocked. There is " << _blocked_contexts.size() << " blocked and " << _active_contexts.size() << " active contexts now" << std::endl;
+        //std::cout << "SCHED: context " << ctx << " blocked. There is " << _blocked_contexts.size() << " blocked and " << _active_contexts.size() << " active contexts now" << std::endl;
     }
 
     // move coros to global list
@@ -97,14 +97,14 @@ bool coroutine_scheduler::context_unblocked(context* ctx)
         auto it = find_ptr(_blocked_contexts, ctx);
         assert(it != _blocked_contexts.end());
 
-        std::cout << "SCHED: context " << ctx << " unblocked. There is " << _blocked_contexts.size() << " blocked and " <<_active_contexts.size() << " active contexts now" << std::endl;
+        //std::cout << "SCHED: context " << ctx << " unblocked. There is " << _blocked_contexts.size() << " blocked and " <<_active_contexts.size() << " active contexts now" << std::endl;
 
         if (_active_contexts.size() < _max_running_coroutines)
         {
             context_ptr moved = std::move(*it);
             _blocked_contexts.erase(it);
 
-            std::cout << "SCHED: context " << ctx << " allowed to continue" << std::endl;
+            //std::cout << "SCHED: context " << ctx << " allowed to continue" << std::endl;
             _active_contexts.push_back(std::move(moved));
             // the context and current coroutine may continue unharassed
             return true;
@@ -113,7 +113,7 @@ bool coroutine_scheduler::context_unblocked(context* ctx)
 
     // no mutex should be locked below this line, as we may preempt
 
-    std::cout << "SCHED: context " << ctx << " NOT allowed to continue, coroutine will yield now" << std::endl;
+    //std::cout << "SCHED: context " << ctx << " NOT allowed to continue, coroutine will yield now" << std::endl;
     coroutine* coro = coroutine::current_corutine();
     assert(coro);
 
