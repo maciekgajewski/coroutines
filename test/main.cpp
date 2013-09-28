@@ -287,6 +287,16 @@ void test_muchos_coros()
     TEST_EQUAL(sent, NUM*MSGS);
 }
 
+void nonblocking_coro(std::atomic<int>& counter, int spawns)
+{
+    if (spawns > 0)
+    {
+        counter++;
+        std::this_thread::sleep_for(std::chrono::milliseconds(10)); // they shoudl saturate all 4 threads for at least 500ms, so we need 2000 ms total
+        go("nonblocking nested", nonblocking_coro, std::ref(counter), spawns-1);
+    }
+}
+
 void test_blocking_coros()
 {
     scheduler sched(4);
@@ -297,18 +307,10 @@ void test_blocking_coros()
 
     const int SERIES = 10;
     const int NON_BLOCKING_PER_SER = 10;
+    const int NON_BLOCKING_SPAWNS = 10;
 
     for(int s = 0; s < SERIES; s++)
     {
-        // start some non-blocking coroutines
-        for(int i = 0; i < NON_BLOCKING_PER_SER; i++)
-        {
-            go("test_blocking_coros nonblocking", [&nonblocking]()
-            {
-                nonblocking++;
-            });
-        }
-
         // start on that will block
         go("test_blocking_coros blocking", [&blocking]()
         {
@@ -321,8 +323,19 @@ void test_blocking_coros()
             block();
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
             unblock();
+
             blocking++;
         });
+
+        // start some non-blocking coroutines
+        for(int i = 0; i < NON_BLOCKING_PER_SER; i++)
+        {
+            go("test_blocking_coros nonblocking", [&nonblocking]()
+            {
+                nonblocking_coro(nonblocking, NON_BLOCKING_SPAWNS);
+            });
+        }
+
         // the entire test should block for bit more than 1 second
     }
 
@@ -330,29 +343,29 @@ void test_blocking_coros()
     sched.wait();
     set_scheduler(nullptr);
 
-    TEST_EQUAL(nonblocking, SERIES*NON_BLOCKING_PER_SER);
+    TEST_EQUAL(nonblocking, SERIES*NON_BLOCKING_PER_SER*NON_BLOCKING_SPAWNS);
     TEST_EQUAL(blocking, SERIES*3);
 }
 
 int main(int , char** )
 {
-    std::cout << "Staring test: test_reading_after_close" << std::endl;
-    test_reading_after_close();
+//    std::cout << "Staring test: test_reading_after_close" << std::endl;
+//    test_reading_after_close();
 
-    std::cout << "Staring test: test_reader_blocking" << std::endl;
-    test_reader_blocking();
+//    std::cout << "Staring test: test_reader_blocking" << std::endl;
+//    test_reader_blocking();
 
-    std::cout << "Staring test: test_writer_exit_when_closed" << std::endl;
-    test_writer_exit_when_closed();
+//    std::cout << "Staring test: test_writer_exit_when_closed" << std::endl;
+//    test_writer_exit_when_closed();
 
-    std::cout << "Staring test: test_large_transfer" << std::endl;
-    test_large_transfer();
+//    std::cout << "Staring test: test_large_transfer" << std::endl;
+//    test_large_transfer();
 
-    std::cout << "Staring test: test_nestet_coros" << std::endl;
-    test_nestet_coros();
+//    std::cout << "Staring test: test_nestet_coros" << std::endl;
+//    test_nestet_coros();
 
-    std::cout << "Staring test: test_muchos_coros" << std::endl;
-    test_muchos_coros();
+//    std::cout << "Staring test: test_muchos_coros" << std::endl;
+//    test_muchos_coros();
 
     std::cout << "Staring test: test_blocking_coros" << std::endl;
     test_blocking_coros();
