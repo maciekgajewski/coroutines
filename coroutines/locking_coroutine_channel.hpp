@@ -49,7 +49,7 @@ private:
 
 template<typename T>
 locking_coroutine_channel<T>::locking_coroutine_channel(std::size_t capacity)
-    : _data(static_cast<T*>(std::malloc(sizeof(T) * capacity+1)))
+    : _data(static_cast<T*>(std::malloc(sizeof(T) * (capacity+1))))
     , _capacity(capacity+1)
 {
     assert(capacity >= 1);
@@ -70,6 +70,7 @@ locking_coroutine_channel<T>::~locking_coroutine_channel()
         _data[rd].~T();
         rd = (rd+1) % _capacity;
     }
+    std::free(_data);
 }
 
 template<typename T>
