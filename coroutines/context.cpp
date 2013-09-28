@@ -16,14 +16,37 @@ context* context::current_context()
     return __current_context;
 }
 
+void context::block()
+{
+    assert(!_blocked);
+    std::list<coroutine_ptr> coros;
+    _queue.get_all(coros);
+
+    _parent->context_blocked(this, coros);
+    _blocked = true;
+}
+
+void context::unblock()
+{
+    assert(_blocked);
+    assert(_queue.empty());
+    if (_parent->context_unblocked(this)) // may yield
+    {
+        _blocked = false;
+    }
+    // if false returned, we may be in different thread, different context. do not touch 'this'!
+}
+
 
 void context::enqueue(coroutine_ptr&& c)
 {
+    assert(!_blocked);
     _queue.push(std::move(c));
 }
 
 void  context::enqueue(std::list<coroutine_ptr>& cs)
 {
+    assert(!_blocked);
     _queue.push(cs);
 }
 
@@ -42,6 +65,8 @@ void context::run()
         if (has_next)
         {
             current_coro->run(current_coro);
+            if (_blocked)
+                break;
         }
         else
         {
@@ -56,6 +81,8 @@ void context::run()
         _parent->get_all_from_global_queue(globals);
         _queue.push(globals);
     }
+
+    _parent->context_finished(this);
 }
 
 

@@ -59,7 +59,7 @@ void read_input(buffer_writer& compressed, buffer_reader& compressed_return, con
 void parallel(const char* in, const char* out)
 {
 
-    std::unique_ptr<scheduler> sched(new scheduler(1) /*threads*/);
+    std::unique_ptr<scheduler> sched(new scheduler(4) /*threads*/);
     set_scheduler(sched.get());
 
     // code here

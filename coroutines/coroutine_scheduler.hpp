@@ -19,7 +19,7 @@ class coroutine_scheduler
 {
 public:
     // creates and sets no of max coroutines runnig in parallel
-    coroutine_scheduler(unsigned max_running_coroutines = 4);
+    coroutine_scheduler(unsigned max_running_coroutines);
 
     coroutine_scheduler(const coroutine_scheduler&) = delete;
 
@@ -43,6 +43,9 @@ public:
     // wait for all coroutines to complete
     void wait();
 
+    ///////
+    // context's interface
+
     void get_all_from_global_queue(std::list<coroutine_ptr>& out)
     {
         _global_queue.get_all(out);
@@ -51,6 +54,17 @@ public:
     // steals half the queue of one of the active contexts
     void steal(std::list<coroutine_ptr>& out);
 
+    // used by context to report it completed the job. Will destroy the context
+    void context_finished(context* ctx);
+
+    // used by context to singalize progression into blocked state
+    void context_blocked(context* ctx, std::list<coroutine_ptr>& coros);
+
+    // used by context to singalize progression out of blocked state.
+    // will activate context if resources available, or destroy it
+    // returns 'true' is context is allowed to continue, false if it's going to be destroyed
+    bool context_unblocked(context* ctx);
+
 private:
 
     void schedule(coroutine_ptr&& coro);
@@ -58,9 +72,10 @@ private:
     std::list<std::thread> _threads;
     std::mutex _threads_mutex;
 
-    std::list<context_ptr> _idle_contexts;
-    std::list<context_ptr> _active_contexts;
+    std::vector<context_ptr> _blocked_contexts;
+    std::vector<context_ptr> _active_contexts;
     std::mutex _contexts_mutex;
+    const unsigned _max_running_coroutines;
 
     thread_safe_queue<coroutine_ptr> _global_queue; // coroutines not assigned to any context
 

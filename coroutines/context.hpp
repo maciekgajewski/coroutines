@@ -31,10 +31,17 @@ public:
     // returns pointer to context serving current thread
     static context* current_context();
 
+    // moves current context into blocking mode. Used by croutines calling into blocking syscall
+    void block();
+
+    // mattempts to move the context bck from blocking mode. may preemt calling coroutine
+    void unblock();
+
 private:
 
     thread_safe_queue<coroutine_ptr> _queue;
     coroutine_scheduler* _parent;
+    bool _blocked = false;
 };
 
 typedef std::unique_ptr<context> context_ptr;
