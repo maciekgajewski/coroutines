@@ -5,6 +5,8 @@
 #include "mutex.hpp"
 #include "condition_variable.hpp"
 
+#include <boost/format.hpp>
+
 #include <memory>
 
 namespace coroutines {
@@ -72,11 +74,26 @@ private:
     locking_channel(std::size_t capacity);
     void do_close();
 
+    unsigned size() const
+    {
+        int s = _wr - _rd;
+        if (s < 0)
+            s += _capacity;
+        //std::cout << "CHAN: _wr=" << _wr << ", _rd=" << _rd << ", size=" << s << std::endl;
+        return (unsigned)s;
+    }
+
+    int wr_next() const
+    {
+        return (_wr + 1) % _capacity;
+    }
+
     T* _data;
     int _rd = 0;
     int _wr = 0;
     std::size_t _capacity;
-    condition_variable _cv;
+    condition_variable _producers_cv;
+    condition_variable _consumers_cv;
     mutex _mutex;
 
     bool _closed = false;
@@ -113,19 +130,20 @@ void locking_channel<T>::put(T v)
 {
     std::lock_guard<mutex> lock(_mutex);
 
-    int wr_next = _wr + 1;
-    if (wr_next == _capacity)
-        wr_next = 0;
-
-    _cv.wait(_mutex, [=]() { return _rd != wr_next || _closed; });
+    _producers_cv.wait(_mutex, [=]()// WARNING: the value of _Wr & _rd may be different before and after waiting (modified by another threads)
+    {
+        return _rd != wr_next() || _closed;
+    });
 
     if (_closed)
         throw channel_closed();
 
     new(&_data[_wr]) T(std::move(v));
-    _wr = wr_next;
+    _wr = wr_next();
 
-    _cv.notify_one();
+    //std::cout << boost::format("CHAN: after write, %d left in channel. _wr=%d, _rd=%d") % size() % _wr % _rd << std::endl;
+    if (size() == 1)
+        _consumers_cv.notify_all();
 }
 
 template<typename T>
@@ -133,7 +151,7 @@ T locking_channel<T>::get()
 {
     std::lock_guard<mutex> lock(_mutex);
 
-    _cv.wait(_mutex, [=]() { return _rd != _wr || _closed; });
+    _consumers_cv.wait(_mutex, [=]() { return _rd != _wr || _closed; });
 
     if (_rd == _wr)
     {
@@ -147,7 +165,9 @@ T locking_channel<T>::get()
     if (_rd == _capacity)
         _rd = 0;
 
-    _cv.notify_one();
+    //std::cout << "CHAN: after read, " << size() << " left in channel" << std::endl;
+    if (size() == _capacity - 2)
+        _producers_cv.notify_all();
 
     return v;
 }
@@ -157,7 +177,8 @@ void locking_channel<T>::do_close()
 {
     std::lock_guard<mutex> lock(_mutex);
     _closed = true;
-    _cv.notify_all();
+    _producers_cv.notify_all();
+    _consumers_cv.notify_all();
 }
 
 

@@ -2,6 +2,8 @@
 
 #include "coroutines/globals.hpp"
 
+#include <boost/format.hpp>
+
 #include <iostream>
 #include <thread>
 
@@ -352,9 +354,10 @@ void test_multiple_readers()
     scheduler sched(4);
     set_scheduler(&sched);
 
-    static const int MSGS = 1000;
+    static const int MSGS = 10000;
     static const int READERS = 100;
     std::atomic<int> received(0);
+    std::atomic<int> closed(0);
 
     channel_pair<int> pair = make_channel<int>(10);
 
@@ -368,36 +371,91 @@ void test_multiple_readers()
 
     for(int i = 0; i < READERS; i++)
     {
-        go("test_multiple_readers reader", [&received](channel_reader<int> reader)
+        go("test_multiple_readers reader", [&received, &closed](channel_reader<int> reader)
         {
-            for(;;)
+            try
             {
-                reader.get();
-                received++;
+                for(;;)
+                {
+                    reader.get();
+                    received++;
+                }
+            }
+            catch(const channel_closed&)
+            {
+                closed++;
+                throw;
             }
 
         }, pair.reader);
     }
 
+    sched.wait();
+    set_scheduler(nullptr);
+
+    TEST_EQUAL(closed, READERS);
+    TEST_EQUAL(received, MSGS);
+}
+
+void test_multiple_writers()
+{
+    scheduler sched(4);
+    set_scheduler(&sched);
+
+    static const int MSGS_PER_WRITER = 100;
+    static const int WRITERS = 100;
+
+    std::atomic<int> received(0);
+
+    channel_pair<int> pair = make_channel<int>(10);
+
+    for(int i = 0; i < WRITERS; i++)
+    {
+        go(
+            boost::str(boost::format("test_multiple_readers writer %d") % i),
+            [](channel_writer<int> writer)
+        {
+            for(int i = 0; i < MSGS_PER_WRITER; i++)
+            {
+//                std::cout <<
+//                    (boost::format("%s writes %d...") % coroutine::current_corutine()->name() % i)  << std::endl;
+                writer.put(i);
+            }
+//            std::cout << coroutine::current_corutine()->name() << " finished" << std::endl;
+        }, pair.writer);
+    }
+    pair.writer.close();
+
+    go("test_multiple_readers reader", [&received](channel_reader<int>& reader)
+    {
+        for(;;)
+        {
+//            std::cout << "reader reads..." << std::endl;
+            reader.get();
+            received++;
+        }
+
+    }, std::move(pair.reader));
 
     sched.wait();
     set_scheduler(nullptr);
 
-    TEST_EQUAL(received, MSGS);
+    TEST_EQUAL(received, WRITERS*MSGS_PER_WRITER);
 }
 
 #define RUN_TEST(test_name) std::cout << ">>> Starting test: " << #test_name << std::endl; test_name();
 
 int main(int , char** )
 {
-//    RUN_TEST(test_reading_after_close);
-//    RUN_TEST(test_reader_blocking);
-//    RUN_TEST(test_writer_exit_when_closed);
-//    RUN_TEST(test_large_transfer);
-//    RUN_TEST(test_nestet_coros);
-//    RUN_TEST(test_muchos_coros);
-//    RUN_TEST(test_blocking_coros);
+    RUN_TEST(test_reading_after_close);
+    RUN_TEST(test_reader_blocking);
+    RUN_TEST(test_writer_exit_when_closed);
+    RUN_TEST(test_large_transfer);
+    RUN_TEST(test_nestet_coros);
+    RUN_TEST(test_muchos_coros);
+    RUN_TEST(test_blocking_coros);
     RUN_TEST(test_multiple_readers);
+    RUN_TEST(test_multiple_writers);
 
     std::cout << "test completed" << std::endl;
 }

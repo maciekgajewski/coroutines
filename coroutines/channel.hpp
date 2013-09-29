@@ -74,8 +74,6 @@ public:
 
     void close()
     {
-        if (_impl)
-            _impl->writer_close();
         _impl.reset();
     }
 
@@ -131,8 +129,6 @@ public:
 
     void close()
     {
-        if (_impl)
-            _impl->reader_close();
         _impl.reset();
     }
 

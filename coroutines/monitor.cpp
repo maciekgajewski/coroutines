@@ -34,15 +34,17 @@ void monitor::wait(epilogue_type epilogue)
 
 void monitor::wake_all()
 {
+    //std::cout << "MONITOR: wake_all" << std::endl;
     context* ctx = context::current_context();
-    assert(ctx);
+    if (ctx)
+    {
+        std::list<coroutine_ptr> waiting;
+        _waiting.get_all(waiting);
 
-    std::list<coroutine_ptr> waiting;
-    _waiting.get_all(waiting);
+        //std::cout << "MONITOR: waking up " << waiting.size() << " coroutines" << std::endl;
 
-    //std::cout << "MONITOR: waking up " << waiting.size() << " coroutines" << std::endl;
-
-    ctx->enqueue(waiting);
+        ctx->enqueue(waiting);
+    }
 }
 
 void monitor::wake_one()
