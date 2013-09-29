@@ -10,38 +10,34 @@
 namespace coroutines
 {
 
-extern scheduler* __scheduler;
-
-
-inline void set_scheduler(scheduler* sched) { __scheduler = sched; }
+void set_scheduler(scheduler* sched);
+scheduler* get_scheduler();
+scheduler& get_scheduler_check(); // asserts scheduler not null
 
 template<typename Callable, typename... Args>
 void go(std::string name, Callable&& fn, Args&&... args)
 {
-    assert(__scheduler);
-    __scheduler->go(name, std::forward<Callable>(fn), std::forward<Args>(args)...);
+    get_scheduler_check().go(name, std::forward<Callable>(fn), std::forward<Args>(args)...);
 }
 
 template<typename Callable, typename... Args>
 void go(const char* name, Callable&& fn, Args&&... args)
 {
-    assert(__scheduler);
-    __scheduler->go(std::string(name), std::forward<Callable>(fn), std::forward<Args>(args)...);
+    assert(get_scheduler());
+    get_scheduler_check().go(std::string(name), std::forward<Callable>(fn), std::forward<Args>(args)...);
 }
 
 template<typename Callable, typename... Args>
 void go(Callable&& fn, Args&&... args)
 {
-    assert(__scheduler);
-    __scheduler->go(std::forward<Callable>(fn), std::forward<Args>(args)...);
+    get_scheduler_check().go(std::forward<Callable>(fn), std::forward<Args>(args)...);
 }
 
 // create channel
 template<typename T>
 channel_pair<T> make_channel(std::size_t capacity)
 {
-    assert(__scheduler);
-    return __scheduler->make_channel<T>(capacity);
+    return get_scheduler_check().make_channel<T>(capacity);
 }
 
 // begin blocking operation

@@ -4,6 +4,22 @@
 namespace coroutines
 {
 
-scheduler* __scheduler = nullptr;
+static scheduler* __scheduler = nullptr;
+
+void set_scheduler(scheduler* sched)
+{
+    __scheduler = sched;
+}
+
+scheduler* get_scheduler()
+{
+    return __scheduler;
+}
+
+scheduler& get_scheduler_check()
+{
+    assert(__scheduler);
+    return *__scheduler;
+}
 
 }
