@@ -7,14 +7,14 @@
 
 namespace coroutines {
 
-class coroutine_scheduler;
+class scheduler;
 
 // running thread state
 // a resource which needs to eb acquired to run coroutine, which exists in limited number.
 class context
 {
 public:
-    context(coroutine_scheduler* parent);
+    context(scheduler* parent);
 
     // adds coro to queue
     void enqueue(coroutine_ptr&& c);
@@ -40,7 +40,7 @@ public:
 private:
 
     thread_safe_queue<coroutine_ptr> _queue;
-    coroutine_scheduler* _parent;
+    scheduler* _parent;
     bool _blocked = false;
 };
 

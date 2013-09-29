@@ -1,12 +1,12 @@
 // (c) 2013 Maciej Gajewski, <maciej.gajewski0@gmail.com>
 #include "context.hpp"
-#include "coroutine_scheduler.hpp"
+#include "scheduler.hpp"
 
 namespace coroutines {
 
 static thread_local context* __current_context = nullptr;
 
-context::context(coroutine_scheduler* parent)
+context::context(scheduler* parent)
     : _parent(parent)
 {
 }

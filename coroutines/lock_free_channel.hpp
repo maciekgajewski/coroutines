@@ -11,18 +11,18 @@ namespace coroutines {
 // DOES NOT WORK
 // it may work if two mutexes would be replace by single reader/writer lock
 template<typename T>
-class coroutine_channel : public i_writer_impl<T>, public i_reader_impl<T>
+class lock_free_channel : public i_writer_impl<T>, public i_reader_impl<T>
 {
 public:
 
     // factory
     static channel_pair<T> make(std::size_t capacity)
     {
-        std::shared_ptr<coroutine_channel<T>> me(new coroutine_channel<T>(capacity));
+        std::shared_ptr<lock_free_channel<T>> me(new lock_free_channel<T>(capacity));
         return channel_pair<T>(channel_reader<T>(me), channel_writer<T>(me));
     }
 
-    coroutine_channel(const coroutine_channel&) = delete;
+    lock_free_channel(const lock_free_channel&) = delete;
 
     // called by producer
     virtual void put(T v) override;
@@ -35,7 +35,7 @@ public:
 
 private:
 
-    coroutine_channel(std::size_t capacity);
+    lock_free_channel(std::size_t capacity);
     void do_close();
 
     spsc_queue<T> _queue;
@@ -46,14 +46,14 @@ private:
 };
 
 template<typename T>
-coroutine_channel<T>::coroutine_channel(std::size_t capacity)
+lock_free_channel<T>::lock_free_channel(std::size_t capacity)
     : _queue(capacity+1)
 {
 
 }
 
 template<typename T>
-void coroutine_channel<T>::put(T v)
+void lock_free_channel<T>::put(T v)
 {
     while(!_queue.put(v) && !_closed)
     {
@@ -67,7 +67,7 @@ void coroutine_channel<T>::put(T v)
 }
 
 template<typename T>
-T coroutine_channel<T>::get()
+T lock_free_channel<T>::get()
 {
     T v;
     bool success = false;

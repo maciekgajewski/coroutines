@@ -5,7 +5,7 @@
 #include "channel.hpp"
 #include "coroutine.hpp"
 #include "context.hpp"
-#include "locking_coroutine_channel.hpp"
+#include "locking_channel.hpp"
 #include "condition_variable.hpp"
 #include "thread_safe_queue.hpp"
 
@@ -15,15 +15,15 @@
 
 namespace coroutines {
 
-class coroutine_scheduler
+class scheduler
 {
 public:
     // creates and sets no of max coroutines runnig in parallel
-    coroutine_scheduler(unsigned max_running_coroutines);
+    scheduler(unsigned max_running_coroutines);
 
-    coroutine_scheduler(const coroutine_scheduler&) = delete;
+    scheduler(const scheduler&) = delete;
 
-    ~coroutine_scheduler();
+    ~scheduler();
 
     // launches corountine
     template<typename Callable, typename... Args>
@@ -37,7 +37,7 @@ public:
     template<typename T>
     channel_pair<T> make_channel(std::size_t capacity)
     {
-        return locking_coroutine_channel<T>::make(capacity);
+        return locking_channel<T>::make(capacity);
     }
 
     // wait for all coroutines to complete
@@ -83,13 +83,13 @@ private:
 
 
 template<typename Callable, typename... Args>
-void coroutine_scheduler::go(Callable&& fn, Args&&... args)
+void scheduler::go(Callable&& fn, Args&&... args)
 {
     go(std::string(), std::forward<Callable>(fn), std::forward<Args>(args)...);
 }
 
 template<typename Callable, typename... Args>
-void coroutine_scheduler::go(std::string name, Callable&& fn, Args&&... args)
+void scheduler::go(std::string name, Callable&& fn, Args&&... args)
 {
     schedule(make_coroutine(std::move(name), std::bind(std::forward<Callable>(fn), std::forward<Args>(args)...)));
 }

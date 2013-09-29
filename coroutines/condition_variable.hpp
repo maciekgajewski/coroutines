@@ -22,6 +22,7 @@ public:
         _monitor.wake_one();
     }
 
+    // Unlocks the lock and waits in an atomic way.
     template<typename Lock>
     void wait(Lock& lock);
 
@@ -43,6 +44,7 @@ void condition_variable::wait(Lock& lock)
 {
     _monitor.wait([&lock]()
     {
+        // this code will bve called after the coroutine yields and its added to monitor
         lock.unlock();
     });
     lock.lock();

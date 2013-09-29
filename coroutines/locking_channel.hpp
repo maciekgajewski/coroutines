@@ -9,19 +9,19 @@ namespace coroutines {
 
 // non-lock-free implementation
 template<typename T>
-class locking_coroutine_channel : public i_writer_impl<T>, public i_reader_impl<T>
+class locking_channel : public i_writer_impl<T>, public i_reader_impl<T>
 {
 public:
 
     // factory
     static channel_pair<T> make(std::size_t capacity)
     {
-        std::shared_ptr<locking_coroutine_channel<T>> me(new locking_coroutine_channel<T>(capacity));
+        std::shared_ptr<locking_channel<T>> me(new locking_channel<T>(capacity));
         return channel_pair<T>(channel_reader<T>(me), channel_writer<T>(me));
     }
 
-    locking_coroutine_channel(const locking_coroutine_channel&) = delete;
-    virtual ~locking_coroutine_channel() override;
+    locking_channel(const locking_channel&) = delete;
+    virtual ~locking_channel() override;
 
     // called by producer
     virtual void put(T v) override;
@@ -34,7 +34,7 @@ public:
 
 private:
 
-    locking_coroutine_channel(std::size_t capacity);
+    locking_channel(std::size_t capacity);
     void do_close();
 
     T* _data;
@@ -48,7 +48,7 @@ private:
 };
 
 template<typename T>
-locking_coroutine_channel<T>::locking_coroutine_channel(std::size_t capacity)
+locking_channel<T>::locking_channel(std::size_t capacity)
     : _data(static_cast<T*>(std::malloc(sizeof(T) * (capacity+1))))
     , _capacity(capacity+1)
 {
@@ -60,7 +60,7 @@ locking_coroutine_channel<T>::locking_coroutine_channel(std::size_t capacity)
 }
 
 template<typename T>
-locking_coroutine_channel<T>::~locking_coroutine_channel()
+locking_channel<T>::~locking_channel()
 {
     // destroy anything that could still be in there
     int rd = _rd;
@@ -74,7 +74,7 @@ locking_coroutine_channel<T>::~locking_coroutine_channel()
 }
 
 template<typename T>
-void locking_coroutine_channel<T>::put(T v)
+void locking_channel<T>::put(T v)
 {
     std::lock_guard<mutex> lock(_mutex);
 
@@ -94,7 +94,7 @@ void locking_coroutine_channel<T>::put(T v)
 }
 
 template<typename T>
-T locking_coroutine_channel<T>::get()
+T locking_channel<T>::get()
 {
     std::lock_guard<mutex> lock(_mutex);
 
@@ -118,7 +118,7 @@ T locking_coroutine_channel<T>::get()
 }
 
 template<typename T>
-void locking_coroutine_channel<T>::do_close()
+void locking_channel<T>::do_close()
 {
     std::lock_guard<mutex> lock(_mutex);
     _closed = true;

@@ -4,6 +4,8 @@
 
 #include <algorithm>
 
+// various algorithms used in the lib
+
 namespace coroutines {
 
 // finds a pointer in smart-pointer container

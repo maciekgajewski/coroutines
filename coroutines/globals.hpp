@@ -2,20 +2,13 @@
 #ifndef COROUTINES_GLOBALS_HPP
 #define COROUTINES_GLOBALS_HPP
 
-#include "threaded_scheduler.hpp"
-#include "coroutine_scheduler.hpp"
+#include "scheduler.hpp"
 #include "context.hpp"
 
 // global functions used in channle-based concurent programming
 
 namespace coroutines
 {
-
-#ifdef USE_THREADED_SCHEDULER
-typedef threaded_scheduler scheduler;
-#else
-typedef coroutine_scheduler scheduler;
-#endif
 
 extern scheduler* __scheduler;
 

@@ -1,5 +1,5 @@
 // (c) 2013 Maciej Gajewski, <maciej.gajewski0@gmail.com>
-#include "coroutine_scheduler.hpp"
+#include "scheduler.hpp"
 #include "algorithm.hpp"
 
 #include <cassert>
@@ -8,18 +8,18 @@
 
 namespace coroutines {
 
-coroutine_scheduler::coroutine_scheduler(unsigned max_running_coroutines)
+scheduler::scheduler(unsigned max_running_coroutines)
     : _max_running_coroutines(max_running_coroutines)
 {
     assert(max_running_coroutines > 0);
 }
 
-coroutine_scheduler::~coroutine_scheduler()
+scheduler::~scheduler()
 {
     wait();
 }
 
-void coroutine_scheduler::wait()
+void scheduler::wait()
 {
     // join all threads
     while(!_threads.empty())
@@ -32,7 +32,7 @@ void coroutine_scheduler::wait()
     }
 }
 
-void coroutine_scheduler::steal(std::list<coroutine_ptr>& out)
+void scheduler::steal(std::list<coroutine_ptr>& out)
 {
     std::lock_guard<std::mutex> lock(_contexts_mutex);
 
@@ -52,7 +52,7 @@ void coroutine_scheduler::steal(std::list<coroutine_ptr>& out)
     }
 }
 
-void coroutine_scheduler::context_finished(context* ctx)
+void scheduler::context_finished(context* ctx)
 {
     //std::cout << "SCHED: context " << ctx << " finished" << std::endl;
 
@@ -72,7 +72,7 @@ void coroutine_scheduler::context_finished(context* ctx)
     }
 }
 
-void coroutine_scheduler::context_blocked(context* ctx, std::list<coroutine_ptr>& coros)
+void scheduler::context_blocked(context* ctx, std::list<coroutine_ptr>& coros)
 {
     // move context to blocked
     {
@@ -90,7 +90,7 @@ void coroutine_scheduler::context_blocked(context* ctx, std::list<coroutine_ptr>
     _global_queue.push(coros);
 }
 
-bool coroutine_scheduler::context_unblocked(context* ctx)
+bool scheduler::context_unblocked(context* ctx)
 {
     {
         std::lock_guard<std::mutex> lock(_contexts_mutex);
@@ -126,7 +126,7 @@ bool coroutine_scheduler::context_unblocked(context* ctx)
     return false;
 }
 
-void coroutine_scheduler::schedule(coroutine_ptr&& coro)
+void scheduler::schedule(coroutine_ptr&& coro)
 {
     //std::cout << "SCHED: scheduling corountine '" << coro->name() << "'" << std::endl;
 
