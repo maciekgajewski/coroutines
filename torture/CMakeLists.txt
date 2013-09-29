@@ -1,3 +1,6 @@
+find_package( Boost 1.38.0 COMPONENTS filesystem system)
+include_directories(${Boost_INCLUDE_DIRS})
+
 add_executable(torture
         main.cpp
         parallel.cpp parallel.hpp
@@ -8,6 +11,6 @@ add_executable(torture
 target_link_libraries(torture
     coroutines
 
-    ${Boost_LIBS}
+    ${Boost_LIBRARIES}
     lzma
 )
