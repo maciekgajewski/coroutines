@@ -13,7 +13,7 @@ public:
     service();
     ~service();
 
-    boost::asio::io_service& get_io_service() const { return _io_service; }
+    boost::asio::io_service& get_io_service() { return _io_service; }
 
 private:
 

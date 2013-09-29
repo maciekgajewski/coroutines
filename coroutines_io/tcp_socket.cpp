@@ -1,5 +1,7 @@
 // Copyright (c) 2013 Maciej Gajewski
+
 #include "tcp_socket.hpp"
+#include "service.hpp"
 
 namespace coroutines_io {
 

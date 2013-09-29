@@ -33,6 +33,7 @@ class channel_writer
 public:
 
     channel_writer() noexcept = default;
+    channel_writer(const channel_writer&) = default;
     channel_writer(channel_writer&& o) noexcept
     {
         std::swap(o._impl, _impl);
@@ -42,10 +43,12 @@ public:
         : _impl(std::move(impl))
     { }
 
+    channel_writer(const std::shared_ptr<i_writer_impl<T>>& impl) noexcept
+        : _impl(impl)
+    { }
+
     ~channel_writer()
     {
-        if (_impl)
-            _impl->writer_close();
     }
 
     void put(T val)
@@ -76,11 +79,6 @@ public:
         _impl.reset();
     }
 
-    bool is_closed() const noexcept
-    {
-        return !_impl;
-    }
-
 private:
 
     std::shared_ptr<i_writer_impl<T>> _impl;
@@ -104,19 +102,22 @@ class channel_reader
 public:
 
     channel_reader() noexcept = default;
+    channel_reader(const channel_reader&) = default;
     channel_reader(channel_reader&& o)
     {
         std::swap(o._impl, _impl);
     }
 
-    channel_reader(std::shared_ptr<i_reader_impl<T>>&& impl)
+    channel_reader(std::shared_ptr<i_reader_impl<T>>&& impl) noexcept
     : _impl(std::move(impl))
+    { }
+
+    channel_reader(const std::shared_ptr<i_reader_impl<T>>& impl)
+    : _impl(impl)
     { }
 
     ~channel_reader()
     {
-        if (_impl)
-            _impl->reader_close();
     }
 
 
@@ -148,6 +149,8 @@ private:
 template<typename T>
 struct channel_pair
 {
+    channel_pair(const channel_pair& o) = default;
+
     channel_pair(channel_pair&& o)
     : reader(std::move(o.reader))
     , writer(std::move(o.writer))
@@ -157,7 +160,6 @@ struct channel_pair
     : reader(std::move(r))
     , writer(std::move(w))
     { }
-
 
     channel_reader<T> reader;
     channel_writer<T> writer;

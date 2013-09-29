@@ -347,28 +347,57 @@ void test_blocking_coros()
     TEST_EQUAL(blocking, SERIES*3);
 }
 
+void test_multiple_readers()
+{
+    scheduler sched(4);
+    set_scheduler(&sched);
+
+    static const int MSGS = 1000;
+    static const int READERS = 100;
+    std::atomic<int> received(0);
+
+    channel_pair<int> pair = make_channel<int>(10);
+
+    go("test_multiple_readers writer", [](channel_writer<int>& writer)
+    {
+        for(int i = 0; i < MSGS; i++)
+        {
+            writer.put(i);
+        }
+    }, std::move(pair.writer));
+
+    for(int i = 0; i < READERS; i++)
+    {
+        go("test_multiple_readers reader", [&received](channel_reader<int> reader)
+        {
+            for(;;)
+            {
+                reader.get();
+                received++;
+            }
+
+        }, pair.reader);
+    }
+
+
+    sched.wait();
+    set_scheduler(nullptr);
+
+    TEST_EQUAL(received, MSGS);
+}
+
+#define RUN_TEST(test_name) std::cout << ">>> Starting test: " << #test_name << std::endl; test_name();
+
 int main(int , char** )
 {
-//    std::cout << "Staring test: test_reading_after_close" << std::endl;
-//    test_reading_after_close();
-
-//    std::cout << "Staring test: test_reader_blocking" << std::endl;
-//    test_reader_blocking();
-
-//    std::cout << "Staring test: test_writer_exit_when_closed" << std::endl;
-//    test_writer_exit_when_closed();
-
-//    std::cout << "Staring test: test_large_transfer" << std::endl;
-//    test_large_transfer();
-
-//    std::cout << "Staring test: test_nestet_coros" << std::endl;
-//    test_nestet_coros();
-
-//    std::cout << "Staring test: test_muchos_coros" << std::endl;
-//    test_muchos_coros();
-
-    std::cout << "Staring test: test_blocking_coros" << std::endl;
-    test_blocking_coros();
+//    RUN_TEST(test_reading_after_close);
+//    RUN_TEST(test_reader_blocking);
+//    RUN_TEST(test_writer_exit_when_closed);
+//    RUN_TEST(test_large_transfer);
+//    RUN_TEST(test_nestet_coros);
+//    RUN_TEST(test_muchos_coros);
+//    RUN_TEST(test_blocking_coros);
+    RUN_TEST(test_multiple_readers);
 
     std::cout << "test completed" << std::endl;
 }

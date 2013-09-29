@@ -10,6 +10,7 @@ namespace coroutines {
 
 // DOES NOT WORK
 // it may work if two mutexes would be replace by single reader/writer lock
+// to be revisited
 template<typename T>
 class lock_free_channel : public i_writer_impl<T>, public i_reader_impl<T>
 {

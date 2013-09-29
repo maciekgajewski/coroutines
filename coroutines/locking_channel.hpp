@@ -5,11 +5,13 @@
 #include "mutex.hpp"
 #include "condition_variable.hpp"
 
+#include <memory>
+
 namespace coroutines {
 
 // non-lock-free implementation
 template<typename T>
-class locking_channel : public i_writer_impl<T>, public i_reader_impl<T>
+class locking_channel
 {
 public:
 
@@ -17,22 +19,55 @@ public:
     static channel_pair<T> make(std::size_t capacity)
     {
         std::shared_ptr<locking_channel<T>> me(new locking_channel<T>(capacity));
-        return channel_pair<T>(channel_reader<T>(me), channel_writer<T>(me));
+
+        std::shared_ptr<i_reader_impl<T>> rd = std::make_shared<locking_channel<T>::reader>(me);
+        std::shared_ptr<i_writer_impl<T>> wr = std::make_shared<locking_channel<T>::writer>(me);
+
+        return channel_pair<T>(channel_reader<T>(rd), channel_writer<T>(wr));
     }
 
     locking_channel(const locking_channel&) = delete;
-    virtual ~locking_channel() override;
+    ~locking_channel();
 
     // called by producer
-    virtual void put(T v) override;
-    virtual void writer_close() override { do_close(); }
+    void put(T v);
+    void writer_close() { do_close(); }
 
     // caled by consumer
-    virtual T get() override;
-    virtual void reader_close() { do_close(); }
-
+    T get();
+    void reader_close() { do_close(); }
 
 private:
+
+    class writer : public i_writer_impl<T>
+    {
+    public:
+        writer(const std::shared_ptr<locking_channel>& impl)
+            : _impl(impl) { }
+
+        virtual void put(T v) override { _impl->put(std::move(v)); }
+        virtual void writer_close() override { _impl->writer_close(); }
+        virtual ~writer() { _impl->writer_close(); }
+
+    private:
+
+        std::shared_ptr<locking_channel> _impl;
+    };
+
+    class reader : public i_reader_impl<T>
+    {
+    public:
+        reader(const std::shared_ptr<locking_channel>& impl)
+            : _impl(impl) { }
+
+        virtual T get() override { return std::move(_impl->get()); }
+        virtual void reader_close() { _impl->reader_close(); }
+        virtual ~reader() { _impl->reader_close(); }
+
+    private:
+
+        std::shared_ptr<locking_channel> _impl;
+    };
 
     locking_channel(std::size_t capacity);
     void do_close();
