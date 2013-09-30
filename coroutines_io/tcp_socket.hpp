@@ -3,6 +3,7 @@
 #define COROUTINES_IO_TCP_SOCKET_HPP
 
 #include "buffer.hpp"
+#include "coroutines/channel.hpp"
 
 #include <boost/asio.hpp>
 
@@ -23,18 +24,18 @@ public:
     ~tcp_socket();
 
     void connect(const endpoint_type& endpoint);
-
-    /*
-    buffer read(unsigned how_much);
-    void read(buffer& data);
-    void write(buffer& data);
-    */
     void close();
 
 private:
 
+    void open(int address_family);
+
     service& _service;
-    boost::asio::ip::tcp::socket _socket;
+
+    int _socket = -1;
+
+    channel_reader<boost::system::error_code> _reader;
+    channel_writer<boost::system::error_code> _writer;
 };
 
 }

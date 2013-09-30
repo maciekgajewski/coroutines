@@ -58,7 +58,6 @@ void test_connect()
     set_scheduler(nullptr);
 }
 
-
 int main(int , char** )
 {
     RUN_TEST(test_connect);

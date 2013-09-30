@@ -443,19 +443,114 @@ void test_multiple_writers()
     TEST_EQUAL(received, WRITERS*MSGS_PER_WRITER);
 }
 
+
+/////////////
+
+struct node
+{
+    double value;
+    node* left = nullptr;
+    node* right = nullptr;
+};
+
+node* build_tree(unsigned levels)
+{
+    static double x = 7;
+
+    if (levels == 0 )
+        return nullptr;
+
+    node* n = new node();
+    n->value = levels * x;
+    n->left = build_tree(levels - 1);
+    n->right = build_tree(levels - 1);
+
+    x = x*3.14;
+
+    return n;
+}
+
+double sum_tree(node* n)
+{
+    if (n)
+    {
+        return n->value + sum_tree(n->left) + sum_tree(n->right);
+    }
+    else
+    {
+        return 0.0;
+    }
+}
+
+double paraller_sum_sub(node* tree, channel_writer<double>& out)
+{
+    out.put(sum_tree(tree));
+}
+
+double paraller_sum(node* tree)
+{
+    if (tree)
+    {
+        auto pair = make_channel<double>(2);
+        go(paraller_sum_sub, tree->left, pair.writer);
+        go(paraller_sum_sub, tree->right, pair.writer);
+
+        return pair.reader.get() + pair.reader.get();
+    }
+    else
+    {
+        return 0;
+    }
+
+}
+
+void tree_traverse_test()
+{
+    scheduler sched(4);
+    set_scheduler(&sched);
+
+
+    node* tree = build_tree(26);
+
+    auto start = std::chrono::high_resolution_clock::now();
+    double sum = sum_tree(tree);
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::high_resolution_clock::duration single = end - start;
+    std::chrono::high_resolution_clock::duration parallel;
+
+    go([tree, &parallel]()
+    {
+        auto start = std::chrono::high_resolution_clock::now();
+        paraller_sum(tree);
+        auto end = std::chrono::high_resolution_clock::now();
+        parallel = end-start;
+    });
+
+
+    sched.wait();
+    set_scheduler(nullptr);
+
+    std::cout << "single thread duration: " << single / std::chrono::milliseconds(1) << " ms " << std::endl;
+    std::cout << "parallel duration: " << parallel / std::chrono::milliseconds(1) << " ms " << std::endl;
+}
+
+
+
+
 #define RUN_TEST(test_name) std::cout << ">>> Starting test: " << #test_name << std::endl; test_name();
 
 int main(int , char** )
 {
-    RUN_TEST(test_reading_after_close);
-    RUN_TEST(test_reader_blocking);
-    RUN_TEST(test_writer_exit_when_closed);
-    RUN_TEST(test_large_transfer);
-    RUN_TEST(test_nestet_coros);
-    RUN_TEST(test_muchos_coros);
-    RUN_TEST(test_blocking_coros);
-    RUN_TEST(test_multiple_readers);
-    RUN_TEST(test_multiple_writers);
+//    RUN_TEST(test_reading_after_close);
+//    RUN_TEST(test_reader_blocking);
+//    RUN_TEST(test_writer_exit_when_closed);
+//    RUN_TEST(test_large_transfer);
+//    RUN_TEST(test_nestet_coros);
+//    RUN_TEST(test_muchos_coros);
+//    RUN_TEST(test_blocking_coros);
+//    RUN_TEST(test_multiple_readers);
+//    RUN_TEST(test_multiple_writers);
+    RUN_TEST(tree_traverse_test);
 
     std::cout << "test completed" << std::endl;
 }

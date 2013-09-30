@@ -51,6 +51,12 @@ public:
     {
     }
 
+    channel_writer<T>& operator=(channel_writer&& o)
+    {
+        std::swap(o._impl, _impl);
+        return *this;
+    }
+
     void put(T val)
     {
         if (_impl)
@@ -104,6 +110,12 @@ public:
     channel_reader(channel_reader&& o)
     {
         std::swap(o._impl, _impl);
+    }
+
+    channel_reader<T>& operator=(channel_reader&& o)
+    {
+        std::swap(o._impl, _impl);
+        return *this;
     }
 
     channel_reader(std::shared_ptr<i_reader_impl<T>>&& impl) noexcept
