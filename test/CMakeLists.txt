@@ -1,5 +1,5 @@
 add_executable(test
-        main.cpp	
+    main.cpp
 	generator_tests.cpp generator_tests.hpp
 )
 

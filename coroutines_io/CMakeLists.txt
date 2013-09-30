@@ -1,4 +1,4 @@
-find_package( Boost 1.54.0 COMPONENTS context asio)
+find_package( Boost 1.54.0 )
 include_directories(${Boost_INCLUDE_DIRS})
 
 add_library(coroutines_io STATIC
