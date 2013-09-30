@@ -11,6 +11,8 @@ void set_service(service* s);
 service* get_service();
 service& get_service_check(); // asserts service != null
 
+void throw_errno();
+
 }
 
 #endif

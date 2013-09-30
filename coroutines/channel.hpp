@@ -97,6 +97,7 @@ public:
     virtual ~i_reader_impl() = default;
 
     virtual T get() = 0;
+    virtual bool try_get(T& out) = 0;
     virtual void reader_close() = 0;
 };
 
@@ -135,6 +136,14 @@ public:
     {
         if (_impl)
             return _impl->get();
+        else
+            throw channel_closed();
+    }
+
+    bool try_get(T& b)
+    {
+        if (_impl)
+            return _impl->try_get(b);
         else
             throw channel_closed();
     }

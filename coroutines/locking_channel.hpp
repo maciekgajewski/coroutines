@@ -37,6 +37,7 @@ public:
 
     // caled by consumer
     T get();
+    bool try_get(T& b);
     void reader_close() { do_close(); }
 
 private:
@@ -63,6 +64,7 @@ private:
             : _impl(impl) { }
 
         virtual T get() override { return std::move(_impl->get()); }
+        virtual bool try_get(T& b) override { return _impl->try_get(b); }
         virtual void reader_close() { _impl->reader_close(); }
         virtual ~reader() { _impl->reader_close(); }
 
@@ -171,6 +173,31 @@ T locking_channel<T>::get()
 
     return v;
 }
+
+template<typename T>
+bool locking_channel<T>::try_get(T& b)
+{
+    std::lock_guard<mutex> lock(_mutex);
+
+    if (_rd == _wr)
+    {
+        return false;
+    }
+    else
+    {
+        b = std::move(_data[_rd]);
+        _data[_rd].~T();
+        _rd++;
+        if (_rd == _capacity)
+            _rd = 0;
+
+        if (size() == _capacity - 2)
+            _producers_cv.notify_all();
+
+        return true;
+    }
+}
+
 
 template<typename T>
 void locking_channel<T>::do_close()

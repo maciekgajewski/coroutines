@@ -30,9 +30,6 @@ void test_connect()
     set_scheduler(&sched);
     set_service(&srv);
 
-    srv.start();
-
-
     go("test_connect", []()
     {
         try
@@ -51,8 +48,6 @@ void test_connect()
         }
     });
 
-
-    srv.stop();
     sched.wait();
     set_service(nullptr);
     set_scheduler(nullptr);

@@ -1,6 +1,7 @@
 #include "globals.hpp"
 
 #include <cassert>
+#include <system_error>
 
 namespace coroutines
 {
@@ -21,6 +22,11 @@ service& get_service_check()
 {
     assert(__service);
     return *__service;
+}
+
+void throw_errno()
+{
+    throw std::system_error(errno, std::system_category());
 }
 
 

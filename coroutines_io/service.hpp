@@ -2,9 +2,9 @@
 #ifndef COROUTINES_IO_SERVICE_HPP
 #define COROUTINES_IO_SERVICE_HPP
 
-#include <boost/asio/io_service.hpp>
-
 #include "coroutines/scheduler.hpp"
+
+#include <system_error>
 
 namespace coroutines {
 
@@ -16,18 +16,30 @@ public:
     ~service();
 
     scheduler& get_scheduler() { return _scheduler; }
-    boost::asio::io_service& get_io_service() { return _io_service; }
 
-    void start();
-    void stop();
+    // servuices provided
+    void wait_for_writable(int socket, const channel_writer<std::error_code>& writer);
+    void wait_for_readable(int socket, const channel_writer<std::error_code>& writer);
 
 private:
+
+    struct command
+    {
+        int fd;
+        int events;
+        channel_writer<std::error_code> writer;
+    };
+
 
     void loop();
 
     scheduler& _scheduler;
-    boost::asio::io_service _io_service;
-    bool _run = false;
+
+    channel_writer<command> _command_writer;
+    channel_reader<command> _command_reader;
+
+    int _event_fd = -1;
+
 };
 
 }

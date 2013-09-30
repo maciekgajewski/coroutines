@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 
 #include <cstring>
+#include <system_error>
 
 namespace coroutines {
 
@@ -57,12 +58,7 @@ void tcp_socket::connect(const tcp_socket::endpoint_type& endpoint)
     }
     if (cr != EINPROGRESS)
     {
-        throw boost::system::system_error(
-            boost::system::error_code(
-                errno,
-                boost::asio::error::get_system_category()
-                )
-            );
+        throw_errno();
     }
 
     // todo register with epoll
@@ -79,12 +75,7 @@ void tcp_socket::open(int address_family)
 
     if (_socket == -1)
     {
-        throw boost::system::system_error(
-            boost::system::error_code(
-                errno,
-                boost::asio::error::get_system_category()
-                )
-            );
+        throw_errno();
     }
 }
 

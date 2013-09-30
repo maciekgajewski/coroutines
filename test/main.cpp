@@ -510,7 +510,7 @@ void tree_traverse_test()
     set_scheduler(&sched);
 
 
-    node* tree = build_tree(26);
+    node* tree = build_tree(20);
 
     auto start = std::chrono::high_resolution_clock::now();
     double sum = sum_tree(tree);
@@ -534,23 +534,50 @@ void tree_traverse_test()
     std::cout << "parallel duration: " << parallel / std::chrono::milliseconds(1) << " ms " << std::endl;
 }
 
+void test_non_blocking_read()
+{
+    scheduler sched(4);
+    set_scheduler(&sched);
 
+    auto pair = make_channel<double>(10);
+    int read = 0;
+    bool completed = false;
+
+    go([&]()
+    {
+        pair.writer.put(1.1);
+        pair.writer.put(2.2);
+        pair.writer.put(3.3);
+
+        double x;
+        while(pair.reader.try_get(x))
+            read++;
+        completed = true;
+    });
+
+    sched.wait();
+    set_scheduler(nullptr);
+
+    TEST_EQUAL(read, 3);
+    TEST_EQUAL(completed, true);
+}
 
 
 #define RUN_TEST(test_name) std::cout << ">>> Starting test: " << #test_name << std::endl; test_name();
 
 int main(int , char** )
 {
-//    RUN_TEST(test_reading_after_close);
-//    RUN_TEST(test_reader_blocking);
-//    RUN_TEST(test_writer_exit_when_closed);
-//    RUN_TEST(test_large_transfer);
-//    RUN_TEST(test_nestet_coros);
-//    RUN_TEST(test_muchos_coros);
-//    RUN_TEST(test_blocking_coros);
-//    RUN_TEST(test_multiple_readers);
-//    RUN_TEST(test_multiple_writers);
+    RUN_TEST(test_reading_after_close);
+    RUN_TEST(test_reader_blocking);
+    RUN_TEST(test_writer_exit_when_closed);
+    RUN_TEST(test_large_transfer);
+    RUN_TEST(test_nestet_coros);
+    RUN_TEST(test_muchos_coros);
+    RUN_TEST(test_blocking_coros);
+    RUN_TEST(test_multiple_readers);
+    RUN_TEST(test_multiple_writers);
     RUN_TEST(tree_traverse_test);
+    RUN_TEST(test_non_blocking_read);
 
     std::cout << "test completed" << std::endl;
 }
