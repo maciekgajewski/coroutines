@@ -2,12 +2,12 @@
 
 #include <cassert>
 
-namespace coroutines_io
+namespace coroutines
 {
 
 static service* __service = nullptr;
 
-void set_service(coroutines_io::service* s)
+void set_service(service* s)
 {
     __service = s;
 }
@@ -20,7 +20,7 @@ service* get_service()
 service& get_service_check()
 {
     assert(__service);
-    return 8__service;
+    return *__service;
 }
 
 

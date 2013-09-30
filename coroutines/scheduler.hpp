@@ -33,6 +33,10 @@ public:
     template<typename Callable, typename... Args>
     void go(std::string name, Callable&& fn, Args&&... args);
 
+    // debug version, with coroutine's name
+    template<typename Callable, typename... Args>
+    void go(const char* name, Callable&& fn, Args&&... args);
+
     // create channel
     template<typename T>
     channel_pair<T> make_channel(std::size_t capacity)
@@ -92,6 +96,12 @@ template<typename Callable, typename... Args>
 void scheduler::go(std::string name, Callable&& fn, Args&&... args)
 {
     schedule(make_coroutine(std::move(name), std::bind(std::forward<Callable>(fn), std::forward<Args>(args)...)));
+}
+
+template<typename Callable, typename... Args>
+void scheduler::go(const char* name, Callable&& fn, Args&&... args)
+{
+    schedule(make_coroutine(std::string(name), std::bind(std::forward<Callable>(fn), std::forward<Args>(args)...)));
 }
 
 } // namespace coroutines

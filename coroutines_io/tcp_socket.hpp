@@ -6,7 +6,7 @@
 
 #include <boost/asio.hpp>
 
-namespace coroutines_io {
+namespace coroutines {
 
 class service;
 
@@ -24,11 +24,11 @@ public:
 
     void connect(const endpoint_type& endpoint);
 
+    /*
     buffer read(unsigned how_much);
     void read(buffer& data);
     void write(buffer& data);
-
-    void connect(/* address */);
+    */
     void close();
 
 private:

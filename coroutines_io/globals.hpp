@@ -4,7 +4,7 @@
 
 #include "service.hpp"
 
-namespace coroutines_io
+namespace coroutines
 {
 
 void set_service(service* s);

@@ -13,4 +13,5 @@ set(CMAKE_CXX_FLAGS
 add_subdirectory(coroutines)
 add_subdirectory(coroutines_io)
 add_subdirectory(test)
+add_subdirectory(test_io)
 add_subdirectory(torture)
