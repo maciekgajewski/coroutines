@@ -37,7 +37,6 @@ void test_connect()
 
     auto pair = make_channel<int>(1);
 
-    /*
     go("test_connect acceptor", [&pair]()
     {
         try
@@ -50,7 +49,7 @@ void test_connect()
 
             pair.writer.put(0);
 
-            std::this_thread::sleep_for(std::chrono::seconds(5));
+            std::this_thread::sleep_for(std::chrono::seconds(1));
             std::cout << "accepting..." << std::endl;
             tcp_socket s = acceptor.accept();
             std::cout << "accepted" << std::endl;
@@ -61,7 +60,6 @@ void test_connect()
         }
 
     });
-    */
 
     go("test_connect connector", [&pair]()
     {
@@ -70,7 +68,7 @@ void test_connect()
             tcp_socket s;
 
             // wait for acceptor
-            //pair.reader.get();
+            pair.reader.get();
 
             std::cout << "connecting..." << std::endl;
             s.connect(boost::asio::ip::tcp::endpoint(
