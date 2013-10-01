@@ -29,5 +29,10 @@ void throw_errno()
     throw std::system_error(errno, std::system_category());
 }
 
+void throw_errno(const std::string& what)
+{
+    throw std::system_error(errno, std::system_category(), what);
+}
+
 
 }

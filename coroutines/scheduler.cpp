@@ -41,7 +41,7 @@ void scheduler::steal(std::list<coroutine_ptr>& out)
     int idx = std::rand() % all_active;
     auto it = _active_contexts.begin();
     std::advance(it, idx);
-    for(int i = 0; i < all_active; ++i)
+    for(unsigned i = 0; i < all_active; ++i)
     {
         unsigned stolen = (*it)->steal(out);
         if (stolen > 0 )

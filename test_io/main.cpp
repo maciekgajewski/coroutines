@@ -53,10 +53,19 @@ void test_connect()
             std::cout << "accepting..." << std::endl;
             tcp_socket s = acceptor.accept();
             std::cout << "accepted" << std::endl;
+
+            static const int BUFSIZE = 64;
+            char buf[BUFSIZE];
+
+            std::cout << "receiving...." << std::endl;
+            std::size_t received = s.read(buf, BUFSIZE);
+
+            std::string rstr(buf, received);
+            std::cout << "received: " << rstr << std::endl;
         }
         catch(const std::exception& e)
         {
-            std::cout << "connection error: " << e.what() << std::endl;
+            std::cout << "acceptor error: " << e.what() << std::endl;
         }
 
     });
@@ -75,6 +84,15 @@ void test_connect()
                 boost::asio::ip::address_v4::from_string("127.0.0.1"),
                 22445));
             std::cout << "connected" << std::endl;
+
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+
+            std::cout << "sending hello..." << std::endl;
+
+            static const std::string hello = "hello";
+            std::size_t sent = s.write(hello.c_str(), hello.length());
+
+            std::cout << "sent " << sent << " bytes" << std::endl;
         }
         catch(const std::exception& e)
         {

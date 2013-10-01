@@ -6,7 +6,7 @@
 
 #include "coroutines_io/tcp_socket.hpp"
 
-#include <boost/asio.hpp>
+#include <boost/asio/ip/tcp.hpp>
 
 namespace coroutines {
 

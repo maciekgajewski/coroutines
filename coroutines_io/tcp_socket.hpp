@@ -5,7 +5,7 @@
 #include "buffer.hpp"
 #include "coroutines/channel.hpp"
 
-#include <boost/asio.hpp>
+#include <boost/asio/ip/tcp.hpp>
 #include <system_error>
 
 namespace coroutines {
@@ -31,6 +31,10 @@ public:
 
     void connect(const endpoint_type& endpoint);
     void close();
+
+    std::size_t read(char* buf, std::size_t how_much);
+    std::size_t write(const char* buf, std::size_t how_much);
+
 
 private:
 

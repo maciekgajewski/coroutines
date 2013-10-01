@@ -9,6 +9,7 @@
 #include <unistd.h>
 
 #include <limits>
+#include <iostream>
 
 namespace coroutines { namespace detail {
 
@@ -43,12 +44,14 @@ void poller::add_fd(int fd, fd_events e, std::uint64_t key)
 {
     // add to epoll
     epoll_event ev;
-    ev.events = to_epoll_events(e) | EPOLLONESHOT | EPOLLERR | EPOLLHUP | EPOLLET;
+    ev.events = to_epoll_events(e) | EPOLLONESHOT | EPOLLERR | EPOLLHUP /*| EPOLLET*/;
     ev.data.u64 = key;
 
     int r = ::epoll_ctl(_epoll, EPOLL_CTL_ADD, fd, &ev);
     if (r < 0)
         throw_errno();
+
+    std::cout << "fd " << fd << " added to epoll with flags " << ev.events << ", fd_Events=" << int(e) << std::endl;
 }
 
 void poller::wait(std::vector<std::uint64_t>& keys)
@@ -92,8 +95,11 @@ void poller::wake()
 int poller::to_epoll_events(fd_events e)
 {
     int result = 0;
+
     if (e & FD_READABLE) result |= EPOLLIN;
     if (e & FD_WRITABLE) result |= EPOLLOUT;
+
+    return result;
 }
 
 
