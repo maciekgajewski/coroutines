@@ -86,8 +86,11 @@ void scheduler::context_blocked(context* ctx, std::list<coroutine_ptr>& coros)
         //std::cout << "SCHED: context " << ctx << " blocked. There is " << _blocked_contexts.size() << " blocked and " << _active_contexts.size() << " active contexts now" << std::endl;
     }
 
-    // move coros to global list
-    _global_queue.push(coros);
+    // do something with the remaining coros
+    for(coroutine_ptr& coro : coros)
+    {
+        schedule(std::move(coro));
+    }
 }
 
 bool scheduler::context_unblocked(context* ctx)

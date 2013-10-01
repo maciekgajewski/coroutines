@@ -6,6 +6,8 @@ add_library(coroutines_io STATIC
     globals.cpp globals.hpp
     service.cpp service.hpp
     tcp_socket.cpp tcp_socket.hpp
+
+    detail/poller.cpp detail/poller.hpp
 )
 
 target_link_libraries(coroutines_io

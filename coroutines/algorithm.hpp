@@ -21,6 +21,19 @@ typename Container::iterator find_ptr(Container& ctr, const T* ptr)
     return it;
 }
 
+// copies elements from IN to OUT, if predicate is true, trnasofrimg tjhem using UNARY_OP
+template<typename InputIterator, typename OutputIterator, typename UnaryOp, typename Predicate>
+void transform_if(InputIterator begin, InputIterator end, OutputIterator out, UnaryOp trans, Predicate pred)
+{
+    std::for_each(begin, end, [&](const decltype(*begin)& item)
+    {
+        if(pred(item))
+        {
+            *(out++) = trans(item);
+        }
+    });
+}
+
 
 }
 

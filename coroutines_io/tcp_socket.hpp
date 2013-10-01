@@ -6,6 +6,7 @@
 #include "coroutines/channel.hpp"
 
 #include <boost/asio.hpp>
+#include <system_error>
 
 namespace coroutines {
 
@@ -34,8 +35,8 @@ private:
 
     int _socket = -1;
 
-    channel_reader<boost::system::error_code> _reader;
-    channel_writer<boost::system::error_code> _writer;
+    channel_reader<std::error_code> _reader;
+    channel_writer<std::error_code> _writer;
 };
 
 }

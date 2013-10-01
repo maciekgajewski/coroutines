@@ -58,6 +58,23 @@ inline void unblock()
 }
 
 
+// blocks code framgment, exception-safe
+template<typename Callable>
+void block(Callable callable)
+{
+    block();
+    try
+    {
+        callable();
+        unblock();
+    }
+    catch(...)
+    {
+        unblock();
+        throw;
+    }
+}
+
 }
 
 #endif

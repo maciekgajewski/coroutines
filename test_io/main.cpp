@@ -1,7 +1,9 @@
 // (c) 2013 Maciej Gajewski, <maciej.gajewski0@gmail.com>
 
 #include "coroutines/globals.hpp"
+
 #include "coroutines_io/globals.hpp"
+#include "coroutines_io/service.hpp"
 #include "coroutines_io/tcp_socket.hpp"
 
 #include <boost/format.hpp>
@@ -29,6 +31,7 @@ void test_connect()
     service srv(sched);
     set_scheduler(&sched);
     set_service(&srv);
+    srv.start();
 
     go("test_connect", []()
     {
@@ -48,6 +51,8 @@ void test_connect()
         }
     });
 
+    sched.wait();
+    srv.stop();
     sched.wait();
     set_service(nullptr);
     set_scheduler(nullptr);

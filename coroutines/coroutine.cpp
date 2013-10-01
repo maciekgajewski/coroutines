@@ -81,6 +81,11 @@ void coroutine::context_function()
     catch(const channel_closed&)
     {
     }
+    catch(const std::exception& e)
+    {
+        std::cerr << "Uncaught exception in " << _name << " : " << e.what() << std::endl;
+        std::terminate();
+    }
     catch(...)
     {
         std::cerr << "Uncaught exception in " << _name << std::endl;

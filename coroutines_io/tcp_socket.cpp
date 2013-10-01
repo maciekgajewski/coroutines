@@ -28,7 +28,7 @@ tcp_socket::~tcp_socket()
 
 void tcp_socket::connect(const tcp_socket::endpoint_type& endpoint)
 {
-    auto pair = _service.get_scheduler().make_channel<boost::system::error_code>(1);
+    auto pair = _service.get_scheduler().make_channel<std::error_code>(1);
     _reader = std::move(pair.reader);
     _writer = std::move(pair.writer);
 
@@ -56,14 +56,18 @@ void tcp_socket::connect(const tcp_socket::endpoint_type& endpoint)
     {
         assert(false);
     }
-    if (cr != EINPROGRESS)
+    if (errno != EINPROGRESS)
     {
         throw_errno();
     }
 
-    // todo register with epoll
-    // wait_for_readable(_socket);
-
+    _service.wait_for_writable(_socket, _writer);
+    std::error_code e = _reader.get();
+    std::cout << "msg received: e=" << e << std::endl;
+    if (e)
+    {
+        throw std::system_error(e, "connect");
+    }
 }
 
 void tcp_socket::open(int address_family)
