@@ -5,6 +5,8 @@
 #include "coroutines_io/globals.hpp"
 #include "coroutines_io/service.hpp"
 #include "coroutines_io/tcp_socket.hpp"
+#include "coroutines_io/tcp_acceptor.hpp"
+
 
 #include <boost/format.hpp>
 
@@ -33,16 +35,47 @@ void test_connect()
     set_service(&srv);
     srv.start();
 
-    go("test_connect", []()
+    auto pair = make_channel<int>(1);
+
+    /*
+    go("test_connect acceptor", [&pair]()
+    {
+        try
+        {
+            tcp_acceptor acceptor;
+
+            acceptor.listen(boost::asio::ip::tcp::endpoint(
+                boost::asio::ip::address_v4::from_string("0.0.0.0"),
+                22445));
+
+            pair.writer.put(0);
+
+            std::this_thread::sleep_for(std::chrono::seconds(5));
+            std::cout << "accepting..." << std::endl;
+            tcp_socket s = acceptor.accept();
+            std::cout << "accepted" << std::endl;
+        }
+        catch(const std::exception& e)
+        {
+            std::cout << "connection error: " << e.what() << std::endl;
+        }
+
+    });
+    */
+
+    go("test_connect connector", [&pair]()
     {
         try
         {
             tcp_socket s;
 
+            // wait for acceptor
+            //pair.reader.get();
+
             std::cout << "connecting..." << std::endl;
             s.connect(boost::asio::ip::tcp::endpoint(
                 boost::asio::ip::address_v4::from_string("127.0.0.1"),
-                22));
+                22445));
             std::cout << "connected" << std::endl;
         }
         catch(const std::exception& e)

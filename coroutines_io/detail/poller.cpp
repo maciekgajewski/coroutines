@@ -1,3 +1,4 @@
+// Copyright (c) 2013 Maciej Gajewski
 #include "coroutines_io/detail/poller.hpp"
 #include "coroutines/algorithm.hpp"
 #include "coroutines_io/globals.hpp"
@@ -42,7 +43,7 @@ void poller::add_fd(int fd, fd_events e, std::uint64_t key)
 {
     // add to epoll
     epoll_event ev;
-    ev.events = to_epoll_events(e) | EPOLLONESHOT | EPOLLERR | EPOLLHUP;
+    ev.events = to_epoll_events(e) | EPOLLONESHOT | EPOLLERR | EPOLLHUP | EPOLLET;
     ev.data.u64 = key;
 
     int r = ::epoll_ctl(_epoll, EPOLL_CTL_ADD, fd, &ev);
@@ -61,8 +62,8 @@ void poller::wait(std::vector<std::uint64_t>& keys)
 
     int r = ::epoll_pwait(_epoll, events, EPOLL_BUFFER, -1, &sigs);
 
-    if (r < 0 && errno != EINTR)
-            throw_errno();
+    if (r < 0)
+        throw_errno();
 
     for(int i = 0; i < r; i++)
     {
@@ -91,8 +92,8 @@ void poller::wake()
 int poller::to_epoll_events(fd_events e)
 {
     int result = 0;
-    if (e & FD_READABLE) result |= EPOLLOUT;
-    if (e & FD_WRITABLE) result |= EPOLLIN;
+    if (e & FD_READABLE) result |= EPOLLIN;
+    if (e & FD_WRITABLE) result |= EPOLLOUT;
 }
 
 

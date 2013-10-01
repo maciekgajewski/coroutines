@@ -60,14 +60,14 @@ void service::loop()
         // if no pending commands, block on reader
         if (commands.empty())
         {
-            std::cout << "SERV: blocking on commands" << std::endl;
+            //std::cout << "SERV: blocking on commands" << std::endl;
             try
             {
                 cmd = _command_reader.get();
             }
             catch(const channel_closed&)
             {
-                std::cout << "SERV: blocking on commands interrupted" << std::endl;
+                //std::cout << "SERV: blocking on commands interrupted" << std::endl;
                 throw;
             }
             _poller.add_fd(cmd.fd, cmd.events, counter);
@@ -81,6 +81,8 @@ void service::loop()
             commands.insert(std::make_pair(counter++, cmd));
         }
 
+        //std::cout << "SERV: polling, " << commands.size() << " sockets pending" << std::endl;
+
         // poll!
         keys.clear();
         block([&]()
@@ -88,7 +90,7 @@ void service::loop()
             _poller.wait(keys);
         });
 
-        std::cout << "SERV: " << keys.size() << " events ready" << std::endl;
+        //std::cout << "SERV: " << keys.size() << " events ready" << std::endl;
 
         // serve events
         for(std::uint64_t key : keys)

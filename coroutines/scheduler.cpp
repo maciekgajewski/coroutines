@@ -90,15 +90,6 @@ void scheduler::context_blocked(context* ctx, std::list<coroutine_ptr>& coros)
     schedule(coros);
 }
 
-void scheduler::schedule(std::list<coroutine_ptr>& coros)
-{
-    for(coroutine_ptr& coro : coros)
-    {
-        schedule(std::move(coro));
-    }
-}
-
-
 bool scheduler::context_unblocked(context* ctx)
 {
     {
@@ -133,6 +124,14 @@ bool scheduler::context_unblocked(context* ctx)
     });
 
     return false;
+}
+
+void scheduler::schedule(std::list<coroutine_ptr>& coros)
+{
+    for(coroutine_ptr& coro : coros)
+    {
+        schedule(std::move(coro));
+    }
 }
 
 void scheduler::schedule(coroutine_ptr&& coro)

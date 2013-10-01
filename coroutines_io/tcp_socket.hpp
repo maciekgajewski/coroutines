@@ -22,6 +22,11 @@ public:
     tcp_socket(service& srv);
     tcp_socket(); // uses get_service_check()
 
+    tcp_socket(const tcp_socket&) = delete;
+    tcp_socket(tcp_socket&&);
+
+    tcp_socket(service& srv, int fd);
+
     ~tcp_socket();
 
     void connect(const endpoint_type& endpoint);

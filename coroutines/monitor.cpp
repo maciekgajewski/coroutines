@@ -41,22 +41,11 @@ void monitor::wake_all()
     _waiting.get_all(waiting);
     //std::cout << "MONITOR: waking up " << waiting.size() << " coroutines" << std::endl;
 
-    context* ctx = context::current_context();
-    if (ctx)
-    {
-        ctx->enqueue(waiting);
-    }
-    else
-    {
-        _scheduler.schedule(waiting);
-    }
+    _scheduler.schedule(waiting);
 }
 
 void monitor::wake_one()
 {
-    context* ctx = context::current_context();
-    assert(ctx);
-
     //std::cout << "MONITOR: this=" << this << " will wake one. q contains: '" << _waiting.size() << std::endl;
     coroutine_ptr waiting;
     bool r = _waiting.pop(waiting);
@@ -65,7 +54,7 @@ void monitor::wake_one()
     {
 //        std::cout << "MONITOR: this=" << this << " waking up one coroutine ('" << waiting->name()
 //            << "'), " << _waiting.size() << " left in q" << std::endl;
-        ctx->enqueue(std::move(waiting));
+        _scheduler.schedule(std::move(waiting));
     }
 //    else
 //    {

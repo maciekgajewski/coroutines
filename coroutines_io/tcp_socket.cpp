@@ -26,6 +26,19 @@ tcp_socket::~tcp_socket()
 {
 }
 
+tcp_socket::tcp_socket(tcp_socket&& o)
+    : _service(o._service)
+{
+    std::swap(_socket, o._socket);
+}
+
+tcp_socket::tcp_socket(service& srv, int fd)
+    : _service(srv)
+    , _socket(fd)
+{
+}
+
+
 void tcp_socket::connect(const tcp_socket::endpoint_type& endpoint)
 {
     auto pair = _service.get_scheduler().make_channel<std::error_code>(1);
@@ -60,10 +73,8 @@ void tcp_socket::connect(const tcp_socket::endpoint_type& endpoint)
     {
         throw_errno();
     }
-
     _service.wait_for_writable(_socket, _writer);
     std::error_code e = _reader.get();
-    std::cout << "msg received: e=" << e << std::endl;
     if (e)
     {
         throw std::system_error(e, "connect");
