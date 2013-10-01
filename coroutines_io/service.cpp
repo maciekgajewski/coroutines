@@ -8,6 +8,8 @@
 
 #include <unordered_map>
 
+#include <sys/socket.h>
+
 namespace coroutines {
 
 service::service(scheduler& sched)
@@ -58,12 +60,21 @@ void service::loop()
         // if no pending commands, block on reader
         if (commands.empty())
         {
-            cmd = _command_reader.get();
+            std::cout << "SERV: blocking on commands" << std::endl;
+            try
+            {
+                cmd = _command_reader.get();
+            }
+            catch(const channel_closed&)
+            {
+                std::cout << "SERV: blocking on commands interrupted" << std::endl;
+                throw;
+            }
             _poller.add_fd(cmd.fd, cmd.events, counter);
             commands.insert(std::make_pair(counter++, cmd));
         }
 
-        //read all events
+        // read all events
         while(_command_reader.try_get(cmd))
         {
             _poller.add_fd(cmd.fd, cmd.events, counter);
@@ -77,14 +88,25 @@ void service::loop()
             _poller.wait(keys);
         });
 
-        std::cout << "POLLER: " << keys.size() << " events ready" << std::endl;
+        std::cout << "SERV: " << keys.size() << " events ready" << std::endl;
 
         // serve events
         for(std::uint64_t key : keys)
         {
             auto it = commands.find(key);
             assert(it != commands.end());
-            it->second.writer.put(std::error_code());
+
+            // get error
+            std::error_code ec;
+            int err = 0;
+            socklen_t err_len = sizeof(err);
+            int r = ::getsockopt(it->second.fd, SOL_SOCKET, SO_ERROR, &err, &err_len);
+            if (r == 0)
+            {
+                ec = std::error_code(err, std::system_category());
+            }
+
+            it->second.writer.put(ec);
             commands.erase(it);
         }
 

@@ -87,11 +87,17 @@ void scheduler::context_blocked(context* ctx, std::list<coroutine_ptr>& coros)
     }
 
     // do something with the remaining coros
+    schedule(coros);
+}
+
+void scheduler::schedule(std::list<coroutine_ptr>& coros)
+{
     for(coroutine_ptr& coro : coros)
     {
         schedule(std::move(coro));
     }
 }
+
 
 bool scheduler::context_unblocked(context* ctx)
 {

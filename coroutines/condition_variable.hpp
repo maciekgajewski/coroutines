@@ -12,6 +12,10 @@ class condition_variable
 {
 public:
 
+    condition_variable(scheduler& sched)
+        : _monitor(sched)
+    { }
+
     void notify_all()
     {
         _monitor.wake_all();

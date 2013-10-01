@@ -11,6 +11,8 @@
 
 namespace coroutines {
 
+class scheduler;
+
 // non-lock-free implementation
 template<typename T>
 class locking_channel
@@ -18,9 +20,9 @@ class locking_channel
 public:
 
     // factory
-    static channel_pair<T> make(std::size_t capacity)
+    static channel_pair<T> make(scheduler& sched, std::size_t capacity)
     {
-        std::shared_ptr<locking_channel<T>> me(new locking_channel<T>(capacity));
+        std::shared_ptr<locking_channel<T>> me(new locking_channel<T>(sched, capacity));
 
         std::shared_ptr<i_reader_impl<T>> rd = std::make_shared<locking_channel<T>::reader>(me);
         std::shared_ptr<i_writer_impl<T>> wr = std::make_shared<locking_channel<T>::writer>(me);
@@ -73,7 +75,7 @@ private:
         std::shared_ptr<locking_channel> _impl;
     };
 
-    locking_channel(std::size_t capacity);
+    locking_channel(scheduler& _sched, std::size_t capacity);
     void do_close();
 
     unsigned size() const
@@ -102,9 +104,11 @@ private:
 };
 
 template<typename T>
-locking_channel<T>::locking_channel(std::size_t capacity)
+locking_channel<T>::locking_channel(scheduler& sched, std::size_t capacity)
     : _data(static_cast<T*>(std::malloc(sizeof(T) * (capacity+1))))
     , _capacity(capacity+1)
+    , _producers_cv(sched)
+    , _consumers_cv(sched)
 {
     assert(capacity >= 1);
     if (!_data)

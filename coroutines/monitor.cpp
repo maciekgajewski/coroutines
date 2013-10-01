@@ -1,12 +1,14 @@
 // (c) 2013 Maciej Gajewski, <maciej.gajewski0@gmail.com>
-#include "coroutine.hpp"
-#include "context.hpp"
+#include "coroutines/monitor.hpp"
 
-#include "monitor.hpp"
+#include "coroutines/coroutine.hpp"
+#include "coroutines/context.hpp"
+#include "coroutines/scheduler.hpp"
 
 namespace coroutines {
 
-monitor::monitor()
+monitor::monitor(scheduler& sched)
+    : _scheduler(sched)
 {
 }
 
@@ -35,15 +37,18 @@ void monitor::wait(epilogue_type epilogue)
 void monitor::wake_all()
 {
     //std::cout << "MONITOR: wake_all" << std::endl;
+    std::list<coroutine_ptr> waiting;
+    _waiting.get_all(waiting);
+    //std::cout << "MONITOR: waking up " << waiting.size() << " coroutines" << std::endl;
+
     context* ctx = context::current_context();
     if (ctx)
     {
-        std::list<coroutine_ptr> waiting;
-        _waiting.get_all(waiting);
-
-        //std::cout << "MONITOR: waking up " << waiting.size() << " coroutines" << std::endl;
-
         ctx->enqueue(waiting);
+    }
+    else
+    {
+        _scheduler.schedule(waiting);
     }
 }
 

@@ -41,7 +41,7 @@ public:
     template<typename T>
     channel_pair<T> make_channel(std::size_t capacity)
     {
-        return locking_channel<T>::make(capacity);
+        return locking_channel<T>::make(*this, capacity);
     }
 
     // wait for all coroutines to complete
@@ -69,9 +69,12 @@ public:
     // returns 'true' is context is allowed to continue, false if it's going to be destroyed
     bool context_unblocked(context* ctx);
 
+    void schedule(coroutine_ptr&& coro);
+    void schedule(std::list<coroutine_ptr>& coros);
+
+
 private:
 
-    void schedule(coroutine_ptr&& coro);
 
     std::list<std::thread> _threads;
     std::mutex _threads_mutex;

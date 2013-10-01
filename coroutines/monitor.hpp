@@ -9,6 +9,8 @@
 
 namespace coroutines {
 
+class scheduler;
+
 // monitor is a syncronisation tool.
 // it allows one corotunie to wait for singla from another.
 class monitor
@@ -17,7 +19,7 @@ public:
 
     typedef std::function<void ()> epilogue_type;
 
-    monitor();
+    monitor(scheduler& sched);
     monitor(const monitor&) = delete;
     ~monitor();
 
@@ -35,6 +37,7 @@ public:
 private:
 
     thread_safe_queue<coroutine_ptr> _waiting;
+    scheduler& _scheduler;
 };
 
 }
