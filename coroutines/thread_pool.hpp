@@ -8,6 +8,9 @@
 #include <mutex>
 #include <condition_variable>
 
+#include <iostream>
+#include <cassert>
+
 namespace coroutines {
 
 namespace detail {
@@ -29,8 +32,7 @@ public:
         std::swap(_running, o._running);
     }
 
-    void run(std::function<void ()>&& fn);
-
+    void run(std::function<void ()>&& fn); // call with mutex locked
     bool running() const { return _running; } // call with mutex locked
     void stop_and_join();
 
@@ -80,7 +82,12 @@ public:
         _served_by_pool = tp.acquire([this, fn]() { routine(fn); } );
         if (!_served_by_pool)
         {
+            std::cout << "THREAD this=" << this << " not served by the pool" << std::endl;
             _thread = std::move(std::thread(std::move(fn)));
+        }
+        else
+        {
+            std::cout << "THREAD this=" << this << " served by the pool" << std::endl;
         }
     }
 
@@ -96,7 +103,7 @@ public:
 
 private:
 
-    void routine(std::function<void()>& callable);
+    void routine(std::function<void()> callable);
 
 
     bool _served_by_pool = false;

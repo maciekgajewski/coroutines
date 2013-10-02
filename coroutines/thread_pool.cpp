@@ -2,30 +2,38 @@
 #include "coroutines/thread_pool.hpp"
 
 #include <cassert>
+#include <iostream>
 
 namespace coroutines {
 
-void thread::routine(std::function<void()>& callable)
+void thread::routine(std::function<void()> callable)
 {
+    std::cout << "THREAD: this=" << this << " starting" << std::endl;
     callable();
+    std::cout << "THREAD: this=" << this << " finished" << std::endl;
 
     _mutex.lock();
-    _completed = true;
+        _completed = true;
+        std::cout << "THREAD: this=" << this << " completed" << std::endl;
+        _cv.notify_all();
     _mutex.unlock();
 }
 
 void thread::join()
 {
+        std::cout << "THREAD: this=" << this << ", severd by pool=" << _served_by_pool << " joining..." << std::endl;
     if (_served_by_pool)
     {
+
         std::unique_lock<std::mutex> lock(_mutex);
-        _cv.wait(lock, [this]() { return !_completed; });
+        _cv.wait(lock, [this]() { return _completed; });
         _joined = true;
     }
     else
     {
         _thread.join();
     }
+        std::cout << "THREAD: this=" << this << " joined" << std::endl;
 }
 
 void detail::parked_thread::routine()
@@ -37,7 +45,7 @@ void detail::parked_thread::routine()
 
             _fn = nullptr;
             _running = false;
-            _cv.wait(lock, [this]() { return _fn == nullptr && !_stopped; } );
+            _cv.wait(lock, [this]() { return _fn != nullptr || _stopped; } );
             _running = true;
         }
 
@@ -52,7 +60,6 @@ void detail::parked_thread::routine()
 
 void detail::parked_thread::run(std::function<void ()>&& fn)
 {
-    std::unique_lock<std::mutex> lock(_tp_mutex);
     assert(!_stopped);
     assert(!_running);
 

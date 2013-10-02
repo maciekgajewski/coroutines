@@ -2,12 +2,13 @@
 #ifndef COROUTINES_COROUTINE_SCHEDULER_HPP
 #define COROUTINES_COROUTINE_SCHEDULER_HPP
 
-#include "channel.hpp"
-#include "coroutine.hpp"
-#include "context.hpp"
-#include "locking_channel.hpp"
-#include "condition_variable.hpp"
-#include "thread_safe_queue.hpp"
+#include "coroutines/channel.hpp"
+#include "coroutines/coroutine.hpp"
+#include "coroutines/context.hpp"
+#include "coroutines/locking_channel.hpp"
+#include "coroutines/condition_variable.hpp"
+#include "coroutines/thread_safe_queue.hpp"
+#include "coroutines/thread_pool.hpp"
 
 #include <thread>
 #include <mutex>
@@ -76,7 +77,7 @@ public:
 private:
 
 
-    std::list<std::thread> _threads;
+    std::list<thread> _threads;
     std::mutex _threads_mutex;
 
     std::vector<context_ptr> _blocked_contexts;
@@ -85,6 +86,7 @@ private:
     const unsigned _max_running_coroutines;
 
     thread_safe_queue<coroutine_ptr> _global_queue; // coroutines not assigned to any context
+    thread_pool _thread_pool;
 
 };
 

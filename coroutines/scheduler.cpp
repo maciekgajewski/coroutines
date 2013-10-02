@@ -10,6 +10,7 @@ namespace coroutines {
 
 scheduler::scheduler(unsigned max_running_coroutines)
     : _max_running_coroutines(max_running_coroutines)
+    , _thread_pool(max_running_coroutines)
 {
     assert(max_running_coroutines > 0);
 }
@@ -151,7 +152,7 @@ void scheduler::schedule(coroutine_ptr&& coro)
             ctx->enqueue(std::move(coro));
             _active_contexts.push_back(std::move(ctx));
 
-            _threads.emplace_back([ctx_ptr]()
+            _threads.emplace_back(_thread_pool, [ctx_ptr]()
             {
                 ctx_ptr->run();
             });
