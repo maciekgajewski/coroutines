@@ -23,7 +23,7 @@ void monitor::wait(epilogue_type epilogue)
     coroutine* coro = coroutine::current_corutine();
     assert(coro);
 
-    //std::cout << "MONITOR: this=" << this << " '" << coro->name() << "' will wait" << std::endl;
+//    std::cout << "MONITOR: this=" << this << " '" << coro->name() << "' will wait" << std::endl;
 
     coro->yield([this, epilogue](coroutine_ptr& coro)
     {
@@ -39,7 +39,7 @@ void monitor::wake_all()
     //std::cout << "MONITOR: wake_all" << std::endl;
     std::list<coroutine_ptr> waiting;
     _waiting.get_all(waiting);
-    //std::cout << "MONITOR: waking up " << waiting.size() << " coroutines" << std::endl;
+//    std::cout << "MONITOR: waking up " << waiting.size() << " coroutines" << std::endl;
 
     _scheduler.schedule(waiting);
 }

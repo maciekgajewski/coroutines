@@ -136,14 +136,14 @@ void scheduler::schedule(std::list<coroutine_ptr>& coros)
 
 void scheduler::schedule(coroutine_ptr&& coro)
 {
-    //std::cout << "SCHED: scheduling corountine '" << coro->name() << "'" << std::endl;
+//    std::cout << "SCHED: scheduling corountine '" << coro->name() << "'" << std::endl;
 
     // create new active context, if limit not reached yet
     {
         std::lock_guard<std::mutex> contexts_lock(_contexts_mutex);
         if (_active_contexts.size() < _max_running_coroutines)
         {
-            //std::cout << "SCHED: scheduling corountine, idle context exists, adding there" << std::endl;
+//            std::cout << "SCHED: scheduling corountine, idle context exists, adding there" << std::endl;
             std::lock_guard<std::mutex> threads_lock(_threads_mutex);
 
             context_ptr ctx(new context(this));
@@ -163,12 +163,12 @@ void scheduler::schedule(coroutine_ptr&& coro)
     // called from withing working context
     if (context::current_context())
     {
-        //std::cout << "SCHED: scheduling corountine: adding to current context's list" << std::endl;
+//        std::cout << "SCHED: scheduling corountine: adding to current context's list" << std::endl;
         context::current_context()->enqueue(std::move(coro));
     }
     else
     {
-        //std::cout << "SCHED: scheduling corountine: adding to global list" << std::endl;
+//        std::cout << "SCHED: scheduling corountine: adding to global list" << std::endl;
         // put into global queue
         _global_queue.push(std::move(coro));
     }

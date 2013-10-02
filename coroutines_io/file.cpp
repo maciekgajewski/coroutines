@@ -36,7 +36,7 @@ void file::open(const std::string& path, int flags)
 {
     assert(!is_open());
 
-    int fd = ::open(path.c_str(), flags);
+    int fd = ::open(path.c_str(), flags, 00666);
     if (fd < 0 )
     {
         throw_errno("open");

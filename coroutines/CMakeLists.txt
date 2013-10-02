@@ -16,6 +16,7 @@ add_library(coroutines STATIC
     scheduler.cpp scheduler.hpp
     spsc_queue.hpp
     thread_safe_queue.hpp
+    thread_pool.cpp thread_pool.hpp
 )
 
 target_link_libraries(coroutines
