@@ -7,6 +7,7 @@ add_library(coroutines_io STATIC
     service.cpp service.hpp
     tcp_socket.cpp tcp_socket.hpp
     tcp_acceptor.cpp tcp_acceptor.hpp
+    base_pollable.cpp base_pollable.hpp
 
     detail/poller.cpp detail/poller.hpp
 )

@@ -9,27 +9,18 @@
 namespace coroutines {
 
 tcp_acceptor::tcp_acceptor(service& srv)
-    : _service(srv)
+    : base_pollable(srv)
 {
 }
 
 tcp_acceptor::tcp_acceptor()
-    : _service(get_service_check())
+    : base_pollable(get_service_check())
 {
-}
-
-tcp_acceptor::~tcp_acceptor()
-{
-    ::close(_socket);
 }
 
 void tcp_acceptor::listen(const tcp_acceptor::endpoint_type& endpoint)
 {
     assert(!_listening);
-
-    auto pair = _service.get_scheduler().make_channel<std::error_code>(1);
-    _reader = std::move(pair.reader);
-    _writer = std::move(pair.writer);
 
     int af = endpoint.address().is_v4() ? AF_INET : AF_INET6;
 
@@ -44,7 +35,7 @@ void tcp_acceptor::listen(const tcp_acceptor::endpoint_type& endpoint)
         addr.sin_family = af;
         addr.sin_addr.s_addr = ::htonl(endpoint.address().to_v4().to_ulong());
         addr.sin_port = ::htons(endpoint.port());
-        cr = ::bind(_socket, (sockaddr*)&addr, sizeof(addr));
+        cr = ::bind(get_fd(), (sockaddr*)&addr, sizeof(addr));
     }
     else
     {
@@ -56,7 +47,7 @@ void tcp_acceptor::listen(const tcp_acceptor::endpoint_type& endpoint)
         throw_errno();
     }
 
-    cr = ::listen(_socket, 256);
+    cr = ::listen(get_fd(), 256); // compeltely arbitrary queue size
     if (cr < 0)
         throw_errno();
 
@@ -72,40 +63,39 @@ tcp_socket tcp_acceptor::accept()
     socklen_t addr_len = sizeof(addr);
     for(;;)
     {
-        int fd = ::accept4(_socket, &addr, &addr_len, SOCK_NONBLOCK);
+        int fd = ::accept4(get_fd(), &addr, &addr_len, SOCK_NONBLOCK);
         if (fd < 0 )
         {
             if (errno == EWOULDBLOCK || errno == EAGAIN)
             {
                 std::cout << "ACCEPT: acceptor would block" << std::endl;
-                _service.wait_for_writable(_socket, _writer);
-                std::error_code ec = _reader.get();
-                if (ec)
-                {
-                    throw std::system_error(ec, "what");
-                }
+                wait_for_writable();
                 continue;
             }
         }
         else
         {
-            return tcp_socket(_service, fd);
+            return tcp_socket(get_service(), fd);
         }
     };
 }
 
 void tcp_acceptor::open(int address_family)
 {
-    if (_socket == -1)
+    if (!is_open())
     {
-        _socket = ::socket(
+        int fd = ::socket(
             address_family,
             SOCK_STREAM | SOCK_NONBLOCK,
             0);
 
-        if (_socket == -1)
+        if (fd == -1)
         {
-            throw_errno();
+            throw_errno("open acceptor");
+        }
+        else
+        {
+            set_fd(fd);
         }
     }
 }

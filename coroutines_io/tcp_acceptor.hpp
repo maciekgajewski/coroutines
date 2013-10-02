@@ -12,7 +12,7 @@ namespace coroutines {
 
 class service;
 
-class tcp_acceptor
+class tcp_acceptor : public base_pollable
 {
 public:
     typedef boost::asio::ip::tcp::endpoint endpoint_type;
@@ -21,7 +21,7 @@ public:
     tcp_acceptor(); // uses get_service_check()
     tcp_acceptor(const tcp_acceptor&) = delete;
 
-    ~tcp_acceptor();
+    ~tcp_acceptor() = default;
 
     void listen(const endpoint_type& endpoint);
 
@@ -30,12 +30,6 @@ public:
 private:
 
     void open(int af);
-
-    service& _service;
-    int _socket = -1;
-
-    channel_reader<std::error_code> _reader;
-    channel_writer<std::error_code> _writer;
 
     bool _listening = false;
 };
