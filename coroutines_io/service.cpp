@@ -7,6 +7,7 @@
 #include "coroutines_io/detail/poller.hpp"
 
 #include <unordered_map>
+#include <iostream>
 
 #include <sys/socket.h>
 

@@ -9,7 +9,11 @@
 
 #include <iostream>
 
-#include <stdio.h>
+//#include <stdio.h>
+#include "coroutines_io/file.hpp"
+#include "coroutines_io/globals.hpp"
+#include "coroutines_io/service.hpp"
+
 
 using namespace coroutines;
 namespace bfs = boost::filesystem;
@@ -19,6 +23,7 @@ namespace torture {
 static const unsigned BUFFERS = 800;
 static const unsigned BUFFER_SIZE = 1*1024;
 
+/*
 class file
 {
 public:
@@ -49,7 +54,7 @@ private:
 
     FILE* _f = nullptr;
 };
-
+*/
 
 void process_file(const bfs::path& in_path, const bfs::path& out_path);
 void write_output(buffer_reader& decompressed, buffer_writer& decompressed_return, const bfs::path& output_file);
@@ -59,10 +64,12 @@ void read_input(buffer_writer& compressed, buffer_reader& compressed_return, con
 void parallel(const char* in, const char* out)
 {
 
-    std::unique_ptr<scheduler> sched(new scheduler(4) /*threads*/);
-    set_scheduler(sched.get());
+    scheduler sched(4 /*threads*/);
+    set_scheduler(&sched);
+    service serv(sched);
+    set_service(&serv);
+    serv.start();
 
-    // code here
     try
     {
         bfs::path input_dir(in);
@@ -85,9 +92,10 @@ void parallel(const char* in, const char* out)
         std::cerr << "Error :" << e.what() << std::endl;
     }
 
-    sched->wait();
+    sched.wait();
+    serv.stop();
+    sched.wait();
     set_scheduler(nullptr);
-    sched.reset();
 }
 
 void process_file(const bfs::path& input_file, const bfs::path& output_file)
@@ -118,7 +126,9 @@ void read_input(buffer_writer& compressed, buffer_reader& compressed_return, con
 {
     try
     {
-        file f(input_file.string().c_str(), "rb");
+        //file f(input_file.string().c_str(), "rb");
+        file f;
+        f.open_for_reading(input_file.string());
 
         unsigned counter = 0;
         for(;;)
@@ -152,10 +162,12 @@ void write_output(buffer_reader& decompressed, buffer_writer& decompressed_retur
     try
     {
         // open file
-        file f(output_file.string().c_str(), "wb");
+        //file f(output_file.string().c_str(), "wb");
+        file f;
+        f.open_for_writing(output_file.string());
 
         // fill the queue with allocated buffers
-        for(int i = 0; i < BUFFERS; i++)
+        for(unsigned i = 0; i < BUFFERS; i++)
         {
             decompressed_return.put(buffer(BUFFER_SIZE));
         }

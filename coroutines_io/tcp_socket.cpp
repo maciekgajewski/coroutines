@@ -6,6 +6,7 @@
 
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include <cstring>
 #include <system_error>
@@ -48,8 +49,8 @@ void tcp_socket::connect(const tcp_socket::endpoint_type& endpoint)
         std::memset(&addr, 0, sizeof(addr));
 
         addr.sin_family = af;
-        addr.sin_addr.s_addr = ::htonl(endpoint.address().to_v4().to_ulong());
-        addr.sin_port = ::htons(endpoint.port());
+        addr.sin_addr.s_addr = htonl(endpoint.address().to_v4().to_ulong());
+        addr.sin_port = htons(endpoint.port());
         cr = ::connect(get_fd(), (sockaddr*)&addr, sizeof(addr));
     }
     else

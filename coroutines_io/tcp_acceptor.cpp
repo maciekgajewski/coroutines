@@ -6,6 +6,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+#include <iostream>
+
 namespace coroutines {
 
 tcp_acceptor::tcp_acceptor(service& srv)
@@ -33,8 +35,8 @@ void tcp_acceptor::listen(const tcp_acceptor::endpoint_type& endpoint)
         std::memset(&addr, 0, sizeof(addr));
 
         addr.sin_family = af;
-        addr.sin_addr.s_addr = ::htonl(endpoint.address().to_v4().to_ulong());
-        addr.sin_port = ::htons(endpoint.port());
+        addr.sin_addr.s_addr = htonl(endpoint.address().to_v4().to_ulong());
+        addr.sin_port = htons(endpoint.port());
         cr = ::bind(get_fd(), (sockaddr*)&addr, sizeof(addr));
     }
     else

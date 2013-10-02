@@ -10,6 +10,7 @@ add_executable(torture
 
 target_link_libraries(torture
     coroutines
+    coroutines_io
 
     ${Boost_LIBRARIES}
     lzma
