@@ -16,21 +16,21 @@ context* context::current_context()
     return __current_context;
 }
 
-void context::block()
+void context::block(const std::string& checkpoint_name)
 {
     assert(!_blocked);
     std::list<coroutine_ptr> coros;
     _queue.get_all(coros);
 
-    _parent->context_blocked(this, coros);
+    _parent->context_blocked(this, coros, checkpoint_name);
     _blocked = true;
 }
 
-void context::unblock()
+void context::unblock(const std::string& checkpoint_name)
 {
     assert(_blocked);
     assert(_queue.empty());
-    if (_parent->context_unblocked(this)) // may yield
+    if (_parent->context_unblocked(this, checkpoint_name)) // may yield
     {
         _blocked = false;
     }

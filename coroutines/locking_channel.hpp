@@ -20,9 +20,9 @@ class locking_channel
 public:
 
     // factory
-    static channel_pair<T> make(scheduler& sched, std::size_t capacity)
+    static channel_pair<T> make(scheduler& sched, std::size_t capacity, const std::string& name)
     {
-        std::shared_ptr<locking_channel<T>> me(new locking_channel<T>(sched, capacity));
+        std::shared_ptr<locking_channel<T>> me(new locking_channel<T>(sched, capacity, name));
 
         std::shared_ptr<i_reader_impl<T>> rd = std::make_shared<locking_channel<T>::reader>(me);
         std::shared_ptr<i_writer_impl<T>> wr = std::make_shared<locking_channel<T>::writer>(me);
@@ -75,7 +75,7 @@ private:
         std::shared_ptr<locking_channel> _impl;
     };
 
-    locking_channel(scheduler& _sched, std::size_t capacity);
+    locking_channel(scheduler& _sched, std::size_t capacity, const std::string& name);
     void do_close();
 
     unsigned size() const
@@ -101,14 +101,20 @@ private:
     mutex _mutex;
 
     bool _closed = false;
+
+    const std::string _read_checkpoint;
+    const std::string _write_checkpoint;
 };
 
 template<typename T>
-locking_channel<T>::locking_channel(scheduler& sched, std::size_t capacity)
+locking_channel<T>::locking_channel(scheduler& sched, std::size_t capacity, const std::string& name)
     : _data(static_cast<T*>(std::malloc(sizeof(T) * (capacity+1))))
     , _capacity(capacity+1)
     , _producers_cv(sched)
     , _consumers_cv(sched)
+
+    , _read_checkpoint(name + " : reading")
+    , _write_checkpoint(name + " : writing")
 {
     assert(capacity >= 1);
     if (!_data)
@@ -136,7 +142,7 @@ void locking_channel<T>::put(T v)
 {
     std::lock_guard<mutex> lock(_mutex);
 
-    _producers_cv.wait(_mutex, [=]()// WARNING: the value of _Wr & _rd may be different before and after waiting (modified by another threads)
+    _producers_cv.wait(_write_checkpoint, _mutex, [=]()// WARNING: the value of _Wr & _rd may be different before and after waiting (modified by another threads)
     {
         return _rd != wr_next() || _closed;
     });
@@ -157,7 +163,7 @@ T locking_channel<T>::get()
 {
     std::lock_guard<mutex> lock(_mutex);
 
-    _consumers_cv.wait(_mutex, [=]() { return _rd != _wr || _closed; });
+    _consumers_cv.wait(_read_checkpoint, _mutex, [=]() { return _rd != _wr || _closed; });
 
     if (_rd == _wr)
     {

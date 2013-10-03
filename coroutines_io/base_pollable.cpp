@@ -41,7 +41,7 @@ void base_pollable::set_fd(int fd)
 
     _fd = fd;
 
-    auto pair = _service.get_scheduler().make_channel<std::error_code>(1);
+    auto pair = _service.get_scheduler().make_channel<std::error_code>(1, "pollable notification channel");
     _reader = std::move(pair.reader);
     _writer = std::move(pair.writer);
 

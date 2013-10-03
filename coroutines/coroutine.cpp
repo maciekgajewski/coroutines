@@ -26,6 +26,10 @@ coroutine::coroutine(std::string name, function_type&& fun)
 
 coroutine::~coroutine()
 {
+    if (_new_context)
+    {
+        std::cerr<< "FATAL: coroutine '" << _name << "' destroyed before completed. Last checkpoint: " << _last_checkpoint << std::endl;
+    }
     assert(!_new_context);
     delete[] _stack;
 //    if (!_name.empty())
@@ -58,9 +62,12 @@ coroutine* coroutine::current_corutine()
     return __current_coroutine;
 }
 
-void coroutine::yield(epilogue_type epilogue)
+void coroutine::yield(const std::string& checkpoint_name, epilogue_type epilogue)
 {
     assert(__current_coroutine == this);
+
+    _last_checkpoint = checkpoint_name;
+
     _epilogue = std::move(epilogue);
     boost::context::jump_fcontext(_new_context, &_caller_context, 0);
 }
@@ -76,18 +83,23 @@ void coroutine::context_function()
 //    std::cout << "CORO: starting '" << _name << "'" << std::endl;
     try
     {
+        _last_checkpoint = "started";
         _function();
+        _last_checkpoint = "finished cleanly";
     }
     catch(const channel_closed&)
     {
+        _last_checkpoint = "finished after channel close";
     }
     catch(const std::exception& e)
     {
+        _last_checkpoint = std::string("uncaught exception: ") + e.what();
         std::cerr << "Uncaught exception in " << _name << " : " << e.what() << std::endl;
         std::terminate();
     }
     catch(...)
     {
+        _last_checkpoint = "uncaught exception";
         std::cerr << "Uncaught exception in " << _name << std::endl;
         std::terminate();
     }

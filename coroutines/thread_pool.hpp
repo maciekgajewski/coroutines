@@ -10,6 +10,7 @@
 
 #include <iostream>
 #include <cassert>
+#include <atomic>
 
 namespace coroutines {
 
@@ -19,37 +20,61 @@ class parked_thread
 {
 public:
 
-    parked_thread(std::mutex& m)
-        : _tp_mutex(m), _thread([this]() { routine(); })
+    parked_thread()
+        : _thread([this]() { routine(); })
     { }
 
     parked_thread(parked_thread&& o)
-        : _tp_mutex(o._tp_mutex)
-        , _fn(std::move(o._fn))
+        : _fn(std::move(o._fn))
         , _thread(std::move(o._thread))
     {
         std::swap(_stopped, o._stopped);
         std::swap(_running, o._running);
     }
 
-    void run(std::function<void ()>&& fn); // call with mutex locked
-    bool running() const { return _running; } // call with mutex locked
+    // if thread is busy, returns false
+    bool run(std::function<void ()>&& fn);
     void stop_and_join();
+    void join();
 
 private:
 
     void routine();
-    std::mutex& _tp_mutex;
+    std::mutex _mutex;
     std::condition_variable _cv;
+    std::condition_variable _join_cv;
     std::function<void()> _fn;
     bool _stopped = false;
     bool _running = false;
     std::thread _thread;
 };
 
+class free_thread
+{
+public:
+
+    template<typename Callable>
+    free_thread(Callable&& c)
+        : _finished(false)
+        , _thread([c, this]()
+        {
+            c();
+            _finished = true;
+        })
+    { }
+
+    bool finished() const { return _finished; }
+    void join() noexcept { _thread.join(); }
+
+private:
+
+    std::atomic<bool> _finished;
+    std::thread _thread;
+};
+
+typedef std::unique_ptr<free_thread> free_thread_ptr;
+
 }
-
-
 
 class thread_pool
 {
@@ -58,63 +83,23 @@ public:
     thread_pool(unsigned size);
     ~thread_pool();
 
-private:
+    void run(std::function<void()> fn);
 
-    friend class thread;
-
-    bool acquire(std::function<void()>&& fn);
-
-    std::vector<detail::parked_thread> _threads;
-    std::mutex _mutex;
-};
-
-// thread - should be at least partially compatible with std::thread
-class thread
-{
-public:
-    thread(); // not-a-thread
-    thread(const thread&) = delete;
-    thread(thread&& o);
-
-    template<typename Callable>
-    thread(thread_pool& tp, Callable&& fn)
-    {
-        _served_by_pool = tp.acquire([this, fn]() { routine(fn); } );
-        if (!_served_by_pool)
-        {
-            std::cout << "THREAD this=" << this << " not served by the pool" << std::endl;
-            _thread = std::move(std::thread(std::move(fn)));
-        }
-        else
-        {
-            std::cout << "THREAD this=" << this << " served by the pool" << std::endl;
-        }
-    }
-
+    // blocks until all threads are done
     void join();
 
-    bool joinable() const noexcept
-    {
-        if (_served_by_pool)
-            return !_joined;
-        else
-            return _thread.joinable();
-    }
+    // blocks until all threads are done, stops parked threads
+    void stop_and_join();
 
 private:
 
-    void routine(std::function<void()> callable);
+    void join_completed();
+    void create_free_thread(std::function<void ()> fn);
+    void join_all_free_threads();
 
-
-    bool _served_by_pool = false;
-    bool _completed = false;
-    bool _joined = false;
-    std::mutex _mutex;
-    std::condition_variable _cv;
-
-    // fallback thread, if unable to acquirte one form pool
-    std::thread _thread;
-
+    std::vector<detail::parked_thread> _parked_threads;
+    std::vector<detail::free_thread_ptr> _free_threads;
+    std::mutex _free_threads_mutex;
 };
 
 }

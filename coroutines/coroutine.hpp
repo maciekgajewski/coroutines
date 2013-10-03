@@ -31,7 +31,7 @@ public:
     // returns currently runnig coroutine
     static coroutine* current_corutine();
 
-    void yield(epilogue_type epilogue = epilogue_type());
+    void yield(const std::string& checkpoint_name, epilogue_type epilogue = epilogue_type());
 
     std::string name() const { return _name; }
 
@@ -42,6 +42,7 @@ private:
     void context_function();
 
     std::string _name;
+    std::string _last_checkpoint;
     std::function<void()> _function;
 
     boost::context::fcontext_t _caller_context;

@@ -35,26 +35,26 @@ void go(Callable&& fn, Args&&... args)
 
 // create channel
 template<typename T>
-channel_pair<T> make_channel(std::size_t capacity)
+channel_pair<T> make_channel(std::size_t capacity, const std::string& name = std::string())
 {
-    return get_scheduler_check().make_channel<T>(capacity);
+    return get_scheduler_check().make_channel<T>(capacity, name);
 }
 
 // begin blocking operation
 // starting coroutines is not allowed in blocking mode
-inline void block()
+inline void block(const std::string& checkpoint_name = std::string())
 {
     context* ctx = context::current_context();
     assert(ctx);
-    ctx->block();
+    ctx->block(checkpoint_name);
 }
 
 // ends blocking mode. may preempt current coroutine
-inline void unblock()
+inline void unblock(const std::string& checkpoint_name = std::string())
 {
     context* ctx = context::current_context();
     assert(ctx);
-    ctx->unblock();
+    ctx->unblock(checkpoint_name);
 }
 
 
@@ -71,6 +71,22 @@ void block(Callable callable)
     catch(...)
     {
         unblock();
+        throw;
+    }
+}
+
+template<typename Callable>
+void block(const std::string& checkpoint_name, Callable callable)
+{
+    block(checkpoint_name + " block");
+    try
+    {
+        callable();
+        unblock(checkpoint_name + " unblock");
+    }
+    catch(...)
+    {
+        unblock(checkpoint_name + " unblock after exception");
         throw;
     }
 }

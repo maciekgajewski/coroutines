@@ -18,14 +18,14 @@ monitor::~monitor()
     assert(_waiting.empty());
 }
 
-void monitor::wait(epilogue_type epilogue)
+void monitor::wait(const std::string& checkopint_name, epilogue_type epilogue)
 {
     coroutine* coro = coroutine::current_corutine();
     assert(coro);
 
 //    std::cout << "MONITOR: this=" << this << " '" << coro->name() << "' will wait" << std::endl;
 
-    coro->yield([this, epilogue](coroutine_ptr& coro)
+    coro->yield(checkopint_name, [this, epilogue](coroutine_ptr& coro)
     {
         //std::cout << "MONITOR: this=" << this << " '" << coro->name() << "' added to queue" << std::endl;
         _waiting.push(std::move(coro));

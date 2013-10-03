@@ -28,13 +28,13 @@ public:
 
     // Unlocks the lock and waits in an atomic way.
     template<typename Lock>
-    void wait(Lock& lock);
+    void wait(const std::string& checkpoint_name, Lock& lock);
 
     template<typename Lock, typename Predicate>
-    void wait(Lock& lock, Predicate pred)
+    void wait(const std::string& checkpoint_name, Lock& lock, Predicate pred)
     {
         while(!pred())
-            wait(lock);
+            wait(checkpoint_name, lock);
     }
 
 private:
@@ -44,9 +44,9 @@ private:
 
 
 template<typename Lock>
-void condition_variable::wait(Lock& lock)
+void condition_variable::wait(const std::string& checkpoint_name, Lock& lock)
 {
-    _monitor.wait([&lock]()
+    _monitor.wait(checkpoint_name, [&lock]()
     {
         // this code will bve called after the coroutine yields and its added to monitor
         lock.unlock();

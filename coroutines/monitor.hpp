@@ -25,7 +25,7 @@ public:
 
     // called from corotunie context. Will cause the corountine to yield
     // Epilogue will be called after the coroutine is preemted
-    void wait(epilogue_type epilogue = epilogue_type());
+    void wait(const std::string& checkpoint_name, epilogue_type epilogue = epilogue_type());
 
     // wakes all waiting corotunies
     void wake_all();

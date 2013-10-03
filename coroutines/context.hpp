@@ -32,10 +32,10 @@ public:
     static context* current_context();
 
     // moves current context into blocking mode. Used by croutines calling into blocking syscall
-    void block();
+    void block(const std::string& checkpoint_name);
 
     // mattempts to move the context bck from blocking mode. may preemt calling coroutine
-    void unblock();
+    void unblock(const std::string& checkpoint_name);
 
 private:
 

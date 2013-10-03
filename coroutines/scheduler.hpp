@@ -40,9 +40,9 @@ public:
 
     // create channel
     template<typename T>
-    channel_pair<T> make_channel(std::size_t capacity)
+    channel_pair<T> make_channel(std::size_t capacity, const std::string& name)
     {
-        return locking_channel<T>::make(*this, capacity);
+        return locking_channel<T>::make(*this, capacity, name);
     }
 
     // wait for all coroutines to complete
@@ -63,12 +63,12 @@ public:
     void context_finished(context* ctx);
 
     // used by context to singalize progression into blocked state
-    void context_blocked(context* ctx, std::list<coroutine_ptr>& coros);
+    void context_blocked(context* ctx, std::list<coroutine_ptr>& coros, const std::string& checkpoint_name);
 
     // used by context to singalize progression out of blocked state.
     // will activate context if resources available, or destroy it
     // returns 'true' is context is allowed to continue, false if it's going to be destroyed
-    bool context_unblocked(context* ctx);
+    bool context_unblocked(context* ctx, const std::string& checkpoint_name);
 
     void schedule(coroutine_ptr&& coro);
     void schedule(std::list<coroutine_ptr>& coros);
@@ -76,9 +76,6 @@ public:
 
 private:
 
-
-    std::list<thread> _threads;
-    std::mutex _threads_mutex;
 
     std::vector<context_ptr> _blocked_contexts;
     std::vector<context_ptr> _active_contexts;

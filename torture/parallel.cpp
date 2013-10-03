@@ -102,10 +102,10 @@ void process_file(const bfs::path& input_file, const bfs::path& output_file)
 {
     //std::cout << "process file: " << input_file << " -> " << output_file << std::endl;
 
-    channel_pair<buffer> compressed = make_channel<buffer>(BUFFERS);
-    channel_pair<buffer> decompressed = make_channel<buffer>(BUFFERS);
-    channel_pair<buffer> compressed_return = make_channel<buffer>(BUFFERS);
-    channel_pair<buffer> decompressed_return = make_channel<buffer>(BUFFERS);
+    channel_pair<buffer> compressed = make_channel<buffer>(BUFFERS, "compressed");
+    channel_pair<buffer> decompressed = make_channel<buffer>(BUFFERS, "decompressed");
+    channel_pair<buffer> compressed_return = make_channel<buffer>(BUFFERS, "compressed_return");
+    channel_pair<buffer> decompressed_return = make_channel<buffer>(BUFFERS, "decompressed_return");
 
 
     // start writer
