@@ -42,8 +42,6 @@ private:
     static void static_context_function(intptr_t param);
     void context_function();
 
-    std::string _name;
-    std::string _last_checkpoint = "just created";
     std::function<void()> _function;
 
     boost::context::fcontext_t _caller_context;
@@ -51,7 +49,10 @@ private:
 
     char* _stack = nullptr;
     epilogue_type _epilogue;
+    std::mutex _run_mutex;
     scheduler& _parent;
+    std::string _name;
+    std::string _last_checkpoint = "just created";
 };
 
 template <typename Callable>

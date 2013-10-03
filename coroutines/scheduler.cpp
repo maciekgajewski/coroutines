@@ -44,6 +44,8 @@ void scheduler::wait()
 
 void scheduler::coroutine_finished(coroutine* coro)
 {
+//    std::cout << "CORO=" << coro << " will be destroyed now" << std::endl;
+
     std::lock_guard<std::mutex> lock(_coroutines_mutex);
     auto it = find_ptr(_coroutines, coro);
     assert(it != _coroutines.end());

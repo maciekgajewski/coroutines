@@ -136,12 +136,19 @@ void thread_pool::join_completed()
 {
     std::lock_guard<std::mutex> lock(_free_threads_mutex);
 
-    std::remove_if(
+    auto it = std::remove_if(
         _free_threads.begin(), _free_threads.end(),
-        [](const detail::free_thread_ptr& tp)
+        [](const detail::free_thread_ptr& ft)
         {
-            return tp->finished();
+            if(ft->finished())
+            {
+                ft->join();
+                return true;
+            }
+            else return false;
         });
+
+    _free_threads.erase(it, _free_threads.end());
 }
 
 

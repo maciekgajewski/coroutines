@@ -19,8 +19,8 @@ namespace bfs = boost::filesystem;
 
 namespace torture {
 
-static const unsigned BUFFERS = 4;
-static const unsigned BUFFER_SIZE = 1024*1024;
+static const unsigned BUFFERS = 800;
+static const unsigned BUFFER_SIZE = 1*1024;
 
 class file
 {

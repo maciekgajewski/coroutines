@@ -14,10 +14,10 @@ static const unsigned DEFAULT_STACK_SIZE = 1024*1024;
 static thread_local coroutine* __current_coroutine = nullptr;
 
 coroutine::coroutine(scheduler& parent, std::string name, function_type&& fun)
-    : _name(std::move(name))
-    , _function(std::move(fun))
+    : _function(std::move(fun))
     , _stack(new char[DEFAULT_STACK_SIZE])
     , _parent(parent)
+    , _name(std::move(name))
 {
     _new_context = boost::context::make_fcontext(
                 _stack + DEFAULT_STACK_SIZE,
@@ -28,18 +28,19 @@ coroutine::coroutine(scheduler& parent, std::string name, function_type&& fun)
 
 coroutine::~coroutine()
 {
+//    std::cout << "CORO=" << this << " destroyed" << std::endl;
     if (_new_context)
     {
         std::cerr<< "FATAL: coroutine '" << _name << "' destroyed before completed. Last checkpoint: " << _last_checkpoint << std::endl;
     }
     assert(!_new_context);
     delete[] _stack;
-//    if (!_name.empty())
-//        std::cout << "CORO: '" << _name << "' destroyed" << std::endl;
 }
 
 void coroutine::run()
 {
+    std::lock_guard<std::mutex> lock(_run_mutex); // the coro may be reshdelued in epilogue, and run imemdiately in different thread
+
 //    std::cout << "CORO starting or resuming '" << _name << "'" << std::endl;
     assert(_new_context);
 
@@ -50,10 +51,11 @@ void coroutine::run()
 
     __current_coroutine = previous;
 
-//    std::cout << "CORO '" << _name << "' finished or preemepted" << std::endl;
+//    std::cout << "CORO=" <<this << " finished or preemepted" << std::endl;
 
     if (_epilogue)
     {
+        assert(_new_context);
         _epilogue(this);
         _epilogue = nullptr;
     }
