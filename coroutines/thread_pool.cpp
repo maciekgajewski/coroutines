@@ -18,7 +18,7 @@ void detail::parked_thread::routine()
             _running = false;
             _join_cv.notify_all();
             _cv.wait(lock, [this]() { return _fn != nullptr || _stopped; } );
-            _running = true;
+//            std::cout << "PT=" << this << " woken up" << std::endl;
         }
 
         if (_stopped)
@@ -39,7 +39,9 @@ bool detail::parked_thread::run(std::function<void ()>&& fn)
     if(!_running)
     {
         _fn = std::move(fn);
+//        std::cout << "PT=" << this << " accepted task, waking up" << std::endl;
         _cv.notify_all();
+        _running = true;
         return true;
     }
     return false;
@@ -79,14 +81,17 @@ thread_pool::~thread_pool()
 
 void thread_pool::run(std::function<void()> fn)
 {
+//    std::cout << "TP: task received" << std::endl;
     for(detail::parked_thread& parked : _parked_threads)
     {
         if(parked.run(std::move(fn)))
         {
+//            std::cout << "task accepted by parked thread" << std::endl;
             return;
         }
     }
 
+//    std::cout << "taskwill be served in free thread" << std::endl;
     create_free_thread(std::move(fn));
     join_completed(); // garbage collection
 }
