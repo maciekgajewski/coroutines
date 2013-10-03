@@ -20,6 +20,22 @@ scheduler::~scheduler()
     wait();
 }
 
+void scheduler::debug_dump()
+{
+    std::lock_guard<std::mutex> lock(_coroutines_mutex);
+    std::cerr << "======== scheduler debug dump =========" << std::endl;
+    std::cerr << "     active coroutines: " << _coroutines.size() << std::endl;
+    std::cerr << " max active coroutines: " << _coroutines.size() << std::endl;
+    std::cerr << std::endl;
+    std::cerr << " Active coroutines:" << std::endl;
+    for(auto& coro : _coroutines)
+    {
+        std::cerr << " * " << coro->name() << " : " << coro->last_checkpoint() << std::endl;
+    }
+    std::cerr << "=======================================" << std::endl;
+    std::terminate();
+}
+
 void scheduler::wait()
 {
     std::unique_lock<std::mutex> lock(_coroutines_mutex);

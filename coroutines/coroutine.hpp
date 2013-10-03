@@ -34,6 +34,7 @@ public:
     void yield(const std::string& checkpoint_name, epilogue_type epilogue = epilogue_type());
 
     std::string name() const { return _name; }
+    std::string last_checkpoint() const { return _last_checkpoint; }
 
 private:
 
@@ -42,7 +43,7 @@ private:
     void context_function();
 
     std::string _name;
-    std::string _last_checkpoint;
+    std::string _last_checkpoint = "just created";
     std::function<void()> _function;
 
     boost::context::fcontext_t _caller_context;

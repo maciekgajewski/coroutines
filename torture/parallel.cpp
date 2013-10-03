@@ -9,6 +9,8 @@
 
 #include <iostream>
 
+#include <signal.h>
+
 //#include <stdio.h>
 #include "coroutines_io/file.hpp"
 #include "coroutines_io/globals.hpp"
@@ -60,9 +62,20 @@ void process_file(const bfs::path& in_path, const bfs::path& out_path);
 void write_output(buffer_reader& decompressed, buffer_writer& decompressed_return, const bfs::path& output_file);
 void read_input(buffer_writer& compressed, buffer_reader& compressed_return, const bfs::path& input_file);
 
+void signal_handler(int)
+{
+    scheduler * sched = get_scheduler();
+    if (sched)
+    {
+        sched->debug_dump();
+    }
+}
+
 // Main entry point
 void parallel(const char* in, const char* out)
 {
+    // install signal handler
+    signal(SIGINT, signal_handler);
 
     scheduler sched(4 /*threads*/);
     set_scheduler(&sched);

@@ -45,6 +45,9 @@ public:
         return locking_channel<T>::make(*this, capacity, name);
     }
 
+    // wrties current status to stderr
+    void debug_dump();
+
     // wait for all coroutines to complete
     void wait();
 

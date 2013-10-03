@@ -41,7 +41,9 @@ void context::unblock(const std::string& checkpoint_name)
 void context::enqueue(coroutine_weak_ptr c)
 {
     assert(!_blocked);
+    std::cout << "CONTEXT=" << this << " enqueued: " << c->name() << std::endl;
     _queue.push(std::move(c));
+
 }
 
 void context::enqueue(std::list<coroutine_weak_ptr>& cs)
@@ -64,6 +66,7 @@ void context::run()
         // run the coroutine
         if (has_next)
         {
+            std::cout << "CONTEXT=" << this << " will run: " << current_coro->name() << std::endl;
             current_coro->run();
             if (_blocked)
                 break;
