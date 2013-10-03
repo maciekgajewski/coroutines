@@ -22,8 +22,8 @@ void context::block(const std::string& checkpoint_name)
     std::list<coroutine_weak_ptr> coros;
     _queue.get_all(coros);
 
-    _parent->context_blocked(this, coros, checkpoint_name);
     _blocked = true;
+    _parent->context_blocked(this, coros, checkpoint_name);
 }
 
 void context::unblock(const std::string& checkpoint_name)

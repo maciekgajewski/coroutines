@@ -37,6 +37,8 @@ public:
     // mattempts to move the context bck from blocking mode. may preemt calling coroutine
     void unblock(const std::string& checkpoint_name);
 
+    bool is_blocked() const { return _blocked; }
+
 private:
 
     thread_safe_queue<coroutine_weak_ptr> _queue;

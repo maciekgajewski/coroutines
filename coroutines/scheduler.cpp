@@ -184,7 +184,8 @@ void scheduler::schedule(coroutine_weak_ptr coro)
     }
 
     // called from withing working context
-    if (context::current_context())
+    context* ctx = context::current_context();
+    if (ctx && !ctx->is_blocked())
     {
         //std::cout << "SCHED: scheduling corountine: adding to current context's list" << std::endl;
         context::current_context()->enqueue(std::move(coro));
