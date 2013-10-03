@@ -12,7 +12,7 @@ void detail::parked_thread::routine()
     for(;;)
     {
         {
-            std::unique_lock<std::mutex> lock(_mutex);
+            std::unique_lock<mutex> lock(_mutex);
 
             _fn = nullptr;
             _running = false;
@@ -33,7 +33,7 @@ void detail::parked_thread::routine()
 
 bool detail::parked_thread::run(std::function<void ()>&& fn)
 {
-    std::lock_guard<std::mutex> lock(_mutex);
+    std::lock_guard<mutex> lock(_mutex);
     assert(!_stopped);
 
     if(!_running)
@@ -49,14 +49,14 @@ bool detail::parked_thread::run(std::function<void ()>&& fn)
 
 void detail::parked_thread::join()
 {
-    std::unique_lock<std::mutex> lock(_mutex);
+    std::unique_lock<mutex> lock(_mutex);
     _join_cv.wait(lock, [this]() { return !_running; });
 }
 
 void detail::parked_thread::stop_and_join()
 {
     {
-        std::unique_lock<std::mutex> lock(_mutex);
+        std::unique_lock<mutex> lock(_mutex);
         _stopped = true;
         _cv.notify_all();
     }

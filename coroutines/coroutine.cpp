@@ -39,7 +39,7 @@ coroutine::~coroutine()
 
 void coroutine::run()
 {
-    std::lock_guard<std::mutex> lock(_run_mutex); // the coro may be reshdelued in epilogue, and run imemdiately in different thread
+    std::lock_guard<mutex> lock(_run_mutex); // the coro may be reshdelued in epilogue, and run imemdiately in different thread
 
 //    std::cout << "CORO starting or resuming '" << _name << "'" << std::endl;
     assert(_new_context);

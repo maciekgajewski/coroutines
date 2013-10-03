@@ -2,6 +2,8 @@
 #ifndef COROUTINES_THREAD_POOL_HPP
 #define COROUTINES_THREAD_POOL_HPP
 
+#include "coroutines/mutex.hpp"
+
 #include <vector>
 #include <thread>
 #include <functional>
@@ -40,9 +42,9 @@ public:
 private:
 
     void routine();
-    std::mutex _mutex;
-    std::condition_variable _cv;
-    std::condition_variable _join_cv;
+    mutex _mutex;
+    std::condition_variable_any _cv;
+    std::condition_variable_any _join_cv;
     std::function<void()> _fn;
     bool _stopped = false;
     bool _running = false;

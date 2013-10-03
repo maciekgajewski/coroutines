@@ -22,7 +22,7 @@ scheduler::~scheduler()
 
 void scheduler::debug_dump()
 {
-    std::lock_guard<std::mutex> lock(_coroutines_mutex);
+    std::lock_guard<mutex> lock(_coroutines_mutex);
     std::cerr << "======== scheduler debug dump =========" << std::endl;
     std::cerr << "     active coroutines: " << _coroutines.size() << std::endl;
     std::cerr << " max active coroutines: " << _coroutines.size() << std::endl;
@@ -38,7 +38,7 @@ void scheduler::debug_dump()
 
 void scheduler::wait()
 {
-    std::unique_lock<std::mutex> lock(_coroutines_mutex);
+    std::unique_lock<mutex> lock(_coroutines_mutex);
     _coro_cv.wait(lock, [this]() { return _coroutines.empty(); });
 }
 
@@ -46,7 +46,7 @@ void scheduler::coroutine_finished(coroutine* coro)
 {
 //    std::cout << "CORO=" << coro << " will be destroyed now" << std::endl;
 
-    std::lock_guard<std::mutex> lock(_coroutines_mutex);
+    std::lock_guard<mutex> lock(_coroutines_mutex);
     auto it = find_ptr(_coroutines, coro);
     assert(it != _coroutines.end());
     _coroutines.erase(it);
@@ -59,7 +59,7 @@ void scheduler::coroutine_finished(coroutine* coro)
 
 void scheduler::steal(std::list<coroutine_weak_ptr>& out)
 {
-    std::lock_guard<std::mutex> lock(_contexts_mutex);
+    std::lock_guard<mutex> lock(_contexts_mutex);
 
     unsigned all_active = _active_contexts.size();
 
@@ -81,7 +81,7 @@ void scheduler::context_finished(context* ctx)
 {
     //std::cout << "SCHED: context " << ctx << " finished" << std::endl;
 
-    std::lock_guard<std::mutex> lock(_contexts_mutex);
+    std::lock_guard<mutex> lock(_contexts_mutex);
     auto it = find_ptr(_active_contexts, ctx);
     if (it == _active_contexts.end())
     {
@@ -101,7 +101,7 @@ void scheduler::context_blocked(context* ctx, std::list<coroutine_weak_ptr>& cor
 {
     // move context to blocked
     {
-        std::lock_guard<std::mutex> lock(_contexts_mutex);
+        std::lock_guard<mutex> lock(_contexts_mutex);
         auto it = find_ptr(_active_contexts, ctx);
         assert(it != _active_contexts.end());
 
@@ -118,7 +118,7 @@ void scheduler::context_blocked(context* ctx, std::list<coroutine_weak_ptr>& cor
 bool scheduler::context_unblocked(context* ctx, const std::string& checkpoint_name)
 {
     {
-        std::lock_guard<std::mutex> lock(_contexts_mutex);
+        std::lock_guard<mutex> lock(_contexts_mutex);
         auto it = find_ptr(_blocked_contexts, ctx);
         assert(it != _blocked_contexts.end());
 
@@ -165,7 +165,7 @@ void scheduler::schedule(coroutine_weak_ptr coro)
 
     // create new active context, if limit not reached yet
     {
-        std::lock_guard<std::mutex> contexts_lock(_contexts_mutex);
+        std::lock_guard<mutex> contexts_lock(_contexts_mutex);
         if (_active_contexts.size() < _max_running_coroutines)
         {
             //std::cout << "SCHED: scheduling corountine, idle context exists, adding there" << std::endl;
@@ -199,10 +199,10 @@ void scheduler::schedule(coroutine_weak_ptr coro)
 
 void scheduler::go(coroutine_ptr&& coro)
 {
-     coroutine_weak_ptr coro_weak = nullptr;
+     coroutine_weak_ptr coro_weak = coro.get();
     {
-        std::lock_guard<std::mutex> lock(_coroutines_mutex);
-        coro_weak = coro.get();
+        std::lock_guard<mutex> lock(_coroutines_mutex);
+
         _coroutines.emplace_back(std::move(coro));
         _max_active_coroutines = std::max(_coroutines.size(), _max_active_coroutines);
     }

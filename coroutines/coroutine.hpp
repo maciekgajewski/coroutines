@@ -2,6 +2,8 @@
 #ifndef COROUTINES_COROUTINE_HPP
 #define COROUTINES_COROUTINE_HPP
 
+#include "coroutines/mutex.hpp"
+
 #include <boost/context/all.hpp>
 
 #include <functional>
@@ -49,7 +51,7 @@ private:
 
     char* _stack = nullptr;
     epilogue_type _epilogue;
-    std::mutex _run_mutex;
+    mutex _run_mutex;
     scheduler& _parent;
     std::string _name;
     std::string _last_checkpoint = "just created";
