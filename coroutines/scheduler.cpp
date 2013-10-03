@@ -22,11 +22,24 @@ scheduler::~scheduler()
 
 void scheduler::wait()
 {
-    // join all threads
-    _thread_pool.join();
+    std::unique_lock<std::mutex> lock(_coroutines_mutex);
+    _coro_cv.wait(lock, [this]() { return _coroutines.empty(); });
 }
 
-void scheduler::steal(std::list<coroutine_ptr>& out)
+void scheduler::coroutine_finished(coroutine* coro)
+{
+    std::lock_guard<std::mutex> lock(_coroutines_mutex);
+    auto it = find_ptr(_coroutines, coro);
+    assert(it != _coroutines.end());
+    _coroutines.erase(it);
+
+    if (_coroutines.empty())
+    {
+        _coro_cv.notify_all();
+    }
+}
+
+void scheduler::steal(std::list<coroutine_weak_ptr>& out)
 {
     std::lock_guard<std::mutex> lock(_contexts_mutex);
 
@@ -66,7 +79,7 @@ void scheduler::context_finished(context* ctx)
     }
 }
 
-void scheduler::context_blocked(context* ctx, std::list<coroutine_ptr>& coros, const std::string& /*checkpoint_name*/)
+void scheduler::context_blocked(context* ctx, std::list<coroutine_weak_ptr>& coros, const std::string& /*checkpoint_name*/)
 {
     // move context to blocked
     {
@@ -111,36 +124,36 @@ bool scheduler::context_unblocked(context* ctx, const std::string& checkpoint_na
     coroutine* coro = coroutine::current_corutine();
     assert(coro);
 
-    coro->yield(checkpoint_name, [this](std::unique_ptr<coroutine>& this_coro)
+    coro->yield(checkpoint_name, [this](coroutine_weak_ptr coro)
     {
-        _global_queue.push(std::move(this_coro));
+        _global_queue.push(std::move(coro));
         // coroutine will continue on another thread, context will be destroyed
     });
 
     return false;
 }
 
-void scheduler::schedule(std::list<coroutine_ptr>& coros)
+void scheduler::schedule(std::list<coroutine*>& coros)
 {
-    for(coroutine_ptr& coro : coros)
+    for(coroutine* coro : coros)
     {
-        schedule(std::move(coro));
+        schedule(coro);
     }
 }
 
-void scheduler::schedule(coroutine_ptr&& coro)
+void scheduler::schedule(coroutine_weak_ptr coro)
 {
-    std::cout << "SCHED: scheduling corountine '" << coro->name() << "'" << std::endl;
+    //std::cout << "SCHED: scheduling corountine '" << coro->name() << "'" << std::endl;
 
     // create new active context, if limit not reached yet
     {
         std::lock_guard<std::mutex> contexts_lock(_contexts_mutex);
         if (_active_contexts.size() < _max_running_coroutines)
         {
-            std::cout << "SCHED: scheduling corountine, idle context exists, adding there" << std::endl;
+            //std::cout << "SCHED: scheduling corountine, idle context exists, adding there" << std::endl;
             context_ptr ctx(new context(this));
             context* ctx_ptr = ctx.get();
-            ctx->enqueue(std::move(coro));
+            ctx->enqueue(coro);
             _active_contexts.push_back(std::move(ctx));
 
             _thread_pool.run([ctx_ptr]()
@@ -155,16 +168,28 @@ void scheduler::schedule(coroutine_ptr&& coro)
     // called from withing working context
     if (context::current_context())
     {
-        std::cout << "SCHED: scheduling corountine: adding to current context's list" << std::endl;
+        //std::cout << "SCHED: scheduling corountine: adding to current context's list" << std::endl;
         context::current_context()->enqueue(std::move(coro));
     }
     else
     {
-        std::cout << "SCHED: scheduling corountine: adding to global list" << std::endl;
+        //std::cout << "SCHED: scheduling corountine: adding to global list" << std::endl;
         // put into global queue
         _global_queue.push(std::move(coro));
     }
 }
 
+void scheduler::go(coroutine_ptr&& coro)
+{
+     coroutine_weak_ptr coro_weak = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(_coroutines_mutex);
+        coro_weak = coro.get();
+        _coroutines.emplace_back(std::move(coro));
+        _max_active_coroutines = std::max(_coroutines.size(), _max_active_coroutines);
+    }
+
+    schedule(coro_weak);
+}
 
 } // namespace coroutines

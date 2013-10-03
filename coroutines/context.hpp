@@ -17,13 +17,13 @@ public:
     context(scheduler* parent);
 
     // adds coro to queue
-    void enqueue(coroutine_ptr&& c);
+    void enqueue(coroutine_weak_ptr c);
 
     // version for multiple coros
-    void enqueue(std::list<coroutine_ptr>& cs);
+    void enqueue(std::list<coroutine_weak_ptr>& cs);
 
     // takes half of the queue, returns number of the coros taken
-    unsigned steal(std::list<coroutine_ptr>& out);
+    unsigned steal(std::list<coroutine_weak_ptr>& out);
 
     // thread rountine
     void run();
@@ -39,7 +39,7 @@ public:
 
 private:
 
-    thread_safe_queue<coroutine_ptr> _queue;
+    thread_safe_queue<coroutine_weak_ptr> _queue;
     scheduler* _parent;
     bool _blocked = false;
 };

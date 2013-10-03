@@ -7,26 +7,26 @@
 #include <functional>
 #include <string>
 #include <memory>
+#include <mutex>
+#include <condition_variable>
 
 namespace coroutines {
+
+class scheduler;
 
 class coroutine
 {
 public:
     typedef std::function<void()> function_type;
-    typedef std::function<void(std::unique_ptr<coroutine>&)> epilogue_type;
+    typedef std::function<void(coroutine*)> epilogue_type;
 
-    coroutine() = default;
-    coroutine(std::string name, function_type&& fun);
+    coroutine(scheduler& parent, std::string name, function_type&& fun);
     ~coroutine();
 
     coroutine(const coroutine&) = delete;
     coroutine(coroutine&&) = delete;
 
-    // 'me' can be used transfer corotuine ownership in epilogue
-    // I don't like this solution too much, but it seems to be much better than
-    // shared_ptr + enable_shared_from_this
-    void run(std::unique_ptr<coroutine>& me);
+    void run();
 
     // returns currently runnig coroutine
     static coroutine* current_corutine();
@@ -47,9 +47,10 @@ private:
 
     boost::context::fcontext_t _caller_context;
     boost::context::fcontext_t* _new_context = nullptr;
+
     char* _stack = nullptr;
     epilogue_type _epilogue;
-
+    scheduler& _parent;
 };
 
 template <typename Callable>
@@ -72,13 +73,14 @@ private:
 };
 
 typedef std::unique_ptr<coroutine> coroutine_ptr;
+typedef coroutine* coroutine_weak_ptr; // this couldbe made smarter later on
 
 template<typename Callable>
-coroutine_ptr make_coroutine(std::string name, Callable&& c)
+coroutine_ptr make_coroutine(scheduler& parent, std::string name, Callable&& c)
 {
     callable_wrapper<Callable>* wrapper = new callable_wrapper<Callable>(std::move(c));
 
-    return coroutine_ptr(new coroutine(std::move(name), [wrapper]()
+    return coroutine_ptr(new coroutine(parent, std::move(name), [wrapper]()
     {
         try
         {

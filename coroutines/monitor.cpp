@@ -25,7 +25,7 @@ void monitor::wait(const std::string& checkopint_name, epilogue_type epilogue)
 
 //    std::cout << "MONITOR: this=" << this << " '" << coro->name() << "' will wait" << std::endl;
 
-    coro->yield(checkopint_name, [this, epilogue](coroutine_ptr& coro)
+    coro->yield(checkopint_name, [this, epilogue](coroutine_weak_ptr coro)
     {
         //std::cout << "MONITOR: this=" << this << " '" << coro->name() << "' added to queue" << std::endl;
         _waiting.push(std::move(coro));
@@ -37,7 +37,7 @@ void monitor::wait(const std::string& checkopint_name, epilogue_type epilogue)
 void monitor::wake_all()
 {
     //std::cout << "MONITOR: wake_all" << std::endl;
-    std::list<coroutine_ptr> waiting;
+    std::list<coroutine*> waiting;
     _waiting.get_all(waiting);
 //    std::cout << "MONITOR: waking up " << waiting.size() << " coroutines" << std::endl;
 
@@ -47,7 +47,7 @@ void monitor::wake_all()
 void monitor::wake_one()
 {
     //std::cout << "MONITOR: this=" << this << " will wake one. q contains: '" << _waiting.size() << std::endl;
-    coroutine_ptr waiting;
+    coroutine_weak_ptr waiting;
     bool r = _waiting.pop(waiting);
 
     if (r)

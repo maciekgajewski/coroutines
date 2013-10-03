@@ -1,6 +1,7 @@
 // (c) 2013 Maciej Gajewski, <maciej.gajewski0@gmail.com>
-#include "coroutine.hpp"
-#include "channel.hpp"
+#include "coroutines/coroutine.hpp"
+#include "coroutines/channel.hpp"
+#include "coroutines/scheduler.hpp"
 
 #include <utility>
 #include <cassert>
@@ -12,10 +13,11 @@ namespace coroutines {
 static const unsigned DEFAULT_STACK_SIZE = 1024*1024;
 static thread_local coroutine* __current_coroutine = nullptr;
 
-coroutine::coroutine(std::string name, function_type&& fun)
+coroutine::coroutine(scheduler& parent, std::string name, function_type&& fun)
     : _name(std::move(name))
     , _function(std::move(fun))
     , _stack(new char[DEFAULT_STACK_SIZE])
+    , _parent(parent)
 {
     _new_context = boost::context::make_fcontext(
                 _stack + DEFAULT_STACK_SIZE,
@@ -36,7 +38,7 @@ coroutine::~coroutine()
 //        std::cout << "CORO: '" << _name << "' destroyed" << std::endl;
 }
 
-void coroutine::run(coroutine_ptr& me)
+void coroutine::run()
 {
 //    std::cout << "CORO starting or resuming '" << _name << "'" << std::endl;
     assert(_new_context);
@@ -52,8 +54,13 @@ void coroutine::run(coroutine_ptr& me)
 
     if (_epilogue)
     {
-        _epilogue(me);
+        _epilogue(this);
         _epilogue = nullptr;
+    }
+
+    if (!_new_context)
+    {
+        _parent.coroutine_finished(this); // this wil destroy the object (delete this)
     }
 }
 

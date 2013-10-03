@@ -19,7 +19,7 @@ context* context::current_context()
 void context::block(const std::string& checkpoint_name)
 {
     assert(!_blocked);
-    std::list<coroutine_ptr> coros;
+    std::list<coroutine_weak_ptr> coros;
     _queue.get_all(coros);
 
     _parent->context_blocked(this, coros, checkpoint_name);
@@ -38,13 +38,13 @@ void context::unblock(const std::string& checkpoint_name)
 }
 
 
-void context::enqueue(coroutine_ptr&& c)
+void context::enqueue(coroutine_weak_ptr c)
 {
     assert(!_blocked);
     _queue.push(std::move(c));
 }
 
-void  context::enqueue(std::list<coroutine_ptr>& cs)
+void context::enqueue(std::list<coroutine_weak_ptr>& cs)
 {
     assert(!_blocked);
     _queue.push(cs);
@@ -58,26 +58,26 @@ void context::run()
 
     for(;;)
     {
-        coroutine_ptr current_coro;
+        coroutine_weak_ptr current_coro;
         bool has_next = _queue.pop(current_coro);
 
         // run the coroutine
         if (has_next)
         {
-            current_coro->run(current_coro);
+            current_coro->run();
             if (_blocked)
                 break;
         }
         else
         {
-            std::list<coroutine_ptr> stolen;
+            std::list<coroutine_weak_ptr> stolen;
             _parent->steal(stolen);
             if (stolen.empty())
                 break;
             _queue.push(stolen);
         }
 
-        std::list<coroutine_ptr> globals;
+        std::list<coroutine_weak_ptr> globals;
         _parent->get_all_from_global_queue(globals);
         _queue.push(globals);
     }
@@ -86,10 +86,10 @@ void context::run()
 }
 
 
-unsigned context::steal(std::list<coroutine_ptr>& out)
+unsigned context::steal(std::list<coroutine*>& out)
 {
     unsigned result = 0;
-    _queue.perform([&result, &out](std::list<coroutine_ptr>& queue)
+    _queue.perform([&result, &out](std::list<coroutine_weak_ptr>& queue)
     {
         unsigned all = queue.size();
         result = all/2;

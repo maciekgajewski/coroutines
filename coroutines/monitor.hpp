@@ -36,7 +36,7 @@ public:
 
 private:
 
-    thread_safe_queue<coroutine_ptr> _waiting;
+    thread_safe_queue<coroutine_weak_ptr> _waiting;
     scheduler& _scheduler;
 };
 
