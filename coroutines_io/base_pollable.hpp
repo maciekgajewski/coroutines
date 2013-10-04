@@ -21,8 +21,12 @@ public:
 
     void close();
 
-    // read all unless EOF
+    // read all unless how_much or EOF
     std::size_t read(char* buf, std::size_t how_much);
+
+    // reads whatever is available, blocks only if nothing's there
+    std::size_t read_some(char* buf, std::size_t how_much);
+
     // write all
     std::size_t write(const char* buf, std::size_t how_much);
 

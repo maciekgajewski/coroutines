@@ -101,6 +101,31 @@ std::size_t base_pollable::read(char* buf, std::size_t how_much)
      return total;
 }
 
+std::size_t base_pollable::read_some(char* buf, std::size_t how_much)
+{
+     assert(is_open());
+
+     for(;;)
+     {
+        ssize_t r = ::read(get_fd(), buf, how_much);
+        if (r < 0)
+        {
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
+            {
+                wait_for_readable();
+            }
+            else
+            {
+                throw_errno("read_some");
+            }
+        }
+        else
+        {
+            return r;
+        }
+     }
+}
+
 std::size_t base_pollable::write(const char* buf, std::size_t how_much)
 {
      assert(is_open());
