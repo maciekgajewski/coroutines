@@ -482,7 +482,7 @@ double sum_tree(node* n)
     }
 }
 
-double paraller_sum_sub(node* tree, channel_writer<double>& out)
+void paraller_sum_sub(node* tree, channel_writer<double>& out)
 {
     out.put(sum_tree(tree));
 }
@@ -517,11 +517,12 @@ void tree_traverse_test()
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::high_resolution_clock::duration single = end - start;
     std::chrono::high_resolution_clock::duration parallel;
+    double psum = 0;
 
-    go([tree, &parallel]()
+    go([tree, &parallel, &psum]()
     {
         auto start = std::chrono::high_resolution_clock::now();
-        paraller_sum(tree);
+        psum = paraller_sum(tree);
         auto end = std::chrono::high_resolution_clock::now();
         parallel = end-start;
     });
@@ -529,6 +530,8 @@ void tree_traverse_test()
 
     sched.wait();
     set_scheduler(nullptr);
+
+    TEST_EQUAL(sum, psum);
 
     std::cout << "single thread duration: " << single / std::chrono::milliseconds(1) << " ms " << std::endl;
     std::cout << "parallel duration: " << parallel / std::chrono::milliseconds(1) << " ms " << std::endl;

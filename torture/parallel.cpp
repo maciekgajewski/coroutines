@@ -41,7 +41,7 @@ public:
     std::size_t read(void* buf, std::size_t max)
     {
         block();
-        std::size_t r = ::fread(buf, 1, max, _f);
+            std::size_t r = ::fread(buf, 1, max, _f);
         unblock();
         return r;
     }
@@ -49,7 +49,7 @@ public:
     std::size_t write(void* buf, std::size_t size)
     {
         block();
-        std::size_t r = ::fwrite(buf, size, 1, _f);
+            std::size_t r = ::fwrite(buf, size, 1, _f);
         unblock();
         return r;
     }
@@ -80,9 +80,6 @@ void parallel(const char* in, const char* out)
 
     scheduler sched(4 /*threads*/);
     set_scheduler(&sched);
-//    service serv(sched);
-//    set_service(&serv);
-//    serv.start();
 
     try
     {
@@ -106,15 +103,13 @@ void parallel(const char* in, const char* out)
         std::cerr << "Error :" << e.what() << std::endl;
     }
 
-//    sched.wait();
-//    serv.stop();
     sched.wait();
     set_scheduler(nullptr);
 }
 
 void process_file(const bfs::path& input_file, const bfs::path& output_file)
 {
-    //std::cout << "process file: " << input_file << " -> " << output_file << std::endl;
+    std::cout << "process file: " << input_file << " -> " << output_file << std::endl;
 
     channel_pair<buffer> compressed = make_channel<buffer>(BUFFERS, "compressed");
     channel_pair<buffer> decompressed = make_channel<buffer>(BUFFERS, "decompressed");
@@ -141,8 +136,6 @@ void read_input(buffer_writer& compressed, buffer_reader& compressed_return, con
     try
     {
         file f(input_file.string().c_str(), "rb");
-        //file f;
-        //f.open_for_reading(input_file.string());
 
         unsigned counter = 0;
         for(;;)
@@ -177,8 +170,6 @@ void write_output(buffer_reader& decompressed, buffer_writer& decompressed_retur
     {
         // open file
         file f(output_file.string().c_str(), "wb");
-        //file f;
-        //f.open_for_writing(output_file.string());
 
         // fill the queue with allocated buffers
         for(unsigned i = 0; i < BUFFERS; i++)
