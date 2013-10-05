@@ -49,6 +49,8 @@ inline void block(const std::string& checkpoint_name = std::string())
     ctx->block(checkpoint_name);
 }
 
+inline void block(const char* checkpoint_name) { block(std::string(checkpoint_name)); }
+
 // ends blocking mode. may preempt current coroutine
 inline void unblock(const std::string& checkpoint_name = std::string())
 {
@@ -57,6 +59,7 @@ inline void unblock(const std::string& checkpoint_name = std::string())
     ctx->unblock(checkpoint_name);
 }
 
+inline void unblock(const char* checkpoint_name) { unblock(std::string(checkpoint_name)); }
 
 // blocks code framgment, exception-safe
 template<typename Callable>
