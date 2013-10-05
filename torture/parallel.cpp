@@ -41,7 +41,7 @@ public:
     std::size_t read(void* buf, std::size_t max)
     {
         block();
-        std::size_t r = ::fread(buf, 1, max, _f);
+            std::size_t r = ::fread(buf, 1, max, _f);
         unblock();
         return r;
     }
@@ -49,7 +49,7 @@ public:
     std::size_t write(void* buf, std::size_t size)
     {
         block();
-        std::size_t r = ::fwrite(buf, size, 1, _f);
+            std::size_t r = ::fwrite(buf, size, 1, _f);
         unblock();
         return r;
     }
@@ -78,11 +78,8 @@ void parallel(const char* in, const char* out)
     // install signal handler
     signal(SIGINT, signal_handler);
 
-    scheduler sched(4 /*threads*/);
+    scheduler sched(4 /*threads*/); // Go: runtime.MAXPROC(4)
     set_scheduler(&sched);
-//    service serv(sched);
-//    set_service(&serv);
-//    serv.start();
 
     try
     {
@@ -106,16 +103,12 @@ void parallel(const char* in, const char* out)
         std::cerr << "Error :" << e.what() << std::endl;
     }
 
-//    sched.wait();
-//    serv.stop();
     sched.wait();
     set_scheduler(nullptr);
 }
 
 void process_file(const bfs::path& input_file, const bfs::path& output_file)
 {
-    //std::cout << "process file: " << input_file << " -> " << output_file << std::endl;
-
     channel_pair<buffer> compressed = make_channel<buffer>(BUFFERS, "compressed");
     channel_pair<buffer> decompressed = make_channel<buffer>(BUFFERS, "decompressed");
     channel_pair<buffer> compressed_return = make_channel<buffer>(BUFFERS, "compressed_return");
@@ -124,13 +117,14 @@ void process_file(const bfs::path& input_file, const bfs::path& output_file)
 
     // start writer
     go(std::string("write_output ") + output_file.string(),
-        write_output, std::move(decompressed.reader), std::move(decompressed_return.writer), output_file);
+        write_output,
+        decompressed.reader, decompressed_return.writer, output_file);
 
     // start decompressor
     go(std::string("lzma_decompress ") + input_file.string(),
         lzma_decompress,
-        std::move(compressed.reader), std::move(compressed_return.writer),
-        std::move(decompressed_return.reader), std::move(decompressed.writer));
+        compressed.reader, compressed_return.writer,
+        decompressed_return.reader, decompressed.writer);
 
     // read (in this coroutine)
     read_input(compressed.writer, compressed_return.reader, input_file);
@@ -141,8 +135,6 @@ void read_input(buffer_writer& compressed, buffer_reader& compressed_return, con
     try
     {
         file f(input_file.string().c_str(), "rb");
-        //file f;
-        //f.open_for_reading(input_file.string());
 
         unsigned counter = 0;
         for(;;)
@@ -151,7 +143,7 @@ void read_input(buffer_writer& compressed, buffer_reader& compressed_return, con
             if (counter++ < BUFFERS)
                 b = buffer(BUFFER_SIZE);
             else
-                b = compressed_return.get();
+                b = compressed_return.get(); // get spent buffer from decoder
             std::size_t r = f.read(b.begin(), b.capacity());
             if (r == 0)
                 break; // this will close the channel
@@ -171,14 +163,10 @@ void read_input(buffer_writer& compressed, buffer_reader& compressed_return, con
 
 void write_output(buffer_reader& decompressed, buffer_writer& decompressed_return, const  bfs::path& output_file)
 {
-    std::cout << "write_output: " << output_file << std::endl;
-
     try
     {
         // open file
         file f(output_file.string().c_str(), "wb");
-        //file f;
-        //f.open_for_writing(output_file.string());
 
         // fill the queue with allocated buffers
         for(unsigned i = 0; i < BUFFERS; i++)
@@ -190,10 +178,10 @@ void write_output(buffer_reader& decompressed, buffer_writer& decompressed_retur
         {
             buffer b = decompressed.get();
             f.write(b.begin(), b.size());
-            decompressed_return.put_nothrow(std::move(b));
+            decompressed_return.put_nothrow(std::move(b)); // return buffer to decoder
         }
     }
-    catch(const channel_closed&)
+    catch(const channel_closed&) // this exception is expected when channels are closed
     {
     }
     catch(const std::exception& e)
