@@ -14,10 +14,16 @@
 using namespace coroutines;
 using namespace boost::asio::ip;
 
+void handler(network::http::request const& req, network::http::response& res)
+{
+    res.append_header("boo", "123");
+    res.append_body("honolulu");
+}
+
 void start_client_connection(tcp_socket& sock)
 {
     std::cout << "client conencted" << std::endl;
-    client_connection c(std::move(sock));
+    client_connection c(std::move(sock), handler);
     c.start();
 }
 

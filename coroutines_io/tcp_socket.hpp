@@ -34,6 +34,8 @@ public:
 
     endpoint_type remote_endpoint() const { return _remote_endpoint; }
 
+    void shutdown();
+
 private:
 
     void open(int address_family);

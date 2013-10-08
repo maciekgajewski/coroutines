@@ -17,6 +17,9 @@ target_link_libraries(http_server
     cppnetlib-http-message
     cppnetlib-uri
     cppnetlib-message
+    cppnetlib-constants
+#    cppnetlib-http-message-wrappers
+    cppnetlib-message-wrappers
 
     coroutines
     coroutines_io

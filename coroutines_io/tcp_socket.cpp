@@ -72,6 +72,13 @@ void tcp_socket::connect(const tcp_socket::endpoint_type& endpoint)
     _remote_endpoint = endpoint;
 }
 
+void tcp_socket::shutdown()
+{
+    int r = ::shutdown(get_fd(), SHUT_RDWR);
+    if (r < 0)
+        throw_errno("shutdown");
+}
+
 
 void tcp_socket::open(int address_family)
 {

@@ -25,7 +25,9 @@ class client_connection
 {
 public:
 
-    client_connection(tcp_socket&& s);
+    typedef std::function<void(network::http::request const&, network::http::response&)> handler_type;
+
+    client_connection(tcp_socket&& s, handler_type&& handler);
 
     void start();
 
@@ -38,12 +40,14 @@ private:
         body
     };
 
+    void client_error();
+    void flatten_response();
+    void segmented_write(std::string data);
 
     tcp_socket _socket;
+    handler_type _handler;
 
     typedef std::array<char,4096> buffer_type;
-    buffer_type read_buffer_;
-    buffer_type::iterator new_start, data_end;
     network::http::request_parser parser_;
     network::http::request request_;
     network::http::response response_;
