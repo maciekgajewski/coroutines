@@ -71,7 +71,7 @@ tcp_socket tcp_acceptor::accept()
             if (errno == EWOULDBLOCK || errno == EAGAIN)
             {
                 std::cout << "ACCEPT: acceptor would block" << std::endl;
-                wait_for_writable();
+                wait_for_readable();
                 continue;
             }
         }
@@ -90,6 +90,9 @@ void tcp_acceptor::open(int address_family)
             address_family,
             SOCK_STREAM | SOCK_NONBLOCK,
             0);
+
+        int one = 1;
+        ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
 
         if (fd == -1)
         {

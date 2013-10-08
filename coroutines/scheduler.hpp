@@ -20,7 +20,7 @@ class scheduler
 {
 public:
     // creates and sets no of max coroutines runnig in parallel
-    scheduler(unsigned max_running_coroutines);
+    scheduler(unsigned max_running_coroutines = std::thread::hardware_concurrency());
 
     scheduler(const scheduler&) = delete;
 

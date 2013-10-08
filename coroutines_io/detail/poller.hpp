@@ -23,6 +23,7 @@ public:
 
     // not thread safe, has to be called between calls to wait();
     void add_fd(int fd, fd_events e, std::uint64_t key);
+    void remove_fd(int fd);
 
     // will block until one of the fd's bcomes active, ro wakeup() is called
     // filles 'keys' with activated descriptors

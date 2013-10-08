@@ -44,14 +44,21 @@ void poller::add_fd(int fd, fd_events e, std::uint64_t key)
 {
     // add to epoll
     epoll_event ev;
-    ev.events = to_epoll_events(e) | EPOLLONESHOT | EPOLLERR | EPOLLHUP /*| EPOLLET*/;
+    ev.events = to_epoll_events(e) | EPOLLERR | EPOLLHUP /*| EPOLLET*/;
     ev.data.u64 = key;
 
     int r = ::epoll_ctl(_epoll, EPOLL_CTL_ADD, fd, &ev);
     if (r < 0)
-        throw_errno();
+        throw_errno("poller::add_fd");
 
-    std::cout << "fd " << fd << " added to epoll with flags " << ev.events << ", fd_Events=" << int(e) << std::endl;
+    std::cout << "fd " << fd << " added to epoll with flags " << std::hex << ev.events << ", fd_Events=" << std::dec << int(e) << std::endl;
+}
+
+void poller::remove_fd(int fd)
+{
+    int r = ::epoll_ctl(_epoll, EPOLL_CTL_DEL, fd, nullptr);
+    if (r < 0)
+        throw_errno("poller::remove_fd");
 }
 
 void poller::wait(std::vector<std::uint64_t>& keys)
