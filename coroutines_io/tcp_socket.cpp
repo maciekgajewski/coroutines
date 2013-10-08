@@ -25,11 +25,13 @@ tcp_socket::tcp_socket()
 
 tcp_socket::tcp_socket(tcp_socket&& o)
     : base_pollable(std::move(o))
+    , _remote_endpoint(std::move(o._remote_endpoint))
 {
 }
 
-tcp_socket::tcp_socket(service& srv, int fd)
+tcp_socket::tcp_socket(service& srv, int fd, const endpoint_type& remote_endpoint)
     : base_pollable(srv)
+    , _remote_endpoint(remote_endpoint)
 {
     set_fd(fd);
 }
@@ -67,6 +69,7 @@ void tcp_socket::connect(const tcp_socket::endpoint_type& endpoint)
         throw_errno("connect");
     }
     wait_for_writable();
+    _remote_endpoint = endpoint;
 }
 
 

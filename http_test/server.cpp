@@ -6,15 +6,19 @@
 #include "coroutines_io/service.hpp"
 #include "coroutines_io/tcp_acceptor.hpp"
 
+#include "client_connection.hpp"
+
 #include <iostream>
+#include <array>
 
 using namespace coroutines;
 using namespace boost::asio::ip;
 
-void client_connection(tcp_socket& sock)
+void start_client_connection(tcp_socket& sock)
 {
-    // TODO
     std::cout << "client conencted" << std::endl;
+    client_connection c(std::move(sock));
+    c.start();
 }
 
 void server()
@@ -27,7 +31,7 @@ void server()
         for(;;)
         {
             tcp_socket sock = acc.accept();
-            go("client connection", client_connection, std::move(sock));
+            go("client connection", start_client_connection, std::move(sock));
         }
     }
     catch(const std::exception& e)
