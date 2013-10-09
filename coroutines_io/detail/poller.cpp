@@ -51,7 +51,7 @@ void poller::add_fd(int fd, fd_events e, std::uint64_t key)
     if (r < 0)
         throw_errno("poller::add_fd");
 
-    std::cout << "fd " << fd << " added to epoll with flags " << std::hex << ev.events << ", fd_Events=" << std::dec << int(e) << std::endl;
+//    std::cout << "POLLER: fd " << fd << " added to epoll with flags " << std::hex << ev.events << ", fd_Events=" << std::dec << int(e) << std::endl;
 }
 
 void poller::remove_fd(int fd)

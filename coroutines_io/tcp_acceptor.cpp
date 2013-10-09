@@ -70,7 +70,7 @@ tcp_socket tcp_acceptor::accept()
         {
             if (errno == EWOULDBLOCK || errno == EAGAIN)
             {
-                std::cout << "ACCEPT: acceptor would block" << std::endl;
+//                std::cout << "ACCEPT: acceptor would block" << std::endl;
                 wait_for_readable();
                 continue;
             }
