@@ -22,11 +22,9 @@ void handler(client_connection::http_request const& req, client_connection::http
 
 void start_client_connection(tcp_socket& sock)
 {
-//    std::cout << "client conencted" << std::endl;
-//    client_connection c(std::move(sock), handler);
-//    c.start();
-
-
+    std::cout << "client conencted" << std::endl;
+    client_connection c(std::move(sock), handler);
+    c.start();
 }
 
 void server()
