@@ -27,8 +27,12 @@ public:
     // reads whatever is available, blocks only if nothing's there
     std::size_t read_some(char* buf, std::size_t how_much);
 
+    // reads until buffer is full, contains pattern or EOF
+    std::size_t read_unitl(char* buf, std::size_t how_much,const std::string& pattern);
+
     // write all
     std::size_t write(const char* buf, std::size_t how_much);
+
 
 protected:
 

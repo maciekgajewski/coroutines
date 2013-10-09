@@ -126,6 +126,29 @@ std::size_t base_pollable::read_some(char* buf, std::size_t how_much)
      }
 }
 
+std::size_t base_pollable::read_unitl(char* buf, std::size_t how_much, const std::string& pattern)
+{
+     assert(is_open());
+
+     std::size_t total = 0;
+     while(total < how_much)
+     {
+        std::size_t r= read_some(buf+total, how_much-total);
+        if (r == 0)
+        {
+            return total;
+        }
+        total += r;
+
+        auto it = std::search(buf, buf+total, pattern.begin(), pattern.end());
+        if (it != buf+total)
+        {
+            return total;
+        }
+     }
+     return total;
+}
+
 std::size_t base_pollable::write(const char* buf, std::size_t how_much)
 {
      assert(is_open());

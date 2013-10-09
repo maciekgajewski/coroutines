@@ -6,6 +6,8 @@
 #include "coroutines/scheduler.hpp"
 #include "coroutines/globals.hpp"
 
+#include <boost/asio.hpp> // TODO remove
+
 #include <iostream>
 
 using namespace coroutines;
@@ -36,14 +38,35 @@ int main(int argc, char** argv)
         return 2;
     }
 
-    scheduler sched;
-    service serv(sched);
-    set_scheduler(&sched);
-    set_service(&serv);
+//    scheduler sched;
+//    service serv(sched);
+//    set_scheduler(&sched);
+//    set_service(&serv);
 
-    serv.start();
+//    serv.start();
 
-    go(client, argv[1]);
+//    go(client, argv[1]);
 
-    sched.wait();
+//    sched.wait();
+
+    using boost::asio::ip::tcp;
+
+    boost::asio::io_service io_service;
+
+    tcp::resolver resolver(io_service);
+    tcp::resolver::query query(argv[1], "http");
+    tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
+
+    tcp::socket socket(io_service);
+    boost::asio::connect(socket, endpoint_iterator);
+
+    boost::asio::streambuf request;
+    std::ostream request_stream(&request);
+    request_stream << "GET " << argv[2] << " HTTP/1.0\r\n";
+    request_stream << "Host: " << argv[1] << "\r\n";
+    request_stream << "Accept: */*\r\n";
+    request_stream << "Connection: close\r\n\r\n";
+
+    // Send the request.
+    boost::asio::write(socket, request);
 }

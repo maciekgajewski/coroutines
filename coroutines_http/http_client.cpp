@@ -7,10 +7,14 @@
 
 #include <boost/lexical_cast.hpp>
 
+#include <boost/asio.hpp>
+
 #include <iostream>
 
 namespace coroutines {
 
+
+static const std::string HTTP_HEADER_DELIMITER = "\r\n\r\n";
 
 network::http::response http_client::get(const network::http::request& request)
 {
@@ -45,6 +49,8 @@ network::http::response http_client::get(const network::http::request& request)
 
     std::cout << "Connected!!!" << std::endl;
 
+    //read header
+    //socket.read_until(buf, size, HTTP_HEADER_DELIMITER);
 
     // TODO
     return network::http::response();

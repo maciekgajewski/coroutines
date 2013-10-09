@@ -13,6 +13,8 @@ namespace coroutines {
 
 class service;
 
+
+// implements boost:asio::SyncReadStream
 class tcp_socket : public base_pollable
 {
 public:
