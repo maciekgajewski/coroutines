@@ -9,7 +9,11 @@ public:
     http_request(std::istream& stream)
     : _stream(stream)
     {
-        read(stream);
+    }
+
+    void read_header()
+    {
+        read(_stream);
     }
 
     // stream for reading body

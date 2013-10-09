@@ -5,11 +5,13 @@
 #include "coroutines_io/globals.hpp"
 #include "coroutines_io/service.hpp"
 #include "coroutines_io/tcp_acceptor.hpp"
+#include "coroutines_io/socket_streambuf.hpp"
 
 #include "client_connection.hpp"
 
 #include <iostream>
 #include <array>
+#include <ctime>
 
 using namespace coroutines;
 using namespace boost::asio::ip;
@@ -17,8 +19,19 @@ using namespace boost::asio::ip;
 void handler(http_request const& req, http_response& res)
 {
     res.setStatus(Poco::Net::HTTPResponse::HTTP_OK);
-    res.add("Content-type:", "text/plain");
-    res.stream() << "Booo boo, I'm the body" << std::endl;
+    res.add("Connection", "keep-alive");
+    res.add("Content-Length", "14");
+    res.add("Content-Type", "text/plain");
+
+    std::time_t now = std::time(nullptr);
+    char date_buffer[64];
+    std::strftime(date_buffer, 64, "%a, %d %b %Y %T GMT", std::gmtime(&now));
+    res.add("Date", date_buffer);
+
+
+    res.stream() << "hello, world!\n";
+
+    std::cout << "request served" << std::endl;
 }
 
 void start_client_connection(tcp_socket& sock)
@@ -26,6 +39,7 @@ void start_client_connection(tcp_socket& sock)
     std::cout << "client conencted" << std::endl;
     client_connection c(std::move(sock), handler);
     c.start();
+
 }
 
 void server()

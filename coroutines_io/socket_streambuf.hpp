@@ -37,7 +37,7 @@ protected:
         }
         else
         {
-            //std::cout << "STREAM: need to refill..." << std::endl;
+            std::cout << "STREAM: need to refill..." << std::endl;
             // need to load some data
             std::size_t n = _socket.read_some(begin(), BUFFER_SIZE);
             if (n == 0)
@@ -46,7 +46,7 @@ protected:
             }
             else
             {
-                //std::cout << "STREAM: " << n << " bytes added to buffer" << std::endl;
+                std::cout << "STREAM: " << n << " bytes added to buffer" << std::endl;
                 setg(begin(), begin(), begin() + n);
                 return traits_type::to_int_type(*gptr());
             }

@@ -5,6 +5,8 @@
 #include <iostream>
 #include <array>
 
+#include "Poco/Net/NetException.h"
+
 client_connection::client_connection(tcp_socket&& s, handler_type&& handler)
     : _socket(std::move(s))
     , _handler(std::move(handler))
@@ -16,13 +18,33 @@ void client_connection::start()
 {
     std::cout << "conenction from: " << _socket.remote_endpoint() << std::endl;
 
-    socket_istreambuf ibuf(_socket);
-    socket_ostreambuf obuf(_socket);
-    std::istream istream(&ibuf);
-    std::ostream ostream(&obuf);
+    try
+    {
+        socket_istreambuf ibuf(_socket);
+        socket_ostreambuf obuf(_socket);
+        std::istream istream(&ibuf);
+        std::ostream ostream(&obuf);
 
-    http_request request(istream);
-    http_response response(ostream);
+        for(;;)
+        {
+            http_request request(istream);
+            try
+            {
+                request.read_header();
+            }
+            catch(const Poco::Net::NoMessageException&)
+            {
+                std::cout << "conenction closed" << std::endl;
+                return;
+            }
+            http_response response(ostream);
+            //response.setVersion(http_response::HTTP_1_1);
 
-    _handler(request, response);
+            _handler(request, response);
+        }
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << "exception in client: " << e.what() << std::endl;
+    }
 }
