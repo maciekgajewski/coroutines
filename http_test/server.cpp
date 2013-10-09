@@ -19,14 +19,9 @@ using namespace boost::asio::ip;
 void handler(http_request const& req, http_response& res)
 {
     res.setStatus(Poco::Net::HTTPResponse::HTTP_OK);
-    res.add("Connection", "keep-alive");
     res.add("Content-Length", "14");
     res.add("Content-Type", "text/plain");
 
-    std::time_t now = std::time(nullptr);
-    char date_buffer[64];
-    std::strftime(date_buffer, 64, "%a, %d %b %Y %T GMT", std::gmtime(&now));
-    res.add("Date", date_buffer);
 
 
     res.stream() << "hello, world!\n";

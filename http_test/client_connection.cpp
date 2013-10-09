@@ -38,9 +38,29 @@ void client_connection::start()
                 return;
             }
             http_response response(ostream);
-            //response.setVersion(http_response::HTTP_1_1);
+
+            // honour HTTP 1.0 vs 1.1 and Connection: close
+            bool close_conection = true;
+            if (request.getVersion() == http_response::HTTP_1_1)
+            {
+                response.setVersion(http_response::HTTP_1_1);
+                if(request.get("Connection", "") != "close")
+                {
+                    response.add("Connection", "keep-alive");
+                    close_conection = false;
+                }
+            }
+
+            // set Date. This is ugly, this should be one-lines with std::put_time
+            std::time_t now = std::time(nullptr);
+            char date_buffer[64];
+            std::strftime(date_buffer, 64, "%a, %d %b %Y %T GMT", std::gmtime(&now));
+            response.add("Date", date_buffer);
 
             _handler(request, response);
+
+            if (close_conection)
+                break;
         }
     }
     catch(const std::exception& e)
