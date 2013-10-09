@@ -13,6 +13,8 @@
 #include <array>
 #include <ctime>
 
+#include <signal.h>
+
 using namespace coroutines;
 using namespace boost::asio::ip;
 
@@ -44,6 +46,7 @@ void server()
         tcp_acceptor acc;
         acc.listen(tcp::endpoint(address_v4::any(), 8080));
 
+        std::cout << "Server accepting connections" << std::endl;
         for(;;)
         {
             tcp_socket sock = acc.accept();
@@ -56,9 +59,20 @@ void server()
     }
 }
 
+void signal_handler(int)
+{
+    scheduler * sched = get_scheduler();
+    if (sched)
+    {
+        sched->debug_dump();
+    }
+}
 
 int main(int argc, char** argv)
 {
+    // install signal handler, for debugging
+    signal(SIGINT, signal_handler);
+
     scheduler sched(1);
     service srv(sched);
     set_scheduler(&sched);

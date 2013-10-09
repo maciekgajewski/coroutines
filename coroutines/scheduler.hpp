@@ -86,12 +86,12 @@ private:
     std::vector<context_ptr> _blocked_contexts;
     std::vector<context_ptr> _active_contexts;
     mutex _contexts_mutex;
-    const unsigned _max_running_coroutines;
+    const unsigned _max_allowed_running_coroutines;
 
     std::vector<coroutine_ptr> _coroutines;
     mutex _coroutines_mutex;
     std::condition_variable_any _coro_cv;
-    std::size_t _max_active_coroutines = 0;
+    std::size_t _max_active_coroutines = 0; // stat counter
 
     thread_safe_queue<coroutine_weak_ptr> _global_queue; // coroutines not assigned to any context
     thread_pool _thread_pool;

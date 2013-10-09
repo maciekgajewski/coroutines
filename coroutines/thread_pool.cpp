@@ -14,7 +14,6 @@ void detail::parked_thread::routine()
         {
             std::unique_lock<mutex> lock(_mutex);
 
-            _fn = nullptr;
             _running = false;
             _join_cv.notify_all();
             _cv.wait(lock, [this]() { return _fn != nullptr || _stopped; } );
@@ -27,7 +26,7 @@ void detail::parked_thread::routine()
         assert(_fn);
 
         _fn();
-
+        _fn = nullptr; // IMPORTANT: _fn may be set BEFORE the crit sec above is entered, and this value has to be reset here, not earlier
     }
 }
 
@@ -86,12 +85,12 @@ void thread_pool::run(std::function<void()> fn)
     {
         if(parked.run(std::move(fn)))
         {
-//            std::cout << "task accepted by parked thread" << std::endl;
+//            std::cout << "TP: task accepted by parked thread" << std::endl;
             return;
         }
     }
 
-//    std::cout << "taskwill be served in free thread" << std::endl;
+//    std::cout << "task will be served in free thread" << std::endl;
     create_free_thread(std::move(fn));
     join_completed(); // garbage collection
 }
