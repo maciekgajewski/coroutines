@@ -13,19 +13,20 @@
 
 #include "coroutines_io/tcp_socket.hpp"
 
-#include <network/http/request.hpp>
-#include <network/http/response.hpp>
-#include <network/protocol/http/server/request_parser.hpp>
+#include "boost/network/protocol/http/request.hpp"
+#include "boost/network/protocol/http/response.hpp"
+#include "boost/network/protocol/http/server/request_parser.hpp"
 
 #include <array>
 
 using namespace coroutines;
+namespace net = boost::network;
 
 class client_connection
 {
 public:
 
-    typedef std::function<void(network::http::request const&, network::http::response&)> handler_type;
+    typedef std::function<void(net::http::request const&, net::http::response&)> handler_type;
 
     client_connection(tcp_socket&& s, handler_type&& handler);
 
@@ -48,9 +49,9 @@ private:
     handler_type _handler;
 
     typedef std::array<char,4096> buffer_type;
-    network::http::request_parser parser_;
-    network::http::request request_;
-    network::http::response response_;
+    net::http::request_parser parser_;
+    net::http::request request_;
+    net::http::response response_;
     std::list<buffer_type> output_buffers_;
     std::string partial_parsed;
     boost::optional<boost::system::system_error> error_encountered;

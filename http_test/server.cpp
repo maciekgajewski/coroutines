@@ -16,6 +16,7 @@ using namespace boost::asio::ip;
 
 void handler(network::http::request const& req, network::http::response& res)
 {
+    res.set_status(network::http::response::
     res.append_header("boo", "123");
     res.append_body("honolulu");
 }

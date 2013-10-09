@@ -72,7 +72,7 @@ void poller::wait(std::vector<std::uint64_t>& keys)
 
     int r = ::epoll_pwait(_epoll, events, EPOLL_BUFFER, -1, &sigs);
 
-    if (r < 0)
+    if (r < 0 && errno != EINTR)
         throw_errno();
 
     for(int i = 0; i < r; i++)

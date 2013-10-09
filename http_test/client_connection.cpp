@@ -1,8 +1,9 @@
 #include "client_connection.hpp"
 
-#include <network/message/wrappers/headers.hpp>
-#include <network/constants.hpp>
-#include <network/protocol/http/server/impl/parsers.ipp>
+#include "boost/network/message/wrappers/headers.hpp"
+#include "boost/network/constants.hpp"
+#include "boost/network/protocol/http/server/impl/parsers.ipp"
+
 #include <boost/range.hpp>
 
 #include <iostream>

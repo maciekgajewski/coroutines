@@ -1,10 +1,10 @@
 find_package( Boost 1.54.0 COMPONENTS system)
 include_directories(${Boost_INCLUDE_DIRS})
 
-include_directories(/home/maciej.gajewski/Software/cpp-netlib/http/src)
-include_directories(/home/maciej.gajewski/Software/cpp-netlib/message/src)
-link_directories(/home/maciej.gajewski/Software/cpp-netlib-build/http/src)
-link_directories(/home/maciej.gajewski/Software/cpp-netlib-build/message/src)
+include_directories(/home/maciej.gajewski/Software/cpp-netlib-0.10.1/cpp-netlib-0.10.1/)
+
+link_directories(/home/maciej.gajewski/Software/cpp-netlib-0.10.1/build/http/src)
+link_directories(/home/maciej.gajewski/Software/cpp-netlib-0.10.1/build/message/src)
 
 add_executable(http_server
     server.cpp
