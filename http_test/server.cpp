@@ -14,18 +14,19 @@
 using namespace coroutines;
 using namespace boost::asio::ip;
 
-void handler(network::http::request const& req, network::http::response& res)
+void handler(client_connection::http_request const& req, client_connection::http_response& res)
 {
-    res.set_status(network::http::response::
-    res.append_header("boo", "123");
-    res.append_body("honolulu");
+    // TODO
+    std::cout << "handler" << std::endl;
 }
 
 void start_client_connection(tcp_socket& sock)
 {
-    std::cout << "client conencted" << std::endl;
-    client_connection c(std::move(sock), handler);
-    c.start();
+//    std::cout << "client conencted" << std::endl;
+//    client_connection c(std::move(sock), handler);
+//    c.start();
+
+
 }
 
 void server()
