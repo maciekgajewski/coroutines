@@ -10,6 +10,7 @@ add_library(coroutines_io STATIC
     base_pollable.cpp base_pollable.hpp
     file.cpp file.hpp
     tcp_resolver.cpp tcp_resolver.hpp
+    socket_streambuf.hpp
 
     detail/poller.cpp detail/poller.hpp
 )

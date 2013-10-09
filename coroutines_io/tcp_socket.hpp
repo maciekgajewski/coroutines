@@ -28,17 +28,20 @@ public:
     tcp_socket(const tcp_socket&) = delete;
     tcp_socket(tcp_socket&&);
 
-    tcp_socket(service& srv, int get_fd);
+    tcp_socket(service& srv, int get_fd, const endpoint_type& remote_endpoint);
 
     ~tcp_socket() = default;
 
     void connect(const endpoint_type& endpoint);
 
+    endpoint_type remote_endpoint() const { return _remote_endpoint; }
 
+    void shutdown();
 
 private:
 
     void open(int address_family);
+    endpoint_type _remote_endpoint;
 
 };
 

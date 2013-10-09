@@ -1,12 +1,22 @@
-include_directories(/usr/local/cpp-netlib/include)
-link_directories(/usr/local/cpp-netlib/lib)
+find_package( Boost 1.54.0 COMPONENTS system)
+include_directories(${Boost_INCLUDE_DIRS})
 
-add_executable(http_test_client
-    client.cpp
+
+add_executable(http_server
+    server.cpp
+    client_connection.cpp client_connection.hpp
+    http_response.hpp
+    http_request.hpp
+
 )
 
-target_link_libraries(http_test_client
+
+target_link_libraries(http_server
+
     coroutines
     coroutines_io
-    coroutines_http
+
+    PocoNet
+
+    ${Boost_LIBRARIES}
 )

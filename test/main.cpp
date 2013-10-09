@@ -517,8 +517,8 @@ void tree_traverse_test()
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::high_resolution_clock::duration single = end - start;
     std::chrono::high_resolution_clock::duration parallel;
-    double psum = 0;
-
+    
+    double psum = 0.0;
     go([tree, &parallel, &psum]()
     {
         auto start = std::chrono::high_resolution_clock::now();
@@ -535,6 +535,8 @@ void tree_traverse_test()
 
     std::cout << "single thread duration: " << single / std::chrono::milliseconds(1) << " ms " << std::endl;
     std::cout << "parallel duration: " << parallel / std::chrono::milliseconds(1) << " ms " << std::endl;
+
+    TEST_EQUAL(sum, psum);
 }
 
 void test_non_blocking_read()

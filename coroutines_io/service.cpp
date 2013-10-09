@@ -111,6 +111,7 @@ void service::loop()
 
             it->second.writer.put(ec);
             commands.erase(it);
+            _poller.remove_fd(it->second.fd);
         }
 
     }

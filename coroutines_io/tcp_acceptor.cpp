@@ -61,23 +61,25 @@ tcp_socket tcp_acceptor::accept()
 {
     assert(_listening);
 
-    sockaddr addr;
+    sockaddr_in addr;
     socklen_t addr_len = sizeof(addr);
     for(;;)
     {
-        int fd = ::accept4(get_fd(), &addr, &addr_len, SOCK_NONBLOCK);
+        int fd = ::accept4(get_fd(), (sockaddr*)&addr, &addr_len, SOCK_NONBLOCK);
         if (fd < 0 )
         {
             if (errno == EWOULDBLOCK || errno == EAGAIN)
             {
-                std::cout << "ACCEPT: acceptor would block" << std::endl;
-                wait_for_writable();
+//                std::cout << "ACCEPT: acceptor would block" << std::endl;
+                wait_for_readable();
                 continue;
             }
         }
         else
         {
-            return tcp_socket(get_service(), fd);
+            boost::asio::ip::address_v4 a(ntohl(addr.sin_addr.s_addr));
+
+            return tcp_socket(get_service(), fd, endpoint_type(a, ntohs(addr.sin_port)));
         }
     };
 }
@@ -90,6 +92,9 @@ void tcp_acceptor::open(int address_family)
             address_family,
             SOCK_STREAM | SOCK_NONBLOCK,
             0);
+
+        int one = 1;
+        ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
 
         if (fd == -1)
         {
