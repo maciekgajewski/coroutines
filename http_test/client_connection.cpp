@@ -26,7 +26,7 @@ bool ci_equal(const StringA& a, const StringB& b)
 
 void client_connection::start()
 {
-    std::cout << "conenction from: " << _socket.remote_endpoint() << std::endl;
+    //std::cout << "conenction from: " << _socket.remote_endpoint() << std::endl;
 
     try
     {
@@ -44,7 +44,7 @@ void client_connection::start()
             }
             catch(const Poco::Net::NoMessageException&)
             {
-                std::cout << "conenction closed" << std::endl;
+//                std::cout << "conenction closed" << std::endl;
                 return;
             }
 

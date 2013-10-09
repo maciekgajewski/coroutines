@@ -26,12 +26,12 @@ void handler(http_request const& req, http_response& res)
 
     res.stream() << "hello, world!\n";
 
-    std::cout << "request served" << std::endl;
+//    std::cout << "request served" << std::endl;
 }
 
 void start_client_connection(tcp_socket& sock)
 {
-    std::cout << "client conencted" << std::endl;
+//    std::cout << "client conencted" << std::endl;
     client_connection c(std::move(sock), handler);
     c.start();
 
@@ -59,7 +59,7 @@ void server()
 
 int main(int argc, char** argv)
 {
-    scheduler sched;
+    scheduler sched(1);
     service srv(sched);
     set_scheduler(&sched);
     set_service(&srv);
