@@ -14,10 +14,11 @@
 using namespace coroutines;
 using namespace boost::asio::ip;
 
-void handler(client_connection::http_request const& req, client_connection::http_response& res)
+void handler(http_request const& req, http_response& res)
 {
-    // TODO
-    std::cout << "handler" << std::endl;
+    res.setStatus(Poco::Net::HTTPResponse::HTTP_OK);
+    res.add("Content-type:", "text/plain");
+    res.stream() << "Booo boo, I'm the body" << std::endl;
 }
 
 void start_client_connection(tcp_socket& sock)

@@ -5,6 +5,9 @@ include_directories(${Boost_INCLUDE_DIRS})
 add_executable(http_server
     server.cpp
     client_connection.cpp client_connection.hpp
+    http_response.hpp
+    http_request.hpp
+
 )
 
 
@@ -12,6 +15,8 @@ target_link_libraries(http_server
 
     coroutines
     coroutines_io
+
+    PocoNet
 
     ${Boost_LIBRARIES}
 )

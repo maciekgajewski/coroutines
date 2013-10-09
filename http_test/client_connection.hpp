@@ -5,17 +5,14 @@
 
 #include "coroutines_io/tcp_socket.hpp"
 
-#include <Poco/Net/HTTPRequest.h>
-#include <Poco/Net/HTTPResponse.h>
+#include "http_request.hpp"
+#include "http_response.hpp"
 
 using namespace coroutines;
 
 class client_connection
 {
 public:
-
-    typedef Poco::Net::HTTPRequest http_request;
-    typedef Poco::Net::HTTPResponse http_response;
 
     typedef std::function<void(http_request const&, http_response&)> handler_type;
 

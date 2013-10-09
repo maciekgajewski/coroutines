@@ -1,6 +1,5 @@
 // Copyright (c) 2013 Maciej Gajewski
 #include "client_connection.hpp"
-
 #include "coroutines_io/socket_streambuf.hpp"
 
 #include <iostream>
@@ -17,12 +16,13 @@ void client_connection::start()
 {
     std::cout << "conenction from: " << _socket.remote_endpoint() << std::endl;
 
-    socket_streambuf buf(_socket);
-    std::istream stream(&buf);
+    socket_istreambuf ibuf(_socket);
+    socket_ostreambuf obuf(_socket);
+    std::istream istream(&ibuf);
+    std::ostream ostream(&obuf);
 
-    std::string word;
-    stream >> word;
+    http_request request(istream);
+    http_response response(ostream);
 
-    std::cout << "word received: " << word << std::endl;
-
+    _handler(request, response);
 }
