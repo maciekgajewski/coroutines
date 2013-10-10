@@ -14,13 +14,16 @@ class scheduler;
 class context
 {
 public:
-    context(scheduler* parent);
+    context(scheduler* sched);
+
+    ~context();
 
     // adds coro to queue
-    void enqueue(coroutine_weak_ptr c);
+    // returns false if coro can not be accepted (because the context is blocked)
+    bool enqueue(coroutine_weak_ptr c);
 
     // version for multiple coros
-    void enqueue(std::list<coroutine_weak_ptr>& cs);
+    bool enqueue(std::list<coroutine_weak_ptr>& cs);
 
     // takes half of the queue, returns number of the coros taken
     unsigned steal(std::list<coroutine_weak_ptr>& out);
@@ -42,8 +45,9 @@ public:
 private:
 
     thread_safe_queue<coroutine_weak_ptr> _queue;
-    scheduler* _parent;
+    scheduler* _scheduler;
     bool _blocked = false;
+    mutex _blocked_mutex;
 };
 
 typedef std::unique_ptr<context> context_ptr;

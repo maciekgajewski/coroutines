@@ -2,7 +2,7 @@
 #include "coroutines/scheduler.hpp"
 #include "coroutines/algorithm.hpp"
 
-//#define CORO_LOGGING
+#define CORO_LOGGING
 #include "coroutines/logging.hpp"
 
 #include <cassert>
@@ -134,6 +134,7 @@ bool scheduler::context_unblocked(context* ctx, const std::string& checkpoint_na
 {
     {
         std::lock_guard<mutex> lock(_contexts_mutex);
+
         auto it = find_ptr(_blocked_contexts, ctx);
         assert(it != _blocked_contexts.end());
 
@@ -141,11 +142,12 @@ bool scheduler::context_unblocked(context* ctx, const std::string& checkpoint_na
 
         if (_active_contexts.size() < _max_allowed_running_coroutines)
         {
+            // ove to active
             context_ptr moved = std::move(*it);
             _blocked_contexts.erase(it);
+            _active_contexts.push_back(std::move(moved));
 
             CORO_LOG("SCHED: context ", ctx, " allowed to continue");
-            _active_contexts.push_back(std::move(moved));
             // the context and current coroutine may continue unharassed
             return true;
         }
@@ -176,14 +178,14 @@ void scheduler::schedule(std::list<coroutine*>& coros)
 
 void scheduler::schedule(coroutine_weak_ptr coro)
 {
-//    std::cout << "SCHED: scheduling corountine '" << coro->name() << "'" << std::endl;
+    CORO_LOG("SCHED: scheduling corountine '", coro->name(), "'");
 
     // create new active context, if limit not reached yet
     {
         std::lock_guard<mutex> contexts_lock(_contexts_mutex);
         if (_active_contexts.size() < _max_allowed_running_coroutines)
         {
-//            std::cout << "SCHED: scheduling corountine, idle context exists, adding there" << std::endl;
+            CORO_LOG("SCHED: scheduling corountine, idle context exists, adding there");
             context_ptr ctx(new context(this));
             context* ctx_ptr = ctx.get();
             ctx->enqueue(coro);
@@ -200,14 +202,14 @@ void scheduler::schedule(coroutine_weak_ptr coro)
 
     // called from withing working context
     context* ctx = context::current_context();
-    if (ctx && !ctx->is_blocked())
+    if (ctx && ctx->enqueue(std::move(coro)))
     {
-//        std::cout << "SCHED: scheduling corountine: adding to current context's list" << std::endl;
+        CORO_LOG("SCHED: scheduling corountine: adding to current context's list");
         context::current_context()->enqueue(std::move(coro));
     }
     else
     {
-//        std::cout << "SCHED: scheduling corountine: adding to global list" << std::endl;
+        CORO_LOG("SCHED: scheduling corountine: adding to global list");
         // put into global queue
         _global_queue.push(std::move(coro));
     }

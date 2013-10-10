@@ -9,10 +9,10 @@
 namespace coroutines_logging {
 
 
-inline void _coro_log_impl(std::stringstream& ss) {}
+inline void _coro_log_impl(std::ostringstream& ss) {}
 
 template<typename Arg, typename... Args>
-void _coro_log_impl(std::stringstream& ss, const Arg& arg, const Args&... args)
+void _coro_log_impl(std::ostringstream& ss, const Arg& arg, const Args&... args)
 {
     ss << arg;
     _coro_log_impl(ss, args...);
@@ -21,10 +21,11 @@ void _coro_log_impl(std::stringstream& ss, const Arg& arg, const Args&... args)
 template<typename... Args>
 void _coro_log(const Args&... args)
 {
-    std::stringstream ss;
+    std::ostringstream ss;
     ss << "[" << std::this_thread::get_id() << "] ";
     _coro_log_impl(ss, args...);
-    std::cout << ss.str() << std::endl;
+    ss << std::endl;
+    std::cout << ss.str();
 }
 
 }

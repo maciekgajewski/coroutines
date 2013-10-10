@@ -17,6 +17,7 @@ add_library(coroutines STATIC
     spsc_queue.hpp
     thread_safe_queue.hpp
     thread_pool.cpp thread_pool.hpp
+    logging.hpp
 )
 
 target_link_libraries(coroutines

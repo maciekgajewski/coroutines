@@ -9,10 +9,16 @@ namespace coroutines {
 
 static thread_local context* __current_context = nullptr;
 
-context::context(scheduler* parent)
-    : _parent(parent)
+context::context(scheduler* sched)
+    : _scheduler(sched)
 {
 }
+
+context::~context()
+{
+    CORO_LOG("CONTEXT=", this, " destroyed");
+}
+
 
 context* context::current_context()
 {
@@ -21,20 +27,27 @@ context* context::current_context()
 
 void context::block(const std::string& checkpoint_name)
 {
-    assert(!_blocked);
     std::list<coroutine_weak_ptr> coros;
-    _queue.get_all(coros);
+    {
+        std::lock_guard<mutex> lock(_blocked_mutex);
 
-    coroutine::current_corutine()->set_checkpoint(checkpoint_name);
-    _blocked = true;
-    _parent->context_blocked(this, coros, checkpoint_name);
+        assert(!_blocked);
+        _queue.get_all(coros);
+
+        coroutine::current_corutine()->set_checkpoint(checkpoint_name);
+        _blocked = true;
+    }
+    // scheduler may want to manupulate us, call enqueueu. Thsi needs to be caleld outside of crit sec
+    _scheduler->context_blocked(this, coros, checkpoint_name);
 }
 
 void context::unblock(const std::string& checkpoint_name)
 {
+    std::lock_guard<mutex> lock(_blocked_mutex);
+
     assert(_blocked);
     assert(_queue.empty());
-    if (_parent->context_unblocked(this, checkpoint_name)) // may yield
+    if (_scheduler->context_unblocked(this, checkpoint_name)) // may yield
     {
         _blocked = false;
     }
@@ -42,17 +55,29 @@ void context::unblock(const std::string& checkpoint_name)
 }
 
 
-void context::enqueue(coroutine_weak_ptr c)
+bool context::enqueue(coroutine_weak_ptr c)
 {
-    assert(!_blocked);
-    _queue.push(std::move(c));
+    std::lock_guard<mutex> lock(_blocked_mutex);
+
+    if(!_blocked);
+    {
+        _queue.push(std::move(c));
+        return true;
+    }
+    return false;
 //    std::cout << "CONTEXT=" << this << " enqueued: " << c->name() << std::endl;
 }
 
-void context::enqueue(std::list<coroutine_weak_ptr>& cs)
+bool context::enqueue(std::list<coroutine_weak_ptr>& cs)
 {
-    assert(!_blocked);
-    _queue.push(cs);
+    std::lock_guard<mutex> lock(_blocked_mutex);
+
+    if(!_blocked);
+    {
+        _queue.push(cs);
+        return true;
+    }
+    return false;
 }
 
 
@@ -79,14 +104,14 @@ void context::run()
         else
         {
             std::list<coroutine_weak_ptr> stolen;
-            _parent->steal(stolen);
+            _scheduler->steal(stolen);
             if (stolen.empty())
                 break;
             _queue.push(stolen);
         }
 
         std::list<coroutine_weak_ptr> globals;
-        _parent->get_all_from_global_queue(globals);
+        _scheduler->get_all_from_global_queue(globals);
         _queue.push(globals);
     }
     } catch(const std::exception& e)
@@ -95,7 +120,7 @@ void context::run()
         std::terminate();
     }
     CORO_LOG("CONTEXT=", this, " finished ");
-    _parent->context_finished(this);
+    _scheduler->context_finished(this);
 }
 
 
