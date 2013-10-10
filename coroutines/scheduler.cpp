@@ -85,19 +85,36 @@ void scheduler::context_finished(context* ctx)
 {
     CORO_LOG("SCHED: context ", ctx, " finished");
 
-    std::lock_guard<mutex> lock(_contexts_mutex);
-    auto it = find_ptr(_active_contexts, ctx);
-    if (it == _active_contexts.end())
+    bool schedule_global = false;
+
     {
-        CORO_LOG("SCHED: it was a blocked context");
-        it = find_ptr(_blocked_contexts, ctx);
-        assert(it != _blocked_contexts.end());
-        _blocked_contexts.erase(it);
+        std::lock_guard<mutex> lock(_contexts_mutex);
+        auto it = find_ptr(_active_contexts, ctx);
+        if (it == _active_contexts.end())
+        {
+            CORO_LOG("SCHED: it was a blocked context");
+            it = find_ptr(_blocked_contexts, ctx);
+            assert(it != _blocked_contexts.end());
+            _blocked_contexts.erase(it);
+        }
+        else
+        {
+            _active_contexts.erase(it);
+            CORO_LOG("SCHED: it was an active context. active contexts now: ", _active_contexts.size());
+
+            // it is possible that while this crit section hase been held, some coroutines were added to global queue
+            // If this was the last active context, they would be stuck there forever
+            if (_active_contexts.empty())
+                schedule_global = true;
+        }
     }
-    else
+
+    if (schedule_global)
     {
-        _active_contexts.erase(it);
-        CORO_LOG("SCHED: it was an active context. active contexts now: ", _active_contexts.size());
+        CORO_LOG("SCHED: Last active context finished, forcing sheduling of global queue");
+        std::list<coroutine_weak_ptr> globals;
+        _global_queue.get_all(globals);
+        schedule(globals);
     }
 }
 

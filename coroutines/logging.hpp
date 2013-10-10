@@ -32,7 +32,7 @@ void _coro_log(const Args&... args)
 #ifdef CORO_LOGGING
 template<typename... Args> void CORO_LOG (const Args&... args) { coroutines_logging::_coro_log(args...); }
 #else
-void inline CORO_LOG(...) {}
+#define CORO_LOG(...) ;
 #endif
 
 
