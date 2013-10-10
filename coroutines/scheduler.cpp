@@ -2,7 +2,7 @@
 #include "coroutines/scheduler.hpp"
 #include "coroutines/algorithm.hpp"
 
-#define CORO_LOGGING
+//#define CORO_LOGGING
 #include "coroutines/logging.hpp"
 
 #include <cassert>
@@ -29,7 +29,9 @@ void scheduler::debug_dump()
     std::cerr << "=========== scheduler debug dump ============" << std::endl;
     std::cerr << "          active coroutines now: " << _coroutines.size() << std::endl;
     std::cerr << "     max active coroutines seen: " << _max_active_coroutines << std::endl;
-    std::cerr << " max allowed running coroutines: " << _max_allowed_running_coroutines << std::endl;
+    std::cerr << "  max allowed coros in parallel: " << _max_allowed_running_coroutines << std::endl;
+    std::cerr << "       corouties in global queue: " << _global_queue.size() << std::endl;
+
     std::cerr << std::endl;
     std::cerr << " Active coroutines:" << std::endl;
     for(auto& coro : _coroutines)
@@ -85,8 +87,6 @@ void scheduler::context_finished(context* ctx)
 {
     CORO_LOG("SCHED: context ", ctx, " finished");
 
-    bool schedule_global = false;
-
     {
         std::lock_guard<mutex> lock(_contexts_mutex);
         auto it = find_ptr(_active_contexts, ctx);
@@ -102,20 +102,14 @@ void scheduler::context_finished(context* ctx)
             _active_contexts.erase(it);
             CORO_LOG("SCHED: it was an active context. active contexts now: ", _active_contexts.size());
 
-            // it is possible that while this crit section hase been held, some coroutines were added to global queue
-            // If this was the last active context, they would be stuck there forever
-            if (_active_contexts.empty())
-                schedule_global = true;
         }
     }
 
-    if (schedule_global)
-    {
-        CORO_LOG("SCHED: Last active context finished, forcing sheduling of global queue");
-        std::list<coroutine_weak_ptr> globals;
-        _global_queue.get_all(globals);
-        schedule(globals);
-    }
+    // this contex may haved released some resources. We may try to shedle some of the coros from global queue
+    std::list<coroutine_weak_ptr> globals;
+    _global_queue.get_all(globals);
+    CORO_LOG("SCHED: context finished, forcing sheduling of ", globals.size(), " coros in global queue");
+    schedule(globals);
 }
 
 void scheduler::context_blocked(context* ctx, std::list<coroutine_weak_ptr>& coros, const std::string& /*checkpoint_name*/)

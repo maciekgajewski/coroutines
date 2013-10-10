@@ -3,7 +3,7 @@
 #include "coroutines/algorithm.hpp"
 #include "coroutines_io/globals.hpp"
 
-#define CORO_LOGGING
+//#define CORO_LOGGING
 #include "coroutines/logging.hpp"
 
 #include <sys/epoll.h>

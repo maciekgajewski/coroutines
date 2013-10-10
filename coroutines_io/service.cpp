@@ -6,7 +6,7 @@
 
 #include "coroutines_io/detail/poller.hpp"
 
-#define CORO_LOGGING
+//#define CORO_LOGGING
 #include "coroutines/logging.hpp"
 
 #include <unordered_map>

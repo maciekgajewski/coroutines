@@ -2,7 +2,7 @@
 #include "coroutines/context.hpp"
 #include "coroutines/scheduler.hpp"
 
-#define CORO_LOGGING
+//#define CORO_LOGGING
 #include "coroutines/logging.hpp"
 
 namespace coroutines {
