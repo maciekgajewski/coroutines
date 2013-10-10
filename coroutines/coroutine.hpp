@@ -37,6 +37,7 @@ public:
 
     std::string name() const { return _name; }
     std::string last_checkpoint() const { return _last_checkpoint; }
+    void set_checkpoint(const std::string& cp) { _last_checkpoint = cp; }
 
 private:
 

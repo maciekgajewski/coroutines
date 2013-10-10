@@ -6,6 +6,9 @@
 
 #include "coroutines_io/detail/poller.hpp"
 
+#define CORO_LOGGING
+#include "coroutines/logging.hpp"
+
 #include <unordered_map>
 #include <iostream>
 
@@ -61,14 +64,14 @@ void service::loop()
         // if no pending commands, block on reader
         if (commands.empty())
         {
-//            std::cout << "SERV: blocking on commands" << std::endl;
+            CORO_LOG("SERV: blocking on commands");
             try
             {
                 cmd = _command_reader.get();
             }
             catch(const channel_closed&)
             {
-//                std::cout << "SERV: blocking on commands interrupted" << std::endl;
+                CORO_LOG("SERV: blocking on commands interrupted");
                 throw;
             }
             _poller.add_fd(cmd.fd, cmd.events, counter);
@@ -82,7 +85,7 @@ void service::loop()
             commands.insert(std::make_pair(counter++, cmd));
         }
 
-//        std::cout << "SERV: polling, " << commands.size() << " sockets pending" << std::endl;
+        CORO_LOG("SERV: polling, ", commands.size(), " sockets pending");
 
         // poll!
         keys.clear();
@@ -91,7 +94,7 @@ void service::loop()
             _poller.wait(keys);
         });
 
-//        std::cout << "SERV: " << keys.size() << " events ready" << std::endl;
+        CORO_LOG("SERV: ", keys.size(), " events ready");
 
         // serve events
         for(std::uint64_t key : keys)

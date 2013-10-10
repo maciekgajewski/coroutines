@@ -3,6 +3,9 @@
 #include "coroutines/algorithm.hpp"
 #include "coroutines_io/globals.hpp"
 
+#define CORO_LOGGING
+#include "coroutines/logging.hpp"
+
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 #include <signal.h>
@@ -51,7 +54,7 @@ void poller::add_fd(int fd, fd_events e, std::uint64_t key)
     if (r < 0)
         throw_errno("poller::add_fd");
 
-//    std::cout << "POLLER: fd " << fd << " added to epoll with flags " << std::hex << ev.events << ", fd_Events=" << std::dec << int(e) << std::endl;
+    CORO_LOG("POLLER: fd ", fd, " added to epoll with flags ", ev.events, ", fd_Events=", int(e));
 }
 
 void poller::remove_fd(int fd)
@@ -72,7 +75,7 @@ void poller::wait(std::vector<std::uint64_t>& keys)
 
     int r = ::epoll_pwait(_epoll, events, EPOLL_BUFFER, -1, &sigs);
 
-//    std::cout << "POLLER: woken up with " << r << "events ready" << std::endl;
+    CORO_LOG("POLLER: woken up with ", r, " events ready");
 
     if (r < 0 && errno != EINTR)
         throw_errno();

@@ -9,9 +9,20 @@ namespace coroutines {
 
 void detail::parked_thread::routine()
 {
-    for(;;)
+
     {
+        std::unique_lock<mutex> lock(_mutex);
+        _cv.wait(lock, [this]() { return _fn != nullptr || _stopped; } );
+    }
+
+    while(!_stopped)
+    {
+        assert(_fn);
+
+        _fn();
+
         {
+            _fn = nullptr; // only after fisrt execution
             std::unique_lock<mutex> lock(_mutex);
 
             _running = false;
@@ -19,14 +30,6 @@ void detail::parked_thread::routine()
             _cv.wait(lock, [this]() { return _fn != nullptr || _stopped; } );
 //            std::cout << "PT=" << this << " woken up" << std::endl;
         }
-
-        if (_stopped)
-            return;
-
-        assert(_fn);
-
-        _fn();
-        _fn = nullptr; // IMPORTANT: _fn may be set BEFORE the crit sec above is entered, and this value has to be reset here, not earlier
     }
 }
 

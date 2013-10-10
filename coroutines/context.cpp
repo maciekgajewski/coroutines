@@ -1,6 +1,9 @@
 // (c) 2013 Maciej Gajewski, <maciej.gajewski0@gmail.com>
-#include "context.hpp"
-#include "scheduler.hpp"
+#include "coroutines/context.hpp"
+#include "coroutines/scheduler.hpp"
+
+#define CORO_LOGGING
+#include "coroutines/logging.hpp"
 
 namespace coroutines {
 
@@ -22,6 +25,7 @@ void context::block(const std::string& checkpoint_name)
     std::list<coroutine_weak_ptr> coros;
     _queue.get_all(coros);
 
+    coroutine::current_corutine()->set_checkpoint(checkpoint_name);
     _blocked = true;
     _parent->context_blocked(this, coros, checkpoint_name);
 }
@@ -57,6 +61,8 @@ void context::run()
     __current_context = this;
     struct scope_exit { ~scope_exit() { __current_context = nullptr; } } exit;
 
+    try
+    {
     for(;;)
     {
         coroutine_weak_ptr current_coro;
@@ -65,7 +71,7 @@ void context::run()
         // run the coroutine
         if (has_next)
         {
-//            std::cout << "CONTEXT=" << this << " will run: " << current_coro->name() << std::endl;
+            CORO_LOG("CONTEXT=", this, " will run: ", current_coro->name());
             current_coro->run();
             if (_blocked)
                 break;
@@ -83,7 +89,12 @@ void context::run()
         _parent->get_all_from_global_queue(globals);
         _queue.push(globals);
     }
-
+    } catch(const std::exception& e)
+    {
+        std::cerr << "UNEXPECTED EXCEPTION IN CONTEXT:::: " << e.what() << std::endl;
+        std::terminate();
+    }
+    CORO_LOG("CONTEXT=", this, " finished ");
     _parent->context_finished(this);
 }
 
