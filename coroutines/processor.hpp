@@ -7,6 +7,7 @@
 #include <deque>
 #include <vector>
 #include <thread>
+#include <memory>
 
 namespace coroutines {
 
@@ -28,6 +29,10 @@ public:
     // shutdown
     void stop_and_join();
 
+    // block/unblock
+    void block();
+    void unblock();
+
 private:
 
     void routine();
@@ -40,11 +45,15 @@ private:
 
     bool _running = false; // is currently running or waiting?
     bool _stopped = false;
+    bool _blocked = false;
     mutex _runnng_mutex;
     std::condition_variable_any _running_cv;
 
     std::thread _thread;
 };
+
+typedef std::unique_ptr<processor> processor_ptr;
+typedef processor* processor_weak_ptr;
 
 } // namespace coroutines
 

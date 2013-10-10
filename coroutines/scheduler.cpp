@@ -13,9 +13,17 @@ namespace coroutines {
 
 scheduler::scheduler(unsigned max_running_coroutines)
     : _max_allowed_running_coroutines(max_running_coroutines)
-    , _thread_pool(max_running_coroutines)
 {
     assert(max_running_coroutines > 0);
+
+    // setup
+    {
+        std::lock_guard<mutex> lock(_processors_mutex);
+        for(unsigned i = 0; i < max_running_coroutines; i++)
+        {
+            _processors.emplace_back(this);
+        }
+    }
 }
 
 scheduler::~scheduler()
@@ -30,7 +38,6 @@ void scheduler::debug_dump()
     std::cerr << "          active coroutines now: " << _coroutines.size() << std::endl;
     std::cerr << "     max active coroutines seen: " << _max_active_coroutines << std::endl;
     std::cerr << "  max allowed coros in parallel: " << _max_allowed_running_coroutines << std::endl;
-    std::cerr << "       corouties in global queue: " << _global_queue.size() << std::endl;
 
     std::cerr << std::endl;
     std::cerr << " Active coroutines:" << std::endl;
@@ -63,53 +70,42 @@ void scheduler::coroutine_finished(coroutine* coro)
     }
 }
 
-void scheduler::steal(std::list<coroutine_weak_ptr>& out)
+void scheduler::processor_idle(processor_weak_ptr pc, bool blocked)
 {
-    std::lock_guard<mutex> lock(_contexts_mutex);
-
-    unsigned all_active = _active_contexts.size();
-
-    int idx = std::rand() % all_active;
-    auto it = _active_contexts.begin();
-    std::advance(it, idx);
-    for(unsigned i = 0; i < all_active; ++i)
-    {
-        unsigned stolen = (*it)->steal(out);
-        if (stolen > 0 )
-            break;
-        it ++;
-        if (it == _active_contexts.end())
-            it = _active_contexts.begin();
-    }
-}
-
-void scheduler::context_finished(context* ctx)
-{
-    CORO_LOG("SCHED: context ", ctx, " finished");
+    CORO_LOG("SCHED: processor ", pc, " finished");
 
     {
-        std::lock_guard<mutex> lock(_contexts_mutex);
-        auto it = find_ptr(_active_contexts, ctx);
-        if (it == _active_contexts.end())
+        std::lock_guard<mutex> lock(_processors_mutex);
+
+        if (blocked)
         {
-            CORO_LOG("SCHED: it was a blocked context");
-            it = find_ptr(_blocked_contexts, ctx);
-            assert(it != _blocked_contexts.end());
-            _blocked_contexts.erase(it);
+            assert(_active_blocked_processors > 0);
+            auto it = find_ptr(_blocked_processors, pc);
+            assert(it != _blocked_processors.end());
+
+            std::swap(*it, _blocked_processors[_active_blocked_processors]);
+            _active_blocked_processors--;
+
+
+            // TODO garbage-collect if there is too many idle blocked
         }
         else
         {
-            _active_contexts.erase(it);
-            CORO_LOG("SCHED: it was an active context. active contexts now: ", _active_contexts.size());
+            assert(_active_processors > 0);
+            auto it = find_ptr(_active_processors, pc);
+            assert(it != _active_processors.end());
 
+            std::swap(*it, _active_processors[_active_processors]);
+            _active_processors--;
         }
+
     }
 
-    // this contex may haved released some resources. We may try to shedle some of the coros from global queue
-    std::list<coroutine_weak_ptr> globals;
-    _global_queue.get_all(globals);
-    CORO_LOG("SCHED: context finished, forcing sheduling of ", globals.size(), " coros in global queue");
-    schedule(globals);
+}
+
+void scheduler::processor_blocked(processor_weak_ptr pr, std::vector<coroutine_weak_ptr>& queue)
+{
+
 }
 
 void scheduler::context_blocked(context* ctx, std::list<coroutine_weak_ptr>& coros, const std::string& /*checkpoint_name*/)

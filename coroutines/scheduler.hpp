@@ -4,7 +4,7 @@
 
 #include "coroutines/channel.hpp"
 #include "coroutines/coroutine.hpp"
-#include "coroutines/context.hpp"
+#include "coroutines/processor.hpp"
 #include "coroutines/locking_channel.hpp"
 #include "coroutines/condition_variable.hpp"
 #include "coroutines/thread_safe_queue.hpp"
@@ -55,26 +55,11 @@ public:
     void coroutine_finished(coroutine* coro);
 
     ///////
-    // context's interface
+    // processor's interface
 
-    void get_all_from_global_queue(std::list<coroutine_weak_ptr>& out)
-    {
-        _global_queue.get_all(out);
-    }
-
-    // steals half the queue of one of the active contexts
-    void steal(std::list<coroutine_weak_ptr>& out);
-
-    // used by context to report it completed the job. Will destroy the context
-    void context_finished(context* ctx);
-
-    // used by context to singalize progression into blocked state
-    void context_blocked(context* ctx, std::list<coroutine_weak_ptr>& coros, const std::string& checkpoint_name);
-
-    // used by context to singalize progression out of blocked state.
-    // will activate context if resources available, or destroy it
-    // returns 'true' is context is allowed to continue, false if it's going to be destroyed
-    bool context_unblocked(context* ctx, const std::string& checkpoint_name);
+    void processor_idle(processor_weak_ptr pr, bool blocked);
+    void processor_blocked(processor_weak_ptr pr, std::vector<coroutine_weak_ptr>& queue);
+    void processor_unblocked(processor_weak_ptr pr);
 
     void schedule(coroutine_weak_ptr coro);
     void schedule(std::list<coroutine_weak_ptr>& coros);
@@ -83,19 +68,17 @@ private:
 
     void go(coroutine_ptr&& coro);
 
-    std::vector<context_ptr> _blocked_contexts;
-    std::vector<context_ptr> _active_contexts;
-    mutex _contexts_mutex;
+    std::vector<processor_ptr> _processors;
+    std::vector<processor_ptr> _blocked_processors;
+    mutex _processors_mutex;
     const unsigned _max_allowed_running_coroutines;
+    unsigned _active_processors = 0;
+    unsigned _active_blocked_processors = 0;
 
     std::vector<coroutine_ptr> _coroutines;
     mutex _coroutines_mutex;
     std::condition_variable_any _coro_cv;
     std::size_t _max_active_coroutines = 0; // stat counter
-
-    thread_safe_queue<coroutine_weak_ptr> _global_queue; // coroutines not assigned to any context
-    thread_pool _thread_pool;
-
 };
 
 

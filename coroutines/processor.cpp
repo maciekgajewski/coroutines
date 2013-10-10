@@ -69,6 +69,22 @@ void processor::stop_and_join()
     _running_cv.notify_one();
 }
 
+void processor::block()
+{
+    std::lock_guard<mutex> lock(_queue_mutex);
+
+    _blocked = true;
+    std::vector<coroutine_weak_ptr> queue;
+    queue.resize(_queue.size);
+    std::copy(_queue.begin(), _queue.end(), std::back_inserter(queue));
+    _scheduler->processor_blocked(this, queue);
+}
+
+void processor::unblock()
+{
+    _scheduler->processor_unblocked(this);
+}
+
 void processor::routine()
 {
     __current_processor = this;
@@ -97,7 +113,7 @@ void processor::routine()
         {
             // wait for wakeup
 
-            //_schedule->processor_idle(this); // TODO
+            _schedule->processor_idle(this); // TODO
 
             std::lock_guard<mutex> lock(_runnng_mutex);
             _running = false;
