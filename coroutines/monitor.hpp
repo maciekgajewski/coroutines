@@ -2,9 +2,10 @@
 #ifndef COROUTINES_MONITOR_HPP
 #define COROUTINES_MONITOR_HPP
 
-#include "coroutine.hpp"
-#include "thread_safe_queue.hpp"
+#include "coroutines/coroutine.hpp"
+#include "coroutines/mutex.hpp"
 
+#include <vector>
 #include <functional>
 
 namespace coroutines {
@@ -36,7 +37,9 @@ public:
 
 private:
 
-    thread_safe_queue<coroutine_weak_ptr> _waiting;
+    std::vector<coroutine_weak_ptr> _waiting;
+    mutex _waiting_mutex;
+
     scheduler& _scheduler;
 };
 

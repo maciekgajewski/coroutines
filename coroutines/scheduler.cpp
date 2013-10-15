@@ -12,7 +12,6 @@
 namespace coroutines {
 
 scheduler::scheduler(unsigned max_running_coroutines)
-    : _max_allowed_running_coroutines(max_running_coroutines)
 {
     assert(max_running_coroutines > 0);
 
@@ -21,7 +20,7 @@ scheduler::scheduler(unsigned max_running_coroutines)
         std::lock_guard<mutex> lock(_processors_mutex);
         for(unsigned i = 0; i < max_running_coroutines; i++)
         {
-            _processors.emplace_back(this);
+            _processors.emplace_back(new processor(*this));
         }
     }
 }
@@ -37,7 +36,10 @@ void scheduler::debug_dump()
     std::cerr << "=========== scheduler debug dump ============" << std::endl;
     std::cerr << "          active coroutines now: " << _coroutines.size() << std::endl;
     std::cerr << "     max active coroutines seen: " << _max_active_coroutines << std::endl;
-    std::cerr << "  max allowed coros in parallel: " << _max_allowed_running_coroutines << std::endl;
+    std::cerr << "              active processors: " << _processors.size() << std::endl;
+    std::cerr << "      running active processors: " << _running_processors << std::endl;
+    std::cerr << "             blocked processors: " << _blocked_processors.size() << std::endl;
+    std::cerr << "     running blocked processors: " << _running_blocked_processors << std::endl;
 
     std::cerr << std::endl;
     std::cerr << " Active coroutines:" << std::endl;
@@ -79,94 +81,108 @@ void scheduler::processor_idle(processor_weak_ptr pc, bool blocked)
 
         if (blocked)
         {
-            assert(_active_blocked_processors > 0);
+            assert(_running_blocked_processors > 0);
             auto it = find_ptr(_blocked_processors, pc);
             assert(it != _blocked_processors.end());
 
-            std::swap(*it, _blocked_processors[_active_blocked_processors]);
-            _active_blocked_processors--;
+            std::swap(*it, _blocked_processors[_running_blocked_processors]);
+            _running_blocked_processors--;
 
-
-            // TODO garbage-collect if there is too many idle blocked
+            // garbage-collect if there is too many idle blocked
+            void remove_inactive_blocked_processors();
         }
         else
         {
-            assert(_active_processors > 0);
-            auto it = find_ptr(_active_processors, pc);
-            assert(it != _active_processors.end());
+            assert(_running_processors > 0);
+            auto it = find_ptr(_processors, pc);
+            assert(it != _processors.end());
 
-            std::swap(*it, _active_processors[_active_processors]);
-            _active_processors--;
+            // TODO try to steal something
+            _running_processors--;
+            std::swap(*it, _processors[_running_processors]);
         }
-
     }
-
 }
 
-void scheduler::processor_blocked(processor_weak_ptr pr, std::vector<coroutine_weak_ptr>& queue)
+void scheduler::processor_blocked(processor_weak_ptr pc, std::vector<coroutine_weak_ptr>& queue)
 {
+    CORO_LOG("SCHED: processor ", pc, " blocked");
 
-}
+    // active/blocked before: [ A ] [ X ] [ A ] [ A ] [ i ] [ i ]  / [ B ] [ i ] [ i ]
+    // swap with last active: [ A ] [ A ] [ A ] [ X ] [ i ] [ i ]  / [ B ] [ i ] [ i ]
+    // swap with first inactive blocked:
+    //                        [ A ] [ A ] [ A ] [ i ] [ i ] [ i ]  / [ B ] [ X ] [ i ]
 
-void scheduler::context_blocked(context* ctx, std::list<coroutine_weak_ptr>& coros, const std::string& /*checkpoint_name*/)
-{
-    // move context to blocked
+    // move to blocked, schedule coroutines
     {
-        std::lock_guard<mutex> lock(_contexts_mutex);
-        auto it = find_ptr(_active_contexts, ctx);
-        assert(it != _active_contexts.end());
+        std::lock_guard<mutex> lock(_processors_mutex);
 
-        context_ptr moved = std::move(*it);
-        _active_contexts.erase(it);
-        _blocked_contexts.push_back(std::move(moved));
-        CORO_LOG("SCHED: context ", ctx, " blocked. There is ",  _blocked_contexts.size(), " blocked and ", _active_contexts.size(), " active contexts now");
-    }
+        assert(_running_processors > 0);
+        auto it = find_ptr(_processors, pc);
+        assert(it != _processors.end());
 
-    // do something with the remaining coros
-    schedule(coros);
-}
+        // swap with the last active
+        _running_processors--;
+        std::swap(*it, _processors[_running_processors]);
 
-bool scheduler::context_unblocked(context* ctx, const std::string& checkpoint_name)
-{
-    {
-        std::lock_guard<mutex> lock(_contexts_mutex);
-
-        auto it = find_ptr(_blocked_contexts, ctx);
-        assert(it != _blocked_contexts.end());
-
-        CORO_LOG("SCHED: context ", ctx, " unblocked. There is ", _blocked_contexts.size(), " blocked and ", _active_contexts.size(), " active contexts now");
-
-        if (_active_contexts.size() < _max_allowed_running_coroutines)
+        // make sure there is at least one inactive blocked
+        if(_running_blocked_processors == _blocked_processors.size())
         {
-            // ove to active
-            context_ptr moved = std::move(*it);
-            _blocked_contexts.erase(it);
-            _active_contexts.push_back(std::move(moved));
-
-            CORO_LOG("SCHED: context ", ctx, " allowed to continue");
-            // the context and current coroutine may continue unharassed
-            return true;
+            _blocked_processors.emplace_back(new processor(*this));
         }
+
+        // swap with the first inactive blocked
+        std::swap(_processors[_running_processors], _blocked_processors[_running_blocked_processors]);
+        _running_blocked_processors++;
     }
 
-    // no mutex should be locked below this line, as we may preempt
+    // the procesor will now continue in blocked state
 
-    CORO_LOG("SCHED: context ", ctx, " NOT allowed to continue, coroutine will yield now");
-    coroutine* coro = coroutine::current_corutine();
-    assert(coro);
-
-    coro->yield(checkpoint_name, [this](coroutine_weak_ptr coro)
-    {
-        _global_queue.push(std::move(coro));
-        // coroutine will continue on another thread, context will be destroyed
-    });
-
-    return false;
+    // schedule coroutines
+    schedule(queue);
 }
 
-void scheduler::schedule(std::list<coroutine*>& coros)
+bool scheduler::processor_unblocked(processor_weak_ptr pc)
 {
-    for(coroutine* coro : coros)
+    std::lock_guard<mutex> lock(_processors_mutex);
+
+    assert(_running_blocked_processors > 0);
+    auto it = find_ptr(_blocked_processors, pc);
+    assert(it != _blocked_processors.end());
+
+    // move back to active, if there is room for that
+    if (_running_processors < _processors.size())
+    {
+        std::swap(*it, _blocked_processors[_running_blocked_processors]);
+        std::swap(_blocked_processors[_running_blocked_processors], _processors[_running_processors]);
+        _running_blocked_processors--;
+        _running_processors++;
+        return false;
+    }
+    return true;
+}
+
+
+void scheduler::remove_inactive_blocked_processors()
+{
+    // assumption: _processors_mutex is held
+
+    // leave _active_blocked_processors idle
+    unsigned to_leave = _running_blocked_processors * 2;
+    if (_blocked_processors.size() > to_leave)
+    {
+        for(unsigned i = to_leave; i < _blocked_processors.size(); i++)
+        {
+            _blocked_processors[i]->stop_and_join();
+        }
+    }
+    _blocked_processors.resize(to_leave);
+}
+
+
+void scheduler::schedule(std::vector<coroutine_weak_ptr>& coros)
+{
+    for(coroutine_weak_ptr coro : coros)
     {
         schedule(coro);
     }
@@ -176,38 +192,28 @@ void scheduler::schedule(coroutine_weak_ptr coro)
 {
     CORO_LOG("SCHED: scheduling corountine '", coro->name(), "'");
 
-    // create new active context, if limit not reached yet
+    std::lock_guard<mutex> lock(_processors_mutex);
+    // activate new processor if limit not reached yet
+    if(_running_processors < _processors.size())
     {
-        std::lock_guard<mutex> contexts_lock(_contexts_mutex);
-        if (_active_contexts.size() < _max_allowed_running_coroutines)
-        {
-            CORO_LOG("SCHED: scheduling corountine, idle context exists, adding there");
-            context_ptr ctx(new context(this));
-            context* ctx_ptr = ctx.get();
-            ctx->enqueue(coro);
-            _active_contexts.push_back(std::move(ctx));
-
-            _thread_pool.run([ctx_ptr]()
-            {
-                ctx_ptr->run();
-            });
-
-            return;
-        }
+         CORO_LOG("SCHED: scheduling corountine, idle processor exists, adding there");
+        _processors[_running_processors]->enqueue(coro);
+        _running_processors++;
+        return;
     }
 
-    // called from withing working context
-    context* ctx = context::current_context();
-    if (ctx && ctx->enqueue(std::move(coro)))
+    // called from withing working processor - add it there
+    processor* current = processor::current_processor();
+    if (current)
     {
-        CORO_LOG("SCHED: scheduling corountine: adding to current context's list");
-        context::current_context()->enqueue(std::move(coro));
+        CORO_LOG("SCHED: scheduling corountine, adding to current context");
+        current->enqueue(coro);
     }
     else
     {
-        CORO_LOG("SCHED: scheduling corountine: adding to global list");
-        // put into global queue
-        _global_queue.push(std::move(coro));
+        CORO_LOG("SCHED: scheduling corountine, adding to any context");
+        // add to random?
+        _processors[0]->enqueue(coro);
     }
 }
 

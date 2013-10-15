@@ -1,5 +1,7 @@
 #include "coroutines/processor.hpp"
+#include "coroutines/scheduler.hpp"
 
+//#define CORO_LOGGING
 #include "coroutines/logging.hpp"
 
 #include <mutex>
@@ -15,7 +17,7 @@ processor::processor(scheduler& sched)
 {
 }
 
-void processor::enqeue(coroutine_weak_ptr coro)
+void processor::enqueue(coroutine_weak_ptr coro)
 {
     {
         std::lock_guard<mutex> lock(_queue_mutex);
@@ -25,7 +27,7 @@ void processor::enqeue(coroutine_weak_ptr coro)
     wakeup();
 }
 
-void processor::enqeue(std::vector<coroutine_weak_ptr>& coros)
+void processor::enqueue(std::vector<coroutine_weak_ptr>& coros)
 {
     {
         std::lock_guard<mutex> lock(_queue_mutex);
@@ -75,14 +77,19 @@ void processor::block()
 
     _blocked = true;
     std::vector<coroutine_weak_ptr> queue;
-    queue.resize(_queue.size);
+    queue.reserve(_queue.size());
     std::copy(_queue.begin(), _queue.end(), std::back_inserter(queue));
-    _scheduler->processor_blocked(this, queue);
+    _scheduler.processor_blocked(this, queue);
 }
 
 void processor::unblock()
 {
-    _scheduler->processor_unblocked(this);
+    _blocked = _scheduler.processor_unblocked(this);
+}
+
+processor*processor::current_processor()
+{
+    return __current_processor;
 }
 
 void processor::routine()
@@ -113,7 +120,7 @@ void processor::routine()
         {
             // wait for wakeup
 
-            _schedule->processor_idle(this); // TODO
+            _scheduler.processor_idle(this, _blocked);
 
             std::lock_guard<mutex> lock(_runnng_mutex);
             _running = false;

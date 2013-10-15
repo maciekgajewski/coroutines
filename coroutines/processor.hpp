@@ -20,8 +20,8 @@ public:
     processor(const processor&) = delete;
 
     // adds work to the queue
-    void enqeue(coroutine_weak_ptr coro);
-    void enqeue(std::vector<coroutine_weak_ptr>& coros);
+    void enqueue(coroutine_weak_ptr coro);
+    void enqueue(std::vector<coroutine_weak_ptr>& coros);
 
     // steals half of work
     void steal(std::vector<coroutine_weak_ptr>& out);
@@ -32,6 +32,8 @@ public:
     // block/unblock
     void block();
     void unblock();
+
+    static processor* current_processor();
 
 private:
 

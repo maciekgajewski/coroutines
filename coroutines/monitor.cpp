@@ -5,6 +5,9 @@
 #include "coroutines/context.hpp"
 #include "coroutines/scheduler.hpp"
 
+//#define CORO_LOGGING
+#include "coroutines/logging.hpp"
+
 namespace coroutines {
 
 monitor::monitor(scheduler& sched)
@@ -23,12 +26,15 @@ void monitor::wait(const std::string& checkopint_name, epilogue_type epilogue)
     coroutine* coro = coroutine::current_corutine();
     assert(coro);
 
-//    std::cout << "MONITOR: this=" << this << " '" << coro->name() << "' will wait" << std::endl;
+    CORO_LOG("MONITOR: this=",  this, " '", coro->name(), "' will wait");
 
     coro->yield(checkopint_name, [this, epilogue](coroutine_weak_ptr coro)
     {
-        //std::cout << "MONITOR: this=" << this << " '" << coro->name() << "' added to queue" << std::endl;
-        _waiting.push(std::move(coro));
+        CORO_LOG("MONITOR: this=", this, " '", coro->name(), "' added to queue");
+        {
+            std::lock_guard<mutex> lock(_waiting_mutex);
+            _waiting.push_back(std::move(coro));
+        }
         if (epilogue)
             epilogue();
     });
@@ -36,30 +42,42 @@ void monitor::wait(const std::string& checkopint_name, epilogue_type epilogue)
 
 void monitor::wake_all()
 {
-    //std::cout << "MONITOR: wake_all" << std::endl;
-    std::list<coroutine*> waiting;
-    _waiting.get_all(waiting);
-//    std::cout << "MONITOR: waking up " << waiting.size() << " coroutines" << std::endl;
+    CORO_LOG("MONITOR: wake_all");
+
+    std::vector<coroutine*> waiting;
+    {
+        std::lock_guard<mutex> lock(_waiting_mutex);
+        _waiting.swap(waiting);
+    }
+
+    CORO_LOG("MONITOR: waking up ", waiting.size(), " coroutine(s)");
 
     _scheduler.schedule(waiting);
 }
 
 void monitor::wake_one()
 {
-    //std::cout << "MONITOR: this=" << this << " will wake one. q contains: '" << _waiting.size() << std::endl;
-    coroutine_weak_ptr waiting;
-    bool r = _waiting.pop(waiting);
+    CORO_LOG("MONITOR: this=", this, " will wake one. q contains: '", _waiting.size())
 
-    if (r)
+    coroutine_weak_ptr waiting = nullptr;
     {
-//        std::cout << "MONITOR: this=" << this << " waking up one coroutine ('" << waiting->name()
-//            << "'), " << _waiting.size() << " left in q" << std::endl;
+        std::lock_guard<mutex> lock(_waiting_mutex);
+        if (!_waiting.empty())
+        {
+            waiting = _waiting.back();
+            _waiting.pop_back();
+        }
+    }
+
+    if (waiting)
+    {
+        CORO_LOG("MONITOR: this=", this, " waking up one coroutine ('", waiting->name(), "'), ", _waiting.size(), " left in q");
         _scheduler.schedule(std::move(waiting));
     }
-//    else
-//    {
-//        std::cout << "MONITOR: this=" << this << " nothign to wake" << std::endl;
-//    }
+    else
+    {
+        CORO_LOG("MONITOR: this=", this, " nothign to wake");
+    }
 }
 
 }

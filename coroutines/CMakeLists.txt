@@ -5,7 +5,6 @@ add_library(coroutines STATIC
     algorithm.hpp
     channel.hpp
     condition_variable.hpp
-    context.cpp context.hpp
     coroutine.cpp coroutine.hpp
     generator.hpp
     globals.cpp globals.hpp

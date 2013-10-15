@@ -2,8 +2,8 @@
 #ifndef COROUTINES_GLOBALS_HPP
 #define COROUTINES_GLOBALS_HPP
 
-#include "scheduler.hpp"
-#include "context.hpp"
+#include "coroutines/scheduler.hpp"
+#include "coroutines/processor.hpp"
 
 // global functions used in channle-based concurent programming
 
@@ -44,9 +44,10 @@ channel_pair<T> make_channel(std::size_t capacity, const std::string& name = std
 // starting coroutines is not allowed in blocking mode
 inline void block(const std::string& checkpoint_name = std::string())
 {
-    context* ctx = context::current_context();
-    assert(ctx);
-    ctx->block(checkpoint_name);
+    processor* pc = processor::current_processor();
+    coroutine::current_corutine()->set_checkpoint(checkpoint_name);
+    assert(pc);
+    pc->block();
 }
 
 inline void block(const char* checkpoint_name) { block(std::string(checkpoint_name)); }
@@ -54,9 +55,10 @@ inline void block(const char* checkpoint_name) { block(std::string(checkpoint_na
 // ends blocking mode. may preempt current coroutine
 inline void unblock(const std::string& checkpoint_name = std::string())
 {
-    context* ctx = context::current_context();
-    assert(ctx);
-    ctx->unblock(checkpoint_name);
+    processor* pc = processor::current_processor();
+    coroutine::current_corutine()->set_checkpoint(checkpoint_name);
+    assert(pc);
+    pc->unblock();
 }
 
 inline void unblock(const char* checkpoint_name) { unblock(std::string(checkpoint_name)); }

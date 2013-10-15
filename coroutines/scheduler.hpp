@@ -59,21 +59,29 @@ public:
 
     void processor_idle(processor_weak_ptr pr, bool blocked);
     void processor_blocked(processor_weak_ptr pr, std::vector<coroutine_weak_ptr>& queue);
-    void processor_unblocked(processor_weak_ptr pr);
+
+    // returns status (true - blocked, false - unblocked)
+    bool processor_unblocked(processor_weak_ptr pr);
 
     void schedule(coroutine_weak_ptr coro);
-    void schedule(std::list<coroutine_weak_ptr>& coros);
+    void schedule(std::vector<coroutine_weak_ptr>& coros);
+
 
 private:
 
     void go(coroutine_ptr&& coro);
+    void remove_inactive_blocked_processors();
 
+    // fixed-size collection of running processor
+    // runnig pcs are grouped at the beginning, there is _active_processors of them
+    // all the pcs between _running_processors and _processors.size() are idle and ready to accept coroutine
     std::vector<processor_ptr> _processors;
+    unsigned _running_processors = 0;
+    // dynamic size collection of blocked processors, moved there from active when they block
+    // runnig are grouped at the beginning
     std::vector<processor_ptr> _blocked_processors;
+    unsigned _running_blocked_processors = 0;
     mutex _processors_mutex;
-    const unsigned _max_allowed_running_coroutines;
-    unsigned _active_processors = 0;
-    unsigned _active_blocked_processors = 0;
 
     std::vector<coroutine_ptr> _coroutines;
     mutex _coroutines_mutex;
