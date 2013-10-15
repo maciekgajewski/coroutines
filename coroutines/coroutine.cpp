@@ -3,15 +3,17 @@
 #include "coroutines/channel.hpp"
 #include "coroutines/scheduler.hpp"
 
+#include "coroutines/logging.hpp"
+
 #include <utility>
 #include <cassert>
 #include <iostream>
 
 namespace coroutines {
 
-//static const unsigned DEFAULT_STACK_SIZE = 64*1024; // 64kb should be enough for anyone :)
+static const unsigned DEFAULT_STACK_SIZE = 64*1024; // 64kb should be enough for anyone :)
 //static const unsigned DEFAULT_STACK_SIZE = 1024*1024;
-static const unsigned DEFAULT_STACK_SIZE = 4*1024*1024;
+//static const unsigned DEFAULT_STACK_SIZE = 4*1024*1024;
 static thread_local coroutine* __current_coroutine = nullptr;
 
 coroutine::coroutine(scheduler& parent, std::string name, function_type&& fun)
@@ -40,25 +42,27 @@ coroutine::~coroutine()
 
 void coroutine::run()
 {
-    std::lock_guard<mutex> lock(_run_mutex); // the coro may be reshdelued in epilogue, and run imemdiately in different thread
-
-//    std::cout << "CORO starting or resuming '" << _name << "'" << std::endl;
-    assert(_new_context);
-
-    coroutine* previous = __current_coroutine;
-    __current_coroutine = this;
-
-    boost::context::jump_fcontext(&_caller_context, _new_context, reinterpret_cast<intptr_t>(this));
-
-    __current_coroutine = previous;
-
-//    std::cout << "CORO=" <<this << " finished or preemepted" << std::endl;
-
-    if (_epilogue)
     {
+        std::lock_guard<mutex> lock(_run_mutex); // the coro may be reshdelued in epilogue, and run imemdiately in different thread
+
+        CORO_LOG("CORO starting or resuming '", _name, "'");
         assert(_new_context);
-        _epilogue(this);
-        _epilogue = nullptr;
+
+        coroutine* previous = __current_coroutine;
+        __current_coroutine = this;
+
+        boost::context::jump_fcontext(&_caller_context, _new_context, reinterpret_cast<intptr_t>(this));
+
+        __current_coroutine = previous;
+
+        CORO_LOG("CORO=", this, " finished or preemepted");
+
+        if (_epilogue)
+        {
+            assert(_new_context);
+            _epilogue(this);
+            _epilogue = nullptr;
+        }
     }
 
     if (!_new_context)
@@ -90,7 +94,7 @@ void coroutine::static_context_function(intptr_t param)
 
 void coroutine::context_function()
 {
-//    std::cout << "CORO: starting '" << _name << "'" << std::endl;
+    CORO_LOG("CORO: starting '", _name, "'");
     try
     {
         _last_checkpoint = "started";
@@ -114,7 +118,7 @@ void coroutine::context_function()
         std::terminate();
     }
 
-//    std::cout << "CORO: finished cleanly '" << _name << "'" << std::endl;
+    CORO_LOG("CORO: finished cleanly '", _name, "'");
 
     auto temp = _new_context;
     _new_context = nullptr;// to mark the completion

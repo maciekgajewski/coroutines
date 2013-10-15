@@ -2,7 +2,7 @@
 #include "coroutines/scheduler.hpp"
 #include "coroutines/algorithm.hpp"
 
-#define CORO_LOGGING
+//#define CORO_LOGGING
 #include "coroutines/logging.hpp"
 
 #include <cassert>
