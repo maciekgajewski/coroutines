@@ -18,6 +18,7 @@ class processor
 public:
     processor(scheduler& sched);
     processor(const processor&) = delete;
+    ~processor();
 
     // adds work to the queue
     void enqueue(coroutine_weak_ptr coro);

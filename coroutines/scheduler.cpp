@@ -18,6 +18,7 @@ scheduler::scheduler(unsigned max_running_coroutines)
     // setup
     {
         std::lock_guard<mutex> lock(_processors_mutex);
+        _running_processors = max_running_coroutines; // initially assume all runningm until they threads start and report back
         for(unsigned i = 0; i < max_running_coroutines; i++)
         {
             _processors.emplace_back(new processor(*this));
@@ -157,6 +158,9 @@ bool scheduler::processor_unblocked(processor_weak_ptr pc)
         std::swap(_blocked_processors[_running_blocked_processors], _processors[_running_processors]);
         _running_blocked_processors--;
         _running_processors++;
+
+        remove_inactive_blocked_processors();
+
         return false;
     }
     return true;
@@ -171,12 +175,8 @@ void scheduler::remove_inactive_blocked_processors()
     unsigned to_leave = _running_blocked_processors * 2;
     if (_blocked_processors.size() > to_leave)
     {
-        for(unsigned i = to_leave; i < _blocked_processors.size(); i++)
-        {
-            _blocked_processors[i]->stop_and_join();
-        }
+        _blocked_processors.resize(to_leave);
     }
-    _blocked_processors.resize(to_leave);
 }
 
 

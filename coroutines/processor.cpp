@@ -17,6 +17,12 @@ processor::processor(scheduler& sched)
 {
 }
 
+processor::~processor()
+{
+    assert(!_running);
+    stop_and_join();
+}
+
 void processor::enqueue(coroutine_weak_ptr coro)
 {
     {
@@ -66,9 +72,12 @@ void processor::steal(std::vector<coroutine_weak_ptr>& out)
 
 void processor::stop_and_join()
 {
-    std::lock_guard<mutex> lock(_runnng_mutex);
-    _stopped = true;
-    _running_cv.notify_one();
+    {
+        std::lock_guard<mutex> lock(_runnng_mutex);
+        _stopped = true;
+        _running_cv.notify_one();
+    }
+    _thread.join();
 }
 
 void processor::block()
