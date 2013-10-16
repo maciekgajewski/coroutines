@@ -93,10 +93,11 @@ void processor::block()
 
 void processor::unblock()
 {
-    _blocked = _scheduler.processor_unblocked(this);
+    _scheduler.processor_unblocked(this);
+    _blocked = false;
 }
 
-processor*processor::current_processor()
+processor* processor::current_processor()
 {
     return __current_processor;
 }

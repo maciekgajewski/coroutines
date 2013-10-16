@@ -12,6 +12,8 @@
 namespace coroutines {
 
 scheduler::scheduler(unsigned max_running_coroutines)
+    : _max_allowed_running_coros(max_running_coroutines)
+    , _random_generator(std::random_device()())
 {
     assert(max_running_coroutines > 0);
 
@@ -129,7 +131,16 @@ void scheduler::processor_blocked(processor_weak_ptr pc, std::vector<coroutine_w
         // make sure there is at least one inactive blocked
         if(_running_blocked_processors == _blocked_processors.size())
         {
-            _blocked_processors.emplace_back(new processor(*this));
+            // is there an inactive non-blocked processor we can re-use?
+            if (_processors.size() > _max_allowed_running_coros && _processors.size() > (_running_processors+1))
+            {
+                _blocked_processors.emplace_back(std::move(_processors.back()));
+                _processors.pop_back();
+            }
+            else
+            {
+                _blocked_processors.emplace_back(new processor(*this));
+            }
         }
 
         // swap with the first inactive blocked
@@ -143,7 +154,7 @@ void scheduler::processor_blocked(processor_weak_ptr pc, std::vector<coroutine_w
     schedule(queue);
 }
 
-bool scheduler::processor_unblocked(processor_weak_ptr pc)
+void scheduler::processor_unblocked(processor_weak_ptr pc)
 {
     std::lock_guard<mutex> lock(_processors_mutex);
 
@@ -151,19 +162,25 @@ bool scheduler::processor_unblocked(processor_weak_ptr pc)
     auto it = find_ptr(_blocked_processors, pc);
     assert(it != _blocked_processors.end());
 
-    // move back to active, if there is room for that
-    if (_running_processors < _processors.size())
+
+    std::swap(*it, _blocked_processors[_running_blocked_processors]);
+
+    // if there is no inactive in _processors, remove ours from blocked and move to _processors
+    if(_running_processors == _processors.size())
     {
-        std::swap(*it, _blocked_processors[_running_blocked_processors]);
-        std::swap(_blocked_processors[_running_blocked_processors], _processors[_running_processors]);
-        _running_blocked_processors--;
-        _running_processors++;
-
-        remove_inactive_blocked_processors();
-
-        return false;
+        std::swap(_blocked_processors[_running_blocked_processors], _blocked_processors.back());
+        _processors.emplace_back(std::move(_blocked_processors.back()));
+        _blocked_processors.pop_back();
     }
-    return true;
+    else
+    {
+         std::swap(_blocked_processors[_running_blocked_processors], _processors[_running_processors]);
+    }
+    _running_blocked_processors--;
+    _running_processors++;
+
+
+    remove_inactive_blocked_processors();
 }
 
 
@@ -177,6 +194,13 @@ void scheduler::remove_inactive_blocked_processors()
     {
         _blocked_processors.resize(to_leave);
     }
+}
+
+// returns uniform random number between 0 and _max_allowed_running_coros
+unsigned scheduler::random_index()
+{
+    std::uniform_int_distribution<unsigned> dist(0, _max_allowed_running_coros-1);
+    return dist(_random_generator);
 }
 
 
@@ -212,8 +236,8 @@ void scheduler::schedule(coroutine_weak_ptr coro)
     else
     {
         CORO_LOG("SCHED: scheduling corountine, adding to any context");
-        // add to random?
-        _processors[0]->enqueue(coro);
+        // add to random
+        _processors[random_index()]->enqueue(coro);
     }
 }
 

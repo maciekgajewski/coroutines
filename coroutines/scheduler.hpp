@@ -12,7 +12,7 @@
 
 #include <thread>
 #include <mutex>
-#include <list>
+#include <random>
 
 namespace coroutines {
 
@@ -60,8 +60,7 @@ public:
     void processor_idle(processor_weak_ptr pr, bool blocked);
     void processor_blocked(processor_weak_ptr pr, std::vector<coroutine_weak_ptr>& queue);
 
-    // returns status (true - blocked, false - unblocked)
-    bool processor_unblocked(processor_weak_ptr pr);
+    void processor_unblocked(processor_weak_ptr pr);
 
     void schedule(coroutine_weak_ptr coro);
     void schedule(std::vector<coroutine_weak_ptr>& coros);
@@ -72,7 +71,10 @@ private:
     void go(coroutine_ptr&& coro);
     void remove_inactive_blocked_processors();
 
-    // fixed-size collection of running processor
+    unsigned random_index();
+
+    const unsigned _max_allowed_running_coros;
+    // ollection of running processor
     // runnig pcs are grouped at the beginning, there is _active_processors of them
     // all the pcs between _running_processors and _processors.size() are idle and ready to accept coroutine
     std::vector<processor_ptr> _processors;
@@ -87,6 +89,8 @@ private:
     mutex _coroutines_mutex;
     std::condition_variable_any _coro_cv;
     std::size_t _max_active_coroutines = 0; // stat counter
+
+    std::minstd_rand _random_generator;
 };
 
 
