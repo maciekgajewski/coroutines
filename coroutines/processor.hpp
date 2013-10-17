@@ -27,9 +27,6 @@ public:
     // steals half of work
     void steal(std::vector<coroutine_weak_ptr>& out);
 
-    // shutdown
-    void stop_and_join();
-
     // block/unblock
     void block();
     void unblock();
@@ -40,6 +37,7 @@ private:
 
     void routine();
     void wakeup();
+    void stop_and_join();
 
     scheduler& _scheduler;
 

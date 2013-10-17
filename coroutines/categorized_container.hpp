@@ -39,6 +39,9 @@ public:
     // removes (and destroys) element
     void remove(ptr_type item);
 
+    // destroy all
+    void clear() { _container.clear(); }
+
 private:
     typedef std::pair<CategoryType, unique_ptr_type> pair_type;
     typedef std::vector<pair_type> container_type;

@@ -57,7 +57,7 @@ public:
     ///////
     // processor's interface
 
-    void processor_idle(processor_weak_ptr pr);
+    void processor_idle(processor* pr);
     void processor_blocked(processor_weak_ptr pr, std::vector<coroutine_weak_ptr>& queue);
 
     void processor_unblocked(processor_weak_ptr pr);
@@ -75,14 +75,14 @@ private:
 
     const unsigned _max_allowed_running_coros;
 
-    enum PROCESSOR_STATE
+    enum processor_state
     {
         PROCESSOR_STATE_RUNNING,
         PROCESSOR_STATE_BLOCKED,
         PROCESSOR_STATE_IDLE
     };
 
-    categorized_container<processor> _processors;
+    categorized_container<processor, processor_state> _processors;
     mutex _processors_mutex;
 
     std::vector<coroutine_ptr> _coroutines;

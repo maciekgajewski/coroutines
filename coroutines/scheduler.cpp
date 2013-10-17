@@ -2,7 +2,7 @@
 #include "coroutines/scheduler.hpp"
 #include "coroutines/algorithm.hpp"
 
-//#define CORO_LOGGING
+#define CORO_LOGGING
 #include "coroutines/logging.hpp"
 
 #include <cassert>
@@ -30,6 +30,10 @@ scheduler::scheduler(unsigned max_running_coroutines)
 scheduler::~scheduler()
 {
     wait();
+    {
+        std::lock_guard<mutex> lock(_processors_mutex);
+        _processors.clear();
+    }
 }
 
 void scheduler::debug_dump()
@@ -73,12 +77,15 @@ void scheduler::coroutine_finished(coroutine* coro)
     }
 }
 
-void scheduler::processor_idle(processor_weak_ptr pc)
+void scheduler::processor_idle(processor* pc)
 {
-    CORO_LOG("SCHED: processor ", pc, " finished");
+    CORO_LOG("SCHED: processor ", pc, " idle");
 
     {
         std::lock_guard<mutex> lock(_processors_mutex);
+
+        // garbage-collect now, while this one is RUNNING, is it is not removed in the process
+        remove_inactive_processors();
 
         _processors.set_category(pc, PROCESSOR_STATE_IDLE);
 
@@ -108,13 +115,9 @@ void scheduler::processor_idle(processor_weak_ptr pc)
         // if stealing successful - reactivate
         if (!stolen.empty())
         {
+            CORO_LOG("SCHED: stolend ", stolen.size(), " coros for processor ", pc);
             pc->enqueue(stolen);
             _processors.set_category(pc, PROCESSOR_STATE_RUNNING);
-        }
-        else
-        {
-            // garbage-collect if there is too many idle blocked
-            remove_inactive_processors();
         }
     }
 }
@@ -155,11 +158,16 @@ void scheduler::processor_unblocked(processor_weak_ptr pc)
 void scheduler::remove_inactive_processors()
 {
     // assumption: _processors_mutex is held
+    // WARNING: do not call it from the thread of process that is inactive, otherwise it may try to join itself (ie abort)
 
     // we kan keep up to _max_allowed_running_coros of stand-by threads
     while(_processors.count_category(PROCESSOR_STATE_IDLE) > _max_allowed_running_coros)
     {
-        _processors.remove(_processors.get_nth(PROCESSOR_STATE_IDLE, 0));
+        processor* pc = _processors.get_nth(PROCESSOR_STATE_IDLE, 0);
+        assert(pc);
+        CORO_LOG("SCHED: garbage collector: removing idle processor=", pc);
+
+        _processors.remove(pc);
     }
 }
 
@@ -198,8 +206,10 @@ void scheduler::schedule(coroutine_weak_ptr coro)
     }
 
     // called from withing working processor - add it there,
-    // but only we don't have too much running
-    else if (current && running == _max_allowed_running_coros)
+    // but only we don't have too much running already
+    // so we need to make sure no processor above the first _max_allowed_running_coros gets work.
+    // And current can't be blocked
+    else if (current && running == _max_allowed_running_coros && _processors.get_category(current) == PROCESSOR_STATE_RUNNING)
     {
         CORO_LOG("SCHED: scheduling corountine, adding to current context");
         current->enqueue(coro);

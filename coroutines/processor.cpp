@@ -1,7 +1,7 @@
 #include "coroutines/processor.hpp"
 #include "coroutines/scheduler.hpp"
 
-//#define CORO_LOGGING
+#define CORO_LOGGING
 #include "coroutines/logging.hpp"
 
 #include <mutex>
@@ -19,6 +19,8 @@ processor::processor(scheduler& sched)
 
 processor::~processor()
 {
+    CORO_LOG("PROC=", this, " destroyed");
+
     assert(!_running);
     stop_and_join();
 }
@@ -75,6 +77,7 @@ void processor::stop_and_join()
     {
         std::lock_guard<mutex> lock(_runnng_mutex);
         _stopped = true;
+        assert(!_running);
         _running_cv.notify_one();
     }
     _thread.join();
@@ -82,16 +85,24 @@ void processor::stop_and_join()
 
 void processor::block()
 {
-    std::lock_guard<mutex> lock(_queue_mutex);
+    CORO_LOG("PROC=", this, " block");
 
     std::vector<coroutine_weak_ptr> queue;
-    queue.reserve(_queue.size());
-    std::copy(_queue.begin(), _queue.end(), std::back_inserter(queue));
+    {
+        std::lock_guard<mutex> lock(_queue_mutex);
+
+        queue.reserve(_queue.size());
+        std::copy(_queue.begin(), _queue.end(), std::back_inserter(queue));
+        _queue.clear();
+    }
+
     _scheduler.processor_blocked(this, queue);
 }
 
 void processor::unblock()
 {
+    CORO_LOG("PROC=", this, " unblock");
+
     _scheduler.processor_unblocked(this);
 }
 
@@ -121,7 +132,7 @@ void processor::routine()
         if (coro)
         {
             // execute
-            CORO_LOG("PROC=", this, " : will run coro ", coro->name());
+            CORO_LOG("PROC=", this, " : will run coro '", coro->name(), "'");
             coro->run();
         }
         else
@@ -131,6 +142,7 @@ void processor::routine()
             _running = false;
             _runnng_mutex.unlock();
 
+            CORO_LOG("PROC=", this, " idle");
             _scheduler.processor_idle(this); // mutex must be unlocked here, as enqueueu->wakup may be called
 
             std::lock_guard<mutex> lock(_runnng_mutex);
