@@ -73,7 +73,7 @@ void scheduler::coroutine_finished(coroutine* coro)
     }
 }
 
-void scheduler::processor_idle(processor_weak_ptr pc, bool blocked)
+void scheduler::processor_idle(processor_weak_ptr pc)
 {
     CORO_LOG("SCHED: processor ", pc, " finished");
 

@@ -48,7 +48,6 @@ private:
 
     bool _running = false; // is currently running or waiting?
     bool _stopped = false;
-    bool _blocked = false;
     mutex _runnng_mutex;
     std::condition_variable_any _running_cv;
 

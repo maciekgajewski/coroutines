@@ -57,7 +57,7 @@ public:
     ///////
     // processor's interface
 
-    void processor_idle(processor_weak_ptr pr, bool blocked);
+    void processor_idle(processor_weak_ptr pr);
     void processor_blocked(processor_weak_ptr pr, std::vector<coroutine_weak_ptr>& queue);
 
     void processor_unblocked(processor_weak_ptr pr);

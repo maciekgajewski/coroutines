@@ -84,7 +84,6 @@ void processor::block()
 {
     std::lock_guard<mutex> lock(_queue_mutex);
 
-    _blocked = true;
     std::vector<coroutine_weak_ptr> queue;
     queue.reserve(_queue.size());
     std::copy(_queue.begin(), _queue.end(), std::back_inserter(queue));
@@ -94,7 +93,6 @@ void processor::block()
 void processor::unblock()
 {
     _scheduler.processor_unblocked(this);
-    _blocked = false;
 }
 
 processor* processor::current_processor()
@@ -129,11 +127,13 @@ void processor::routine()
         else
         {
             // wait for wakeup
+            _runnng_mutex.lock();
+            _running = false;
+            _runnng_mutex.unlock();
 
-            _scheduler.processor_idle(this, _blocked);
+            _scheduler.processor_idle(this); // mutex must be unlocked here, as enqueueu->wakup may be called
 
             std::lock_guard<mutex> lock(_runnng_mutex);
-            _running = false;
             _running_cv.wait(_runnng_mutex, [this]() { return _running || _stopped; });
 
             if (_stopped)
