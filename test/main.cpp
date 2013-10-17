@@ -7,6 +7,8 @@
 #include <iostream>
 #include <thread>
 
+#include <signal.h>
+
 using namespace coroutines;
 
 template<typename T1, typename T2>
@@ -630,20 +632,32 @@ void test_catregorized_container()
 
 #define RUN_TEST(test_name) std::cout << ">>> Starting test: " << #test_name << std::endl; test_name();
 
+void signal_handler(int)
+{
+    scheduler * sched = get_scheduler();
+    if (sched)
+    {
+        sched->debug_dump();
+    }
+}
+
 int main(int , char** )
 {
-    RUN_TEST(test_catregorized_container);
+    // install signal handler, for debugging
+    signal(SIGINT, signal_handler);
+
+//    RUN_TEST(test_catregorized_container);
 //    RUN_TEST(test_reading_after_close);
 //    RUN_TEST(test_reader_blocking);
 //    RUN_TEST(test_writer_exit_when_closed);
 //    RUN_TEST(test_large_transfer);
 //    RUN_TEST(test_nestet_coros);
-//    RUN_TEST(test_muchos_coros);
-//    RUN_TEST(test_blocking_coros);
-//    RUN_TEST(test_multiple_readers);
-//    RUN_TEST(test_multiple_writers);
-//    RUN_TEST(tree_traverse_test);
-//    RUN_TEST(test_non_blocking_read);
+    RUN_TEST(test_muchos_coros);
+    RUN_TEST(test_blocking_coros);
+    RUN_TEST(test_multiple_readers);
+    RUN_TEST(test_multiple_writers);
+    RUN_TEST(tree_traverse_test);
+    RUN_TEST(test_non_blocking_read);
 
     std::cout << "test completed" << std::endl;
 }

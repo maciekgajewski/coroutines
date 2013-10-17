@@ -69,20 +69,20 @@ public:
 private:
 
     void go(coroutine_ptr&& coro);
-    void remove_inactive_blocked_processors();
+    void remove_inactive_processors();
 
     unsigned random_index();
 
     const unsigned _max_allowed_running_coros;
-    // ollection of running processor
-    // runnig pcs are grouped at the beginning, there is _active_processors of them
-    // all the pcs between _running_processors and _processors.size() are idle and ready to accept coroutine
-    std::vector<processor_ptr> _processors;
-    unsigned _running_processors = 0;
-    // dynamic size collection of blocked processors, moved there from active when they block
-    // runnig are grouped at the beginning
-    std::vector<processor_ptr> _blocked_processors;
-    unsigned _running_blocked_processors = 0;
+
+    enum PROCESSOR_STATE
+    {
+        PROCESSOR_STATE_RUNNING,
+        PROCESSOR_STATE_BLOCKED,
+        PROCESSOR_STATE_IDLE
+    };
+
+    categorized_container<processor> _processors;
     mutex _processors_mutex;
 
     std::vector<coroutine_ptr> _coroutines;
