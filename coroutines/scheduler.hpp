@@ -8,7 +8,7 @@
 #include "coroutines/locking_channel.hpp"
 #include "coroutines/condition_variable.hpp"
 #include "coroutines/thread_safe_queue.hpp"
-#include "coroutines/thread_pool.hpp"
+#include "coroutines/categorized_container.hpp"
 
 #include <thread>
 #include <mutex>

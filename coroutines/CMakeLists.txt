@@ -18,6 +18,7 @@ add_library(coroutines STATIC
     thread_pool.cpp thread_pool.hpp
     logging.hpp
     processor.cpp processor.hpp
+    categorized_container.hpp
 )
 
 target_link_libraries(coroutines
