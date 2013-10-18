@@ -2,7 +2,6 @@
 #include "coroutines/monitor.hpp"
 
 #include "coroutines/coroutine.hpp"
-#include "coroutines/context.hpp"
 #include "coroutines/scheduler.hpp"
 
 //#define CORO_LOGGING

@@ -14,11 +14,8 @@ add_library(coroutines STATIC
     mutex.hpp
     scheduler.cpp scheduler.hpp
     spsc_queue.hpp
-    thread_safe_queue.hpp
-    thread_pool.cpp thread_pool.hpp
     logging.hpp
     processor.cpp processor.hpp
-    categorized_container.hpp
     processor_container.cpp processor_container.hpp
 )
 

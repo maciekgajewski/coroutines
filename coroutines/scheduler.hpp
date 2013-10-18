@@ -7,7 +7,6 @@
 #include "coroutines/processor.hpp"
 #include "coroutines/locking_channel.hpp"
 #include "coroutines/condition_variable.hpp"
-#include "coroutines/thread_safe_queue.hpp"
 #include "coroutines/processor_container.hpp"
 
 #include <thread>

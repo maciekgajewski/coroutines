@@ -1,7 +1,6 @@
 // (c) 2013 Maciej Gajewski, <maciej.gajewski0@gmail.com>
 
 #include "coroutines/globals.hpp"
-#include "coroutines/categorized_container.hpp"
 #include <boost/format.hpp>
 
 #include <iostream>
