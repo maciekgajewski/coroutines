@@ -44,12 +44,8 @@ void client_connection::start()
             }
             catch(const Poco::Net::NoMessageException&)
             {
-//                std::cout << "conenction closed" << std::endl;
                 return;
             }
-
-//            std::cout << "request: " << std::endl;
-//            request.write(std::cout);
 
             http_response response(ostream);
 

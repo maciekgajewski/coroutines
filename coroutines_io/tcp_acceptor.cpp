@@ -1,7 +1,7 @@
 // Copyright (c) 2013 Maciej Gajewski
 #include "coroutines_io/tcp_acceptor.hpp"
 #include "coroutines_io/globals.hpp"
-#include "coroutines_io/service.hpp"
+#include "coroutines_io/io_scheduler.hpp"
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -10,13 +10,13 @@
 
 namespace coroutines {
 
-tcp_acceptor::tcp_acceptor(service& srv)
+tcp_acceptor::tcp_acceptor(io_scheduler& srv)
     : base_pollable(srv)
 {
 }
 
 tcp_acceptor::tcp_acceptor()
-    : base_pollable(get_service_check())
+    : base_pollable(get_io_scheduler_check())
 {
 }
 

@@ -3,7 +3,7 @@
 #include "coroutines/globals.hpp"
 
 #include "coroutines_io/globals.hpp"
-#include "coroutines_io/service.hpp"
+#include "coroutines_io/io_scheduler.hpp"
 #include "coroutines_io/tcp_socket.hpp"
 #include "coroutines_io/tcp_acceptor.hpp"
 
@@ -30,9 +30,9 @@ void _TEST_EQUAL(const T1& a, const T2& b, long line, const char* msg)
 void test_connect()
 {
     scheduler sched(4);
-    service srv(sched);
+    io_scheduler srv(sched);
     set_scheduler(&sched);
-    set_service(&srv);
+    set_io_scheduler(&srv);
     srv.start();
 
     auto pair = make_channel<int>(1);
@@ -103,7 +103,7 @@ void test_connect()
     sched.wait();
     srv.stop();
     sched.wait();
-    set_service(nullptr);
+    set_io_scheduler(nullptr);
     set_scheduler(nullptr);
 }
 

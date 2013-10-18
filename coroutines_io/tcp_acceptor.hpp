@@ -10,15 +10,15 @@
 
 namespace coroutines {
 
-class service;
+class io_scheduler;
 
 class tcp_acceptor : public base_pollable
 {
 public:
     typedef boost::asio::ip::tcp::endpoint endpoint_type;
 
-    tcp_acceptor(coroutines::service& srv);
-    tcp_acceptor(); // uses get_service_check()
+    tcp_acceptor(coroutines::io_scheduler& srv);
+    tcp_acceptor(); // uses get_io_scheduler_check()
     tcp_acceptor(const tcp_acceptor&) = delete;
 
     ~tcp_acceptor() = default;

@@ -10,12 +10,12 @@
 
 namespace coroutines {
 
-class service
+class io_scheduler
 {
 public:
 
-    service(scheduler& sched);
-    ~service();
+    io_scheduler(scheduler& sched);
+    ~io_scheduler();
 
     scheduler& get_scheduler() { return _scheduler; }
 

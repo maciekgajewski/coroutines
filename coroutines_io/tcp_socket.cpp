@@ -1,8 +1,8 @@
 // Copyright (c) 2013 Maciej Gajewski
 
-#include "tcp_socket.hpp"
-#include "service.hpp"
-#include "globals.hpp"
+#include "coroutines_io/tcp_socket.hpp"
+#include "coroutines_io/io_scheduler.hpp"
+#include "coroutines_io/globals.hpp"
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -13,13 +13,13 @@
 
 namespace coroutines {
 
-tcp_socket::tcp_socket(coroutines::service& srv)
+tcp_socket::tcp_socket(coroutines::io_scheduler& srv)
     : base_pollable(srv)
 {
 }
 
 tcp_socket::tcp_socket()
-    : base_pollable(get_service_check())
+    : base_pollable(get_io_scheduler_check())
 {
 }
 
@@ -29,7 +29,7 @@ tcp_socket::tcp_socket(tcp_socket&& o)
 {
 }
 
-tcp_socket::tcp_socket(service& srv, int fd, const endpoint_type& remote_endpoint)
+tcp_socket::tcp_socket(io_scheduler& srv, int fd, const endpoint_type& remote_endpoint)
     : base_pollable(srv)
     , _remote_endpoint(remote_endpoint)
 {

@@ -1,6 +1,6 @@
 // Copyright (c) 2013 Maciej Gajewski
 
-#include "coroutines_io/service.hpp"
+#include "coroutines_io/io_scheduler.hpp"
 #include "coroutines_io/globals.hpp"
 #include "coroutines/globals.hpp"
 
@@ -16,28 +16,28 @@
 
 namespace coroutines {
 
-service::service(scheduler& sched)
+io_scheduler::io_scheduler(scheduler& sched)
     : _scheduler(sched)
 {
 }
 
-service::~service()
+io_scheduler::~io_scheduler()
 {
 }
 
-void service::wait_for_writable(int fd, const channel_writer<std::error_code>& writer)
+void io_scheduler::wait_for_writable(int fd, const channel_writer<std::error_code>& writer)
 {
     _command_writer.put(command{fd, FD_WRITABLE, writer});
     _poller.wake();
 }
 
-void service::wait_for_readable(int fd, const channel_writer<std::error_code>& writer)
+void io_scheduler::wait_for_readable(int fd, const channel_writer<std::error_code>& writer)
 {
     _command_writer.put(command{fd, FD_READABLE, writer});
     _poller.wake();
 }
 
-void service::start()
+void io_scheduler::start()
 {
     auto pair = _scheduler.make_channel<command>(10, "io service command channel");
     _command_writer = std::move(pair.writer);
@@ -46,12 +46,12 @@ void service::start()
     _scheduler.go("service loop", [this](){ loop(); });
 }
 
-void service::stop()
+void io_scheduler::stop()
 {
     _command_writer.close();
 }
 
-void service::loop()
+void io_scheduler::loop()
 {
     std::unordered_map<std::uint64_t, command> commands;
     std::uint64_t counter = 0;

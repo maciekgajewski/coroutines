@@ -6,22 +6,22 @@
 namespace coroutines
 {
 
-static service* __service = nullptr;
+static io_scheduler* __io_scheduler = nullptr;
 
-void set_service(service* s)
+void set_io_scheduler(io_scheduler* s)
 {
-    __service = s;
+    __io_scheduler = s;
 }
 
-service* get_service()
+io_scheduler* get_io_scheduler()
 {
-    return __service;
+    return __io_scheduler;
 }
 
-service& get_service_check()
+io_scheduler& get_io_scheduler_check()
 {
-    assert(__service);
-    return *__service;
+    assert(__io_scheduler);
+    return *__io_scheduler;
 }
 
 void throw_errno()

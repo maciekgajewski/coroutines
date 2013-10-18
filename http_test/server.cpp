@@ -3,17 +3,14 @@
 #include "coroutines/scheduler.hpp"
 
 #include "coroutines_io/globals.hpp"
-#include "coroutines_io/service.hpp"
+#include "coroutines_io/io_scheduler.hpp"
 #include "coroutines_io/tcp_acceptor.hpp"
-#include "coroutines_io/socket_streambuf.hpp"
 
 #include "client_connection.hpp"
 
 #include <iostream>
 #include <array>
 #include <ctime>
-
-#include <signal.h>
 
 using namespace coroutines;
 using namespace boost::asio::ip;
@@ -24,19 +21,13 @@ void handler(http_request const& req, http_response& res)
     res.add("Content-Length", "14");
     res.add("Content-Type", "text/plain");
 
-
-
     res.stream() << "hello, world!\n";
-
-//    std::cout << "request served" << std::endl;
 }
 
 void start_client_connection(tcp_socket& sock)
 {
-//    std::cout << "client conencted" << std::endl;
     client_connection c(std::move(sock), handler);
     c.start();
-
 }
 
 void server()
@@ -59,29 +50,16 @@ void server()
     }
 }
 
-void signal_handler(int)
-{
-    scheduler * sched = get_scheduler();
-    if (sched)
-    {
-        sched->debug_dump();
-    }
-}
-
 int main(int argc, char** argv)
 {
-    // install signal handler, for debugging
-    signal(SIGINT, signal_handler);
-
     scheduler sched(4);
-    service srv(sched);
+    io_scheduler srv(sched);
     set_scheduler(&sched);
-    set_service(&srv);
+    set_io_scheduler(&srv);
 
     srv.start();
 
     go("acceptor", server);
-
 
     sched.wait();
 }

@@ -10,7 +10,7 @@
 
 namespace coroutines {
 
-void tcp_resolve(const std::string& hostname, const std::string& service, std::vector<tcp_socket::endpoint_type>& out);
+void tcp_resolve(const std::string& hostname, const std::string& io_scheduler, std::vector<tcp_socket::endpoint_type>& out);
 
 }
 

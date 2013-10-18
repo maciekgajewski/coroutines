@@ -11,7 +11,7 @@
 
 namespace coroutines {
 
-class service;
+class io_scheduler;
 
 
 // implements boost:asio::SyncReadStream
@@ -22,13 +22,13 @@ public:
     typedef boost::asio::ip::tcp::endpoint endpoint_type;
 
     // then object uses service and must not outlive it
-    tcp_socket(service& srv);
-    tcp_socket(); // uses get_service_check()
+    tcp_socket(io_scheduler& srv);
+    tcp_socket(); // uses get_io_scheduler_check()
 
     tcp_socket(const tcp_socket&) = delete;
     tcp_socket(tcp_socket&&);
 
-    tcp_socket(service& srv, int get_fd, const endpoint_type& remote_endpoint);
+    tcp_socket(io_scheduler& srv, int get_fd, const endpoint_type& remote_endpoint);
 
     ~tcp_socket() = default;
 

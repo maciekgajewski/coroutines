@@ -8,12 +8,12 @@
 
 namespace coroutines {
 
-class service;
+class io_scheduler;
 
 class base_pollable
 {
 public:
-    base_pollable(service& srv);
+    base_pollable(io_scheduler& srv);
     base_pollable(const base_pollable&) = delete;
     base_pollable(base_pollable&& o);
 
@@ -44,13 +44,13 @@ protected:
     int get_fd() const { return _fd; }
     bool is_open() const { return _fd != -1; }
 
-    service& get_service() { return _service; }
+    io_scheduler& get_service() { return _service; }
 
 private:
 
     int _fd = -1;
 
-    service& _service;
+    io_scheduler& _service;
 
     channel_reader<std::error_code> _reader;
     channel_writer<std::error_code> _writer;

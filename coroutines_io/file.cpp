@@ -11,14 +11,14 @@
 
 namespace coroutines {
 
-file::file(service& srv)
+file::file(io_scheduler& srv)
     : base_pollable(srv)
 {
 
 }
 
 file::file()
-    : base_pollable(get_service_check())
+    : base_pollable(get_io_scheduler_check())
 {
 }
 

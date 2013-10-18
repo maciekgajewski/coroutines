@@ -4,7 +4,7 @@ include_directories(${Boost_INCLUDE_DIRS})
 add_library(coroutines_io STATIC
     buffer.hpp
     globals.cpp globals.hpp
-    service.cpp service.hpp
+    io_scheduler.cpp io_scheduler.hpp
     tcp_socket.cpp tcp_socket.hpp
     tcp_acceptor.cpp tcp_acceptor.hpp
     base_pollable.cpp base_pollable.hpp

@@ -11,7 +11,7 @@ class file : public base_pollable
 {
 public:
 
-    file(service& srv);
+    file(io_scheduler& srv);
     file(); // uses get_service_check()
 
     void open_for_reading(const std::string& path);

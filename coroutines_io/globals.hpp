@@ -7,11 +7,11 @@
 namespace coroutines
 {
 
-class service;
+class io_scheduler;
 
-void set_service(service* s);
-service* get_service();
-service& get_service_check(); // asserts service != null
+void set_io_scheduler(io_scheduler* s);
+io_scheduler* get_io_scheduler();
+io_scheduler& get_io_scheduler_check(); // asserts io_scheduler != null
 
 void throw_errno();
 void throw_errno(const std::string& what);

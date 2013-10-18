@@ -12,8 +12,6 @@
 namespace coroutines {
 
 static const unsigned DEFAULT_STACK_SIZE = 64*1024; // 64kb should be enough for anyone :)
-//static const unsigned DEFAULT_STACK_SIZE = 1024*1024;
-//static const unsigned DEFAULT_STACK_SIZE = 4*1024*1024;
 static thread_local coroutine* __current_coroutine = nullptr;
 
 coroutine::coroutine(scheduler& parent, std::string name, function_type&& fun)
@@ -31,7 +29,7 @@ coroutine::coroutine(scheduler& parent, std::string name, function_type&& fun)
 
 coroutine::~coroutine()
 {
-//    std::cout << "CORO=" << this << " destroyed" << std::endl;
+    CORO_LOG("CORO=", this, " destroyed");
     if (_new_context)
     {
         std::cerr<< "FATAL: coroutine '" << _name << "' destroyed before completed. Last checkpoint: " << _last_checkpoint << std::endl;

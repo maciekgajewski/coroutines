@@ -1,7 +1,7 @@
 // Copyright (c) 2013 Maciej Gajewski
 
 #include "coroutines_io/tcp_resolver.hpp"
-#include "coroutines_io/service.hpp"
+#include "coroutines_io/io_scheduler.hpp"
 
 #include "coroutines/globals.hpp"
 

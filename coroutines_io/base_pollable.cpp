@@ -2,13 +2,13 @@
 
 #include "coroutines_io/base_pollable.hpp"
 
-#include "coroutines_io/service.hpp"
+#include "coroutines_io/io_scheduler.hpp"
 
 #include <unistd.h>
 
 namespace coroutines {
 
-base_pollable::base_pollable(service& srv)
+base_pollable::base_pollable(io_scheduler& srv)
     : _service(srv)
 {
 }
