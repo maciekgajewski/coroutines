@@ -17,14 +17,12 @@ scheduler& get_scheduler_check(); // asserts scheduler not null
 template<typename Callable, typename... Args>
 void go(std::string name, Callable&& fn, Args&&... args)
 {
-    std::cout << "go1" << std::endl;
     get_scheduler_check().go(name, std::forward<Callable>(fn), std::forward<Args>(args)...);
 }
 
 template<typename Callable, typename... Args>
 void go(const char* name, Callable&& fn, Args&&... args)
 {
-    std::cout << "go2" << std::endl;
     assert(get_scheduler());
     get_scheduler_check().go(std::string(name), std::forward<Callable>(fn), std::forward<Args>(args)...);
 }
@@ -32,7 +30,6 @@ void go(const char* name, Callable&& fn, Args&&... args)
 template<typename Callable, typename... Args>
 void go(Callable&& fn, Args&&... args)
 {
-    std::cout << "go3" << std::endl;
     get_scheduler_check().go(std::forward<Callable>(fn), std::forward<Args>(args)...);
 }
 

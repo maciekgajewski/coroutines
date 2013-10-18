@@ -21,7 +21,7 @@ public:
     processor(const processor&) = delete;
     ~processor();
 
-    // adds work to the queue. Returns false if not successful, because the processor is shutting down
+    // adds work to the queue. Returns false if not successful, because the processor is shutting down or blocked
     bool enqueue(coroutine_weak_ptr coro);
     bool enqueue(std::vector<coroutine_weak_ptr>& coros);
 
@@ -51,6 +51,7 @@ private:
     mutex _queue_mutex;
 
     bool _stopped = false;
+    bool _blocked = false;
     std::condition_variable_any _cv;
     bool _executing = false;
 

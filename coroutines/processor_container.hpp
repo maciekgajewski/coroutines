@@ -15,7 +15,7 @@ namespace coroutines {
 class processor_container
 {
 public:
-    processor_container(unsigned max_active);
+    processor_container();
 
     unsigned size() const { return _container.size(); }
 
@@ -51,7 +51,6 @@ public:
 private:
 
     std::vector<processor_ptr> _container;
-    unsigned _max_active;
 };
 
 }

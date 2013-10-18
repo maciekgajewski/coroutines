@@ -2,7 +2,7 @@
 #include "coroutines/processor.hpp"
 #include "coroutines/scheduler.hpp"
 
-#define CORO_LOGGING
+//#define CORO_LOGGING
 #include "coroutines/logging.hpp"
 
 #include <mutex>
@@ -30,7 +30,7 @@ bool processor::enqueue(coroutine_weak_ptr coro)
     {
         std::lock_guard<mutex> lock(_queue_mutex);
 
-        if (_stopped)
+        if (_stopped || _blocked)
             return false;
 
         _queue.push_back(std::move(coro));
@@ -45,7 +45,7 @@ bool processor::enqueue(std::vector<coroutine_weak_ptr>& coros)
     {
         std::lock_guard<mutex> lock(_queue_mutex);
 
-        if (_stopped)
+        if (_stopped || _blocked)
             return false;
 
         for( coroutine_weak_ptr& coro : coros)
@@ -93,7 +93,7 @@ void processor::steal(std::vector<coroutine_weak_ptr>& out)
 unsigned processor::queue_size()
 {
     std::lock_guard<mutex> lock(_queue_mutex);
-    return _queue.size();
+    return _queue.size() + _executing;
 }
 
 void processor::block()
@@ -107,6 +107,7 @@ void processor::block()
         queue.reserve(_queue.size());
         std::copy(_queue.begin(), _queue.end(), std::back_inserter(queue));
         _queue.clear();
+        _blocked = true;
     }
 
     _scheduler.processor_blocked(this, queue);
@@ -116,6 +117,10 @@ void processor::unblock()
 {
     CORO_LOG("PROC=", this, " unblock");
 
+    {
+        std::lock_guard<mutex> lock(_queue_mutex);
+        _blocked = false;
+    }
     _scheduler.processor_unblocked(this);
 }
 

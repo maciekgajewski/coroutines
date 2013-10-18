@@ -5,8 +5,7 @@
 
 namespace coroutines {
 
-processor_container::processor_container(unsigned max_active)
-    : _max_active(max_active)
+processor_container::processor_container()
 {
 }
 
