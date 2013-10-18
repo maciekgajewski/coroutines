@@ -23,10 +23,17 @@ public:
 
     // adds work to the queue. Returns false if not successful, because the processor is shutting down or blocked
     bool enqueue(coroutine_weak_ptr coro);
-    bool enqueue(std::vector<coroutine_weak_ptr>& coros);
+
+    template<typename InputIterator>
+    bool enqueue(InputIterator first, InputIterator last);
 
     // shuts the processor down, returns true if no tasks in the queue and processor can be destroyed
+    // if false returned, the processor will stop after exhaustingf the queue
     bool stop();
+
+    // will stop the processor only if it has empty queue and is not doigng anything
+    // if false is returned, the processor will continue
+    bool stop_if_idle();
 
     // steals half of work
     void steal(std::vector<coroutine_weak_ptr>& out);
@@ -60,6 +67,7 @@ private:
 
 typedef std::unique_ptr<processor> processor_ptr;
 typedef processor* processor_weak_ptr;
+
 
 } // namespace coroutines
 

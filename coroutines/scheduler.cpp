@@ -2,7 +2,7 @@
 #include "coroutines/scheduler.hpp"
 #include "coroutines/algorithm.hpp"
 
-#define CORO_LOGGING
+//#define CORO_LOGGING
 #include "coroutines/logging.hpp"
 
 #include <cassert>
@@ -91,8 +91,15 @@ void scheduler::processor_idle(processor* pc)
         std::lock_guard<mutex> lock(_processors_mutex);
 
         unsigned index = _processors.index_of(pc);
-        if (index < _active_processors)
+        if (index < _active_processors+_blocked_processors)
         {
+            // give him the global queue
+            if (!_global_queue.empty())
+            {
+                pc->enqueue(_global_queue.begin(), _global_queue.end());
+                _global_queue.clear();
+            }
+
             // try to steal
             unsigned most_busy = _processors.most_busy_index(0, _active_processors);
             std::vector<coroutine_weak_ptr> stolen;
@@ -100,8 +107,8 @@ void scheduler::processor_idle(processor* pc)
             // if stealing successful - reactivate
             if (!stolen.empty())
             {
-                CORO_LOG("SCHED: stolend ", stolen.size(), " coros for processor ", pc);
-                pc->enqueue(stolen);
+                CORO_LOG("SCHED: stolen ", stolen.size(), " coros for proc=", pc, " from proc=", &_processors[most_busy]);
+                pc->enqueue(stolen.begin(), stolen.end());
             }
         }
         // else: I don't care, you are in exile
@@ -114,67 +121,29 @@ void scheduler::processor_blocked(processor_weak_ptr pc, std::vector<coroutine_w
     {
         std::lock_guard<mutex> lock(_processors_mutex);
 
-        unsigned index = _processors.index_of(pc);
-
-        CORO_LOG("SCHED: proc=", pc, ", index=", index, " blocked");
-
-        if(index < _active_processors)
-        {
-            // try to enqueue the on one of the idle threads
-            unsigned idle = 0;
-            for(unsigned i = _active_processors; i < _processors.size(); i++)
-            {
-                processor& pi = _processors[i];
-                if (pi.queue_size() == 0 && pi.enqueue(queue))
-                {
-                    idle = i;
-                    break;
-                }
-            }
-            // failed, create a new one
-            if (idle == 0)
-            {
-                idle = _processors.size();
-                _processors.insert(_active_processors, *this);
-                bool success = _processors[_active_processors].enqueue(queue);
-                assert(success);
-            }
-            // swap with the idle
-            CORO_LOG("SCHED: active processor (index  ", index, ") blocked. Swapping with inactive=", &_processors[idle], ", index=", idle);
-            _processors.swap(index, idle);
-            return;
-        } // else I don't casre, you are in exile
+        CORO_LOG("SCHED: proc=", pc, " blocked");
 
         _blocked_processors++;
+
+        if (_processors.size() < _active_processors + _blocked_processors)
+        {
+            _processors.emplace_back(*this);
+        }
     }
     // the procesor will now continue in blocked state
 
 
     // schedule coroutines
-    schedule(queue);
+    schedule(queue.begin(), queue.end());
 }
 
 void scheduler::processor_unblocked(processor_weak_ptr pc)
 {
     std::lock_guard<mutex> lock(_processors_mutex);
 
-    unsigned index = _processors.index_of(pc);
-    CORO_LOG("SCHED: proc=", pc, ", index=", index, " unblocked");
+    CORO_LOG("SCHED: proc=", pc, " unblocked");
 
-    if(index >= _active_processors)
-    {
-
-        // so you want tyo return to active duty?
-        unsigned least_busy = _processors.least_busy_index(0, _active_processors);
-
-        if (_processors[least_busy].queue_size() == 0)
-        {
-            CORO_LOG("SCHED: unblocked swapped back with least bus=", &_processors[least_busy], ", index=", least_busy);
-            // ok, I'll give you a chance
-            _processors.swap(least_busy, index);
-        }
-    }
-
+    assert(_blocked_processors > 0);
     _blocked_processors--;
 
     remove_inactive_processors();
@@ -186,7 +155,7 @@ void scheduler::remove_inactive_processors()
     while(_processors.size() > _active_processors*2 + _blocked_processors)
     {
         CORO_LOG("SCHED: processors: ", _processors.size(), ", blocked: ", _blocked_processors, ", cleaning up");
-        if (_processors.back().stop())
+        if (_processors.back().stop_if_idle())
         {
             _processors.pop_back();
         }
@@ -200,73 +169,42 @@ void scheduler::remove_inactive_processors()
 // returns uniform random number between 0 and _max_allowed_running_coros
 unsigned scheduler::random_index()
 {
-    std::uniform_int_distribution<unsigned> dist(0, _active_processors-1);
+    std::uniform_int_distribution<unsigned> dist(0, _active_processors+_blocked_processors-1);
     return dist(_random_generator);
 }
 
 
-void scheduler::schedule(std::vector<coroutine_weak_ptr>& coros)
-{
-    for(coroutine_weak_ptr coro : coros)
-    {
-        schedule(coro);
-    }
-}
-
 void scheduler::schedule(coroutine_weak_ptr coro)
 {
-    CORO_LOG("SCHED: scheduling corountine '", coro->name(), "'");
+    schedule(&coro, &coro + 1);
+}
+
+template<typename InputIterator>
+void scheduler::schedule(InputIterator first,  InputIterator last)
+{
+    if (first == last)
+        return; // that was easy :)
+
+    CORO_LOG("SCHED: scheduling ", std::distance(first, last), " corountines. First:  '", (*first)->name(), "'");
 
     std::lock_guard<mutex> lock(_processors_mutex);
 
-    processor* current = processor::current_processor();
-    unsigned least_busy = _processors.least_busy_index(0, _active_processors);
+    CORO_LOG("SCHED: scheduling corountine, will add to random processor");
+    unsigned index = random_index();
 
-    // if able to queue on current, do it
-    if (current)
+    for(unsigned i = 0; i < _active_processors + _blocked_processors; ++i)
     {
-        unsigned index_current = _processors.index_of(current);
-        unsigned least_busy_qs = _processors[least_busy].queue_size();
-        unsigned current_qs = current->queue_size();
-
-        if (index_current < _active_processors && least_busy_qs >= (current_qs/2))
+        if (_processors[index].enqueue(first, last))
         {
-            // schedule on current
-            CORO_LOG("SCHED: scheduling corountine, adding to current context");
-            bool s = current->enqueue(coro);
-            assert(s);
+            CORO_LOG("SCHED: scheduling corountines, added to proc=", &_processors[index], ", index=", index);
             return;
         }
-    }
-
-    CORO_LOG("SCHED: scheduling corountine, will add to least busy processor");
-    struct proc_info { processor* proc; unsigned qs; };
-    std::vector<proc_info> proc_infos(_active_processors);
-    for(unsigned i = 0; i < _active_processors; ++i)
-    {
-        processor* proc = &_processors[i];
-        proc_infos[i].proc = proc;
-        proc_infos[i].qs = proc->queue_size();
-    }
-    std::sort(
-        proc_infos.begin(), proc_infos.end(),
-        [](const proc_info& a, const proc_info& b)
-        {
-            return a.qs < b.qs;
-        });
-
-    for(unsigned i = 0; i < _active_processors; ++i)
-    {
-        if (proc_infos[i].proc->enqueue(coro))
-        {
-            CORO_LOG("SCHED: scheduling corountine, added to ", proc_infos[i].proc);
-            return;
-        }
+        index = (index + 1) % ( _active_processors + _blocked_processors);
     }
 
     // total failure, add to global queue?
-    assert(false);
-
+    CORO_LOG("SCHED: scheduling corountines, added to global queue");
+    _global_queue.insert(_global_queue.end(), first, last);
 }
 
 void scheduler::go(coroutine_ptr&& coro)

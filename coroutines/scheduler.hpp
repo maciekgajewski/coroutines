@@ -63,7 +63,9 @@ public:
     void processor_unblocked(processor_weak_ptr pr);
 
     void schedule(coroutine_weak_ptr coro);
-    void schedule(std::vector<coroutine_weak_ptr>& coros);
+
+    template<typename InputIterator>
+    void schedule(InputIterator first,  InputIterator last);
 
 
 private:
@@ -83,6 +85,8 @@ private:
     mutex _coroutines_mutex;
     std::condition_variable_any _coro_cv;
     std::size_t _max_active_coroutines = 0; // stat counter
+
+    std::vector<coroutine_weak_ptr> _global_queue;
 
     std::minstd_rand _random_generator;
 };

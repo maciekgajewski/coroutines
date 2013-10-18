@@ -25,7 +25,8 @@ processor::~processor()
     _thread.join();
 }
 
-bool processor::enqueue(coroutine_weak_ptr coro)
+template<typename InputIterator>
+bool processor::enqueue(InputIterator first, InputIterator last)
 {
     {
         std::lock_guard<mutex> lock(_queue_mutex);
@@ -33,30 +34,19 @@ bool processor::enqueue(coroutine_weak_ptr coro)
         if (_stopped || _blocked)
             return false;
 
-        _queue.push_back(std::move(coro));
+        _queue.insert(_queue.end(), first, last);
     }
 
     _cv.notify_one();
     return true;
 }
 
-bool processor::enqueue(std::vector<coroutine_weak_ptr>& coros)
+// force instantiation for std::vector
+template bool processor::enqueue<std::vector<coroutine_weak_ptr>::iterator>(std::vector<coroutine_weak_ptr>::iterator, std::vector<coroutine_weak_ptr>::iterator);
+
+bool processor::enqueue(coroutine_weak_ptr coro)
 {
-    {
-        std::lock_guard<mutex> lock(_queue_mutex);
-
-        if (_stopped || _blocked)
-            return false;
-
-        for( coroutine_weak_ptr& coro : coros)
-        {
-            _queue.push_back(std::move(coro));
-        }
-        coros.clear();
-    }
-
-    _cv.notify_one();
-    return true;
+    return enqueue(&coro, &coro + 1);
 }
 
 bool processor::stop()
@@ -67,6 +57,19 @@ bool processor::stop()
 
     return _queue.empty() || _executing;
 }
+
+bool processor::stop_if_idle()
+{
+    std::lock_guard<mutex> lock(_queue_mutex);
+    if (_queue.empty() && !_executing)
+    {
+        _stopped = true;
+        _cv.notify_one();
+        return true;
+    }
+    return false;
+}
+
 
 void processor::steal(std::vector<coroutine_weak_ptr>& out)
 {
@@ -163,7 +166,7 @@ void processor::routine()
             }
             else
             {
-                coro = std::move(_queue.front()); // but leave stub in the queue
+                coro = _queue.front();
                 _queue.pop_front();
             }
             _executing = true;

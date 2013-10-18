@@ -52,7 +52,7 @@ void monitor::wake_all()
 
     CORO_LOG("MONITOR: waking up ", waiting.size(), " coroutine(s)");
 
-    _scheduler.schedule(waiting);
+    _scheduler.schedule(waiting.begin(), waiting.end());
 }
 
 void monitor::wake_one()
