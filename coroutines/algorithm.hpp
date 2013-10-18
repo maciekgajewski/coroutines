@@ -10,7 +10,7 @@ namespace coroutines {
 
 // finds a pointer in smart-pointer container
 template<typename Container, typename T>
-typename Container::iterator find_ptr(Container& ctr, const T* ptr)
+auto find_ptr(Container& ctr, const T* ptr) -> decltype(ctr.begin())
 {
     auto it = std::find_if(
         ctr.begin(), ctr.end(),

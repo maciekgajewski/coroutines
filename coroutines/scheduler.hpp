@@ -8,7 +8,7 @@
 #include "coroutines/locking_channel.hpp"
 #include "coroutines/condition_variable.hpp"
 #include "coroutines/thread_safe_queue.hpp"
-#include "coroutines/categorized_container.hpp"
+#include "coroutines/processor_container.hpp"
 
 #include <thread>
 #include <mutex>
@@ -20,7 +20,7 @@ class scheduler
 {
 public:
     // creates and sets no of max coroutines runnig in parallel
-    scheduler(unsigned max_running_coroutines = std::thread::hardware_concurrency());
+    scheduler(unsigned active_processors = std::thread::hardware_concurrency());
 
     scheduler(const scheduler&) = delete;
 
@@ -73,16 +73,10 @@ private:
 
     unsigned random_index();
 
-    const unsigned _max_allowed_running_coros;
+    const unsigned _active_processors;
+    unsigned _blocked_processors = 0;
 
-    enum processor_state
-    {
-        PROCESSOR_STATE_RUNNING,
-        PROCESSOR_STATE_BLOCKED,
-        PROCESSOR_STATE_IDLE
-    };
-
-    categorized_container<processor, processor_state> _processors;
+    processor_container _processors;
     mutex _processors_mutex;
 
     std::vector<coroutine_ptr> _coroutines;

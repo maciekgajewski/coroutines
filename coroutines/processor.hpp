@@ -1,3 +1,4 @@
+// (c) 2013 Maciej Gajewski, <maciej.gajewski0@gmail.com>
 #ifndef COROUTINES_PROCESSOR_HPP
 #define COROUTINES_PROCESSOR_HPP
 
@@ -20,12 +21,18 @@ public:
     processor(const processor&) = delete;
     ~processor();
 
-    // adds work to the queue
-    void enqueue(coroutine_weak_ptr coro);
-    void enqueue(std::vector<coroutine_weak_ptr>& coros);
+    // adds work to the queue. Returns false if not successful, because the processor is shutting down
+    bool enqueue(coroutine_weak_ptr coro);
+    bool enqueue(std::vector<coroutine_weak_ptr>& coros);
+
+    // shuts the processor down, returns true if no tasks in the queue and processor can be destroyed
+    bool stop();
 
     // steals half of work
     void steal(std::vector<coroutine_weak_ptr>& out);
+
+    // number of tasks in the queue (including currently executed)
+    unsigned queue_size();
 
     // block/unblock
     void block();
@@ -44,10 +51,8 @@ private:
     std::deque<coroutine_weak_ptr> _queue;
     mutex _queue_mutex;
 
-    bool _running = false; // is currently running or waiting?
     bool _stopped = false;
-    mutex _runnng_mutex;
-    std::condition_variable_any _running_cv;
+    std::condition_variable_any _cv;
 
     std::thread _thread;
 };

@@ -586,51 +586,6 @@ private:
     int _v;
 };
 
-void test_catregorized_container()
-{
-    categorized_container<int_wrapper> ctnr;
-
-    TEST_EQUAL(ctnr.count_category(0), 0);
-    TEST_EQUAL(ctnr.count_category(1), 0);
-    TEST_EQUAL(ctnr.count_category(2), 0);
-
-    for(int i =0; i < 10; i++)
-    {
-        std::unique_ptr<int_wrapper> p(new int_wrapper(i));
-        ctnr.insert(std::move(p), 0);
-    }
-
-    TEST_EQUAL(ctnr.count_category(0), 10);
-    TEST_EQUAL(ctnr.count_category(1), 0);
-    TEST_EQUAL(ctnr.count_category(2), 0);
-
-
-    for(unsigned i = 0; i < 5; i++)
-    {
-        int_wrapper* p = ctnr.get_nth(0, 0);
-        ctnr.set_category(p, 1);
-    }
-
-    TEST_EQUAL(ctnr.count_category(0), 5);
-    TEST_EQUAL(ctnr.count_category(1), 5);
-    TEST_EQUAL(ctnr.count_category(2), 0);
-
-    for(unsigned i = 0; i < 3; i++)
-    {
-        int_wrapper* p = ctnr.get_nth(0, 0);
-        ctnr.remove(p);
-    }
-
-    TEST_EQUAL(ctnr.count_category(0), 2);
-    TEST_EQUAL(ctnr.count_category(1), 5);
-    TEST_EQUAL(ctnr.count_category(2), 0);
-
-    ctnr.get_nth(1, 0)->set(77);
-    ctnr.get_nth(1, 1)->set(88);
-
-    TEST_EQUAL(ctnr.get_nth(1, 0)->get(), 77);
-    TEST_EQUAL(ctnr.get_nth(1, 1)->get(), 88);
-}
 
 #define RUN_TEST(test_name) std::cout << ">>> Starting test: " << #test_name << std::endl; test_name();
 
@@ -648,18 +603,17 @@ int main(int , char** )
     // install signal handler, for debugging
     signal(SIGINT, signal_handler);
 
-//    RUN_TEST(test_catregorized_container);
-//    RUN_TEST(test_reading_after_close);
-//    RUN_TEST(test_reader_blocking);
-//    RUN_TEST(test_writer_exit_when_closed);
-//    RUN_TEST(test_large_transfer);
-//    RUN_TEST(test_nestet_coros);
-//    RUN_TEST(test_muchos_coros);
+    RUN_TEST(test_reading_after_close);
+    RUN_TEST(test_reader_blocking);
+    RUN_TEST(test_writer_exit_when_closed);
+    RUN_TEST(test_large_transfer);
+    RUN_TEST(test_nestet_coros);
+    RUN_TEST(test_muchos_coros);
     RUN_TEST(test_blocking_coros);
-//    RUN_TEST(test_multiple_readers);
-//    RUN_TEST(test_multiple_writers);
-//    RUN_TEST(tree_traverse_test);
-//    RUN_TEST(test_non_blocking_read);
+    RUN_TEST(test_multiple_readers);
+    RUN_TEST(test_multiple_writers);
+    RUN_TEST(tree_traverse_test);
+    RUN_TEST(test_non_blocking_read);
 
     std::cout << "test completed" << std::endl;
 }
