@@ -13,7 +13,7 @@ func HelloServer(w http.ResponseWriter, req *http.Request) {
     io.WriteString(w, "hello, world!\n")
 }
 func main() {
-    runtime.GOMAXPROCS(1)
+    runtime.GOMAXPROCS(4)
     http.HandleFunc("/", HelloServer)
     http.ListenAndServe(":8081", nil)
 }

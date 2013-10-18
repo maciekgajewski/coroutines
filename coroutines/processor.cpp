@@ -43,6 +43,8 @@ bool processor::enqueue(InputIterator first, InputIterator last)
 
 // force instantiation for std::vector
 template bool processor::enqueue<std::vector<coroutine_weak_ptr>::iterator>(std::vector<coroutine_weak_ptr>::iterator, std::vector<coroutine_weak_ptr>::iterator);
+// and for raw pointers
+template bool processor::enqueue<coroutine_weak_ptr*>(coroutine_weak_ptr*, coroutine_weak_ptr*);
 
 bool processor::enqueue(coroutine_weak_ptr coro)
 {

@@ -73,7 +73,7 @@ int main(int argc, char** argv)
     // install signal handler, for debugging
     signal(SIGINT, signal_handler);
 
-    scheduler sched(1);
+    scheduler sched(4);
     service srv(sched);
     set_scheduler(&sched);
     set_service(&srv);
