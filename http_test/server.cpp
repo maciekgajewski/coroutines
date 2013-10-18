@@ -53,11 +53,11 @@ void server()
 int main(int argc, char** argv)
 {
     scheduler sched(4);
-    io_scheduler srv(sched);
+    io_scheduler io_sched(sched);
     set_scheduler(&sched);
-    set_io_scheduler(&srv);
+    set_io_scheduler(&io_sched);
 
-    srv.start();
+    io_sched.start();
 
     go("acceptor", server);
 

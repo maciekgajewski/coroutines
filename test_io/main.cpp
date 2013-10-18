@@ -30,10 +30,10 @@ void _TEST_EQUAL(const T1& a, const T2& b, long line, const char* msg)
 void test_connect()
 {
     scheduler sched(4);
-    io_scheduler srv(sched);
+    io_scheduler io_sched(sched);
     set_scheduler(&sched);
-    set_io_scheduler(&srv);
-    srv.start();
+    set_io_scheduler(&io_sched);
+    io_sched.start();
 
     auto pair = make_channel<int>(1);
 
@@ -101,7 +101,7 @@ void test_connect()
     });
 
     sched.wait();
-    srv.stop();
+    io_sched.stop();
     sched.wait();
     set_io_scheduler(nullptr);
     set_scheduler(nullptr);
