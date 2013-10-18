@@ -46,6 +46,8 @@ public:
 
     void swap(unsigned a, unsigned b) { std::swap(_container[a], _container[b]); }
 
+    void stop_all();
+
 private:
 
     std::vector<processor_ptr> _container;

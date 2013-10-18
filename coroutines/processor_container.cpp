@@ -44,4 +44,12 @@ unsigned processor_container::most_busy_index(unsigned min, unsigned max) const
     return max_index;
 }
 
+void processor_container::stop_all()
+{
+    for(auto& p : _container)
+    {
+        p->stop();
+    }
+}
+
 }

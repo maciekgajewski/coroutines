@@ -91,20 +91,20 @@ private:
 template<typename Callable, typename... Args>
 void scheduler::go(Callable&& fn, Args&&... args)
 {
-    go(std::string(), std::forward<Callable>(fn), std::forward<Args>(args)...);
+    this->go(std::string(), std::forward<Callable>(fn), std::forward<Args>(args)...);
 }
 
 template<typename Callable, typename... Args>
 void scheduler::go(std::string name, Callable&& fn, Args&&... args)
 {
-    go(make_coroutine(*this, std::move(name), std::bind(std::forward<Callable>(fn), std::forward<Args>(args)...)));
+    this->go(make_coroutine(*this, std::move(name), std::bind(std::forward<Callable>(fn), std::forward<Args>(args)...)));
 }
 
 template<typename Callable, typename... Args>
 void scheduler::go(const char* name, Callable&& fn, Args&&... args)
 {
 
-    go(make_coroutine(*this, std::string(name), std::bind(std::forward<Callable>(fn), std::forward<Args>(args)...)));
+    this->go(make_coroutine(*this, std::string(name), std::bind(std::forward<Callable>(fn), std::forward<Args>(args)...)));
 }
 
 } // namespace coroutines

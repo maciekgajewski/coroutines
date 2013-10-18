@@ -31,6 +31,11 @@ scheduler::scheduler(unsigned active_processors)
 scheduler::~scheduler()
 {
     wait();
+    {
+        std::lock_guard<mutex> lock(_processors_mutex);
+        _processors.stop_all();
+    }
+    CORO_LOG("SCHED: destroyed");
 }
 
 void scheduler::debug_dump()
@@ -42,9 +47,6 @@ void scheduler::debug_dump()
     std::cerr << "     max active coroutines seen: " << _max_active_coroutines << std::endl;
     std::cerr << "               no of processors: " << _processors.size();
     std::cerr << "       no of blocked processors: " << _blocked_processors;
-//    std::cerr << "             running processors: " << _processors.count_category(PROCESSOR_STATE_RUNNING) << std::endl;
-//    std::cerr << "             blocked processors: " << _processors.count_category(PROCESSOR_STATE_BLOCKED) << std::endl;
-//    std::cerr << "                idle processors: " << _processors.count_category(PROCESSOR_STATE_IDLE) << std::endl;
 
     std::cerr << std::endl;
     std::cerr << " Active coroutines:" << std::endl;
@@ -58,8 +60,12 @@ void scheduler::debug_dump()
 
 void scheduler::wait()
 {
+    CORO_LOG("SCHED: waiting...");
+
     std::unique_lock<mutex> lock(_coroutines_mutex);
     _coro_cv.wait(lock, [this]() { return _coroutines.empty(); });
+
+    CORO_LOG("SCHED: wait over");
 }
 
 void scheduler::coroutine_finished(coroutine* coro)
@@ -173,6 +179,7 @@ void scheduler::remove_inactive_processors()
 {
     while(_processors.size() > _active_processors*2 + _blocked_processors)
     {
+        CORO_LOG("SCHED: processors: ", _processors.size(), ", blocked: ", _blocked_processors, ", cleaning up");
         if (_processors.back().stop())
         {
             _processors.pop_back();
@@ -226,13 +233,15 @@ void scheduler::schedule(coroutine_weak_ptr coro)
         }
     }
 
+    CORO_LOG("SCHED: scheduling corountine, adding to context #", least_busy);
     bool s = _processors[least_busy].enqueue(coro);
     assert(s);
 }
 
 void scheduler::go(coroutine_ptr&& coro)
 {
-     coroutine_weak_ptr coro_weak = coro.get();
+    CORO_LOG("SCHED: go '", coro->name(), "'");
+    coroutine_weak_ptr coro_weak = coro.get();
     {
         std::lock_guard<mutex> lock(_coroutines_mutex);
 

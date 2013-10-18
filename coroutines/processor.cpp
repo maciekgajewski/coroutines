@@ -65,7 +65,7 @@ bool processor::stop()
     _stopped = true;
     _cv.notify_one();
 
-    return _queue.empty();
+    return _queue.empty() || _executing;
 }
 
 void processor::steal(std::vector<coroutine_weak_ptr>& out)
@@ -131,14 +131,20 @@ void processor::routine()
 
     for(;;)
     {
+        // am I short on jobs?
+        bool no_jobs = false;
+        {
+            std::lock_guard<mutex> lock(_queue_mutex);
+            _executing = false;
+            no_jobs = _queue.empty();
+        }
+        if(no_jobs)
+            _scheduler.processor_idle(this); // ask for more
+
         // take coro from queue
         coroutine_weak_ptr coro = nullptr;
         {
             std::lock_guard<mutex> lock(_queue_mutex);
-
-            if (!_queue.empty()) _queue.pop_front(); // remove stub from the queue
-
-            if (_queue.empty()) _scheduler.processor_idle(this);
 
             _cv.wait(
                 _queue_mutex,
@@ -153,7 +159,9 @@ void processor::routine()
             else
             {
                 coro = std::move(_queue.front()); // but leave stub in the queue
+                _queue.pop_front();
             }
+            _executing = true;
         }
 
         // execute

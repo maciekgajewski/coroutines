@@ -26,6 +26,7 @@ void _coro_log(const Args&... args)
     _coro_log_impl(ss, args...);
     ss << std::endl;
     std::cout << ss.str();
+    std::cout.flush();
 }
 
 }

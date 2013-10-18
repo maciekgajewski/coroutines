@@ -117,6 +117,7 @@ void test_writer_exit_when_closed()
 
     go(std::string("test_writer_exit_when_closed reader"), [](channel_reader<int>& r)
     {
+        std::cout << ">> reader" << std::endl;
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
         // do nothing, close the chanel on exit
     }, std::move(pair.reader));
@@ -124,6 +125,7 @@ void test_writer_exit_when_closed()
     bool writer_threw = false;
     go(std::string("test_writer_exit_when_closed writer"), [&writer_threw](channel_writer<int>& w)
     {
+        std::cout << ">> writer" << std::endl;
         try
         {
             w.put(1);
@@ -603,17 +605,17 @@ int main(int , char** )
     // install signal handler, for debugging
     signal(SIGINT, signal_handler);
 
-    RUN_TEST(test_reading_after_close);
-    RUN_TEST(test_reader_blocking);
+//    RUN_TEST(test_reading_after_close);
+//    RUN_TEST(test_reader_blocking);
     RUN_TEST(test_writer_exit_when_closed);
-    RUN_TEST(test_large_transfer);
-    RUN_TEST(test_nestet_coros);
-    RUN_TEST(test_muchos_coros);
-    RUN_TEST(test_blocking_coros);
-    RUN_TEST(test_multiple_readers);
-    RUN_TEST(test_multiple_writers);
-    RUN_TEST(tree_traverse_test);
-    RUN_TEST(test_non_blocking_read);
+//    RUN_TEST(test_large_transfer);
+//    RUN_TEST(test_nestet_coros);
+//    RUN_TEST(test_muchos_coros);
+//    RUN_TEST(test_blocking_coros);
+//    RUN_TEST(test_multiple_readers);
+//    RUN_TEST(test_multiple_writers);
+//    RUN_TEST(tree_traverse_test);
+//    RUN_TEST(test_non_blocking_read);
 
     std::cout << "test completed" << std::endl;
 }

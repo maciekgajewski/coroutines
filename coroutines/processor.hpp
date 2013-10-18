@@ -44,7 +44,6 @@ private:
 
     void routine();
     void wakeup();
-    void stop_and_join();
 
     scheduler& _scheduler;
 
@@ -53,6 +52,7 @@ private:
 
     bool _stopped = false;
     std::condition_variable_any _cv;
+    bool _executing = false;
 
     std::thread _thread;
 };
