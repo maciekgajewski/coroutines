@@ -1,6 +1,7 @@
 // Copyright (c) 2013 Maciej Gajewski
 #include "coroutines/globals.hpp"
 #include "coroutines/scheduler.hpp"
+#include "coroutines/profiling.hpp"
 
 #include "coroutines_io/globals.hpp"
 #include "coroutines_io/io_scheduler.hpp"
@@ -9,8 +10,8 @@
 #include "client_connection.hpp"
 
 #include <iostream>
-#include <array>
-#include <ctime>
+
+#include <signal.h>
 
 using namespace coroutines;
 using namespace boost::asio::ip;
@@ -50,8 +51,16 @@ void server()
     }
 }
 
+void signal_handler(int)
+{
+    CORO_PROF_DUMP();
+    std::terminate();
+}
+
 int main(int argc, char** argv)
 {
+    signal(SIGINT, signal_handler);
+
     scheduler sched(4);
     io_scheduler io_sched(sched);
     set_scheduler(&sched);

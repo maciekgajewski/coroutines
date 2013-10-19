@@ -17,6 +17,7 @@ add_library(coroutines STATIC
     logging.hpp
     processor.cpp processor.hpp
     processor_container.cpp processor_container.hpp
+    profiling.cpp profiling.cpp
 )
 
 target_link_libraries(coroutines

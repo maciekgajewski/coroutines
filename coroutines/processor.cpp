@@ -1,6 +1,7 @@
 // (c) 2013 Maciej Gajewski, <maciej.gajewski0@gmail.com>
 #include "coroutines/processor.hpp"
 #include "coroutines/scheduler.hpp"
+#include "coroutines/profiling.hpp"
 
 //#define CORO_LOGGING
 #include "coroutines/logging.hpp"
@@ -136,6 +137,8 @@ processor* processor::current_processor()
 
 void processor::routine()
 {
+    CORO_PROF("processor", this, "routine started");
+
     __current_processor = this;
     struct scope_exit { ~scope_exit() { __current_processor = nullptr; } } exit;
 
@@ -178,6 +181,8 @@ void processor::routine()
         CORO_LOG("PROC=", this, " : will run coro '", coro->name(), "'");
         coro->run();
     }
+
+    CORO_PROF("processor", this, "routine finished");
 }
 
 } // namespace coroutines
