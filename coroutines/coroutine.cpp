@@ -5,6 +5,8 @@
 
 #include "coroutines/logging.hpp"
 
+#include "profiling/profiling.hpp"
+
 #include <utility>
 #include <cassert>
 #include <iostream>
@@ -20,6 +22,8 @@ coroutine::coroutine(scheduler& parent, std::string name, function_type&& fun)
     , _parent(parent)
     , _name(std::move(name))
 {
+    CORO_PROF("coroutine", this, "created", _name.c_str());
+
     _new_context = boost::context::make_fcontext(
                 _stack + DEFAULT_STACK_SIZE,
                 DEFAULT_STACK_SIZE,
@@ -29,6 +33,7 @@ coroutine::coroutine(scheduler& parent, std::string name, function_type&& fun)
 
 coroutine::~coroutine()
 {
+    CORO_PROF("coroutine", this, "destroyed");
     CORO_LOG("CORO=", this, " destroyed");
     if (_new_context)
     {
@@ -49,7 +54,9 @@ void coroutine::run()
         coroutine* previous = __current_coroutine;
         __current_coroutine = this;
 
+        CORO_PROF("coroutine", this, "enter");
         boost::context::jump_fcontext(&_caller_context, _new_context, reinterpret_cast<intptr_t>(this));
+        CORO_PROF("coroutine", this, "exit");
 
         __current_coroutine = previous;
 

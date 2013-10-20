@@ -1,7 +1,7 @@
 // (c) 2013 Maciej Gajewski, <maciej.gajewski0@gmail.com>
 #include "coroutines/processor.hpp"
 #include "coroutines/scheduler.hpp"
-#include "coroutines/profiling.hpp"
+#include "profiling/profiling.hpp"
 
 //#define CORO_LOGGING
 #include "coroutines/logging.hpp"
@@ -105,6 +105,7 @@ unsigned processor::queue_size()
 void processor::block()
 {
     CORO_LOG("PROC=", this, " block");
+    CORO_PROF("processor", this, "block");
 
     std::vector<coroutine_weak_ptr> queue;
     {
@@ -122,6 +123,7 @@ void processor::block()
 void processor::unblock()
 {
     CORO_LOG("PROC=", this, " unblock");
+    CORO_PROF("processor", this, "unblock");
 
     {
         std::lock_guard<mutex> lock(_queue_mutex);

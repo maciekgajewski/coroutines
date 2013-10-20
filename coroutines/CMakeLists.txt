@@ -1,7 +1,13 @@
 find_package( Boost 1.54.0 COMPONENTS context)
 include_directories(${Boost_INCLUDE_DIRS})
 
-add_library(coroutines STATIC	
+if(ENABLE_PROFILING)
+    message(STATUS "Profiling enabled")
+    add_definitions(-DCOROUTINES_PROFILING)
+    set(PROFILING_LIB profiling)
+endif()
+
+add_library(coroutines STATIC
     algorithm.hpp
     channel.hpp
     condition_variable.hpp
@@ -17,10 +23,12 @@ add_library(coroutines STATIC
     logging.hpp
     processor.cpp processor.hpp
     processor_container.cpp processor_container.hpp
-    profiling.cpp profiling.cpp
 )
 
 target_link_libraries(coroutines
+    ${PROFILING_LIB}
     ${Boost_LIBRARIES}
     pthread
 )
+
+

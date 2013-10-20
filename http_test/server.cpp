@@ -1,7 +1,8 @@
 // Copyright (c) 2013 Maciej Gajewski
 #include "coroutines/globals.hpp"
 #include "coroutines/scheduler.hpp"
-#include "coroutines/profiling.hpp"
+
+#include "profiling/profiling.hpp"
 
 #include "coroutines_io/globals.hpp"
 #include "coroutines_io/io_scheduler.hpp"
