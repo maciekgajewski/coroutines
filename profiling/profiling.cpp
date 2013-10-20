@@ -19,7 +19,7 @@ static const unsigned DATA_SIZE = 32;
 
 struct record
 {
-    std::uint64_t time;
+    std::int64_t time;
     std::thread::id thread_id;
     const char* object_type;
     void* object_id;
@@ -31,7 +31,7 @@ struct record
 
 void record::write(std::ostream& stream)
 {
-    stream << time << "," << thread_id << "," << object_type << "," << object_id << "," << event << "," << data << "\n";
+    stream << time << "," << std::hash<std::thread::id>()(thread_id) << "," << object_type << "," << (std::uintptr_t)object_id << "," << event << "," << data << "\n";
 }
 
 static unsigned BLOCK_SIZE = 1000;

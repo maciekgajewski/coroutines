@@ -13,6 +13,8 @@ add_subdirectory(coroutines)
 add_subdirectory(coroutines_io)
 
 add_subdirectory(profiling)
+add_subdirectory(profiling_reader)
+add_subdirectory(profiling_analyzer)
 
 add_subdirectory(test)
 add_subdirectory(test_io)
