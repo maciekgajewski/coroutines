@@ -4,6 +4,7 @@
 #define PROFILING_GUI_MAINWINDOW_HPP
 
 #include <QMainWindow>
+#include <QGraphicsScene>
 
 namespace profiling_gui {
 
@@ -22,7 +23,8 @@ public:
     void loadFile(const QString& path);
 
 private:
-    Ui::MainWindow *ui;
+    Ui::MainWindow *_ui;
+    QGraphicsScene _scene;
 };
 
 }
