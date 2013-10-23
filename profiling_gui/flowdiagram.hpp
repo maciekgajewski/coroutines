@@ -29,12 +29,21 @@ private:
         double maxTime;
     };
 
+    struct CoroutineData
+    {
+        QString name;
+        QColor color;
+
+        QMap<std::size_t, double> enters;
+    };
+
     void onRecord(const profiling_reader::record_type& record);
     double ticksToTime(qint64 ticks) const;
 
     QGraphicsScene* _scene;
     double _ticksPerNs;
     QMap<std::size_t, ThreadData> _threads;
+    QMap<std::uintptr_t, CoroutineData> _coroutines;
 };
 
 }

@@ -14,6 +14,7 @@ add_executable(profiling_gui
     main.cpp
     mainwindow.cpp mainwindow.hpp
     flowdiagram.cpp flowdiagram.hpp
+    horizontalview.cpp horizontalview.hpp
 )
 
 

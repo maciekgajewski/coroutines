@@ -11,12 +11,12 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>Profiling visualizer</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="QGraphicsView" name="mainView"/>
+     <widget class="profiling_gui::HorizontalView" name="mainView"/>
     </item>
    </layout>
   </widget>
@@ -71,6 +71,13 @@
    </property>
   </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>profiling_gui::HorizontalView</class>
+   <extends>QGraphicsView</extends>
+   <header>profiling_gui/horizontalview.hpp</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

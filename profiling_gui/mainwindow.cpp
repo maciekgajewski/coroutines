@@ -31,11 +31,13 @@ void MainWindow::loadFile(const QString& path)
     builder.loadFile(path, &_scene);
 
     // scale
-    QRectF boundingRect = _scene.sceneRect();
-    QTransform transformation;
-    transformation.scale(1.0 / (boundingRect.width() / 1E+6), 1.0);
+    //QRectF boundingRect = _scene.sceneRect();
+    //QTransform transformation;
+    //transformation.scale(1.0 / (boundingRect.width() / 100E+9), 1.0);
+    //transformation.scale(2000.0 / (boundingRect.width()), 1.0);
 
-    _ui->mainView->setTransform(transformation, false);
+    //_ui->mainView->setTransform(transformation, false);
+    _ui->mainView->showAll();
 }
 
 }
