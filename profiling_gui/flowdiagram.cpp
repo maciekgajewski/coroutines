@@ -7,6 +7,8 @@
 
 #include <QDebug>
 
+#include <random>
+
 namespace profiling_gui {
 
 FlowDiagram::FlowDiagram(QObject *parent) :
@@ -43,12 +45,15 @@ double FlowDiagram::ticksToTime(qint64 ticks) const
     return ticks / _ticksPerNs;
 }
 
-static QColor idToColor(std::uintptr_t id)
+static QColor randomColor()
 {
-    Qt::GlobalColor colors[] = { Qt::red, Qt::cyan, Qt::green, Qt::magenta, Qt::darkYellow, Qt::darkCyan, Qt::yellow, Qt::darkRed };
-    std::size_t hash = std::hash<std::uintptr_t>()(id);
+    static std::minstd_rand0 generator;
 
-    return colors[(hash>>4) % 8];
+    int h = std::uniform_int_distribution<int>(0, 255)(generator);
+    int s = 172;
+    int v = 172;
+
+    return QColor::fromHsv(h, s, v);
 }
 
 void FlowDiagram::onRecord(const profiling_reader::record_type& record)
@@ -74,7 +79,7 @@ void FlowDiagram::onRecord(const profiling_reader::record_type& record)
         CoroutineData& coroutine = _coroutines[record.object_id];
 
         if (!coroutine.color.isValid())
-            coroutine.color = idToColor(record.object_id);
+            coroutine.color = randomColor();
 
         if (record.event == "created")
             coroutine.name = QString::fromStdString(record.data);
