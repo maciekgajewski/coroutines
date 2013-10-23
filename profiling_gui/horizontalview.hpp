@@ -20,10 +20,6 @@ public slots:
 
 protected:
 
-    virtual void mousePressEvent(QMouseEvent* event) override;
-    virtual void mouseReleaseEvent(QMouseEvent* event) override;
-    virtual void mouseMoveEvent(QMouseEvent* event) override;
-    virtual void drawForeground(QPainter* painter, const QRectF& rect) override;
     virtual void resizeEvent(QResizeEvent* event) override;
     virtual void wheelEvent(QWheelEvent *event) override;
 
@@ -33,11 +29,6 @@ private:
 
     double _viewStart;
     double _viewEnd;
-
-    double _dragStart;
-    int _dragStartPx;
-    double _dragEnd;
-    bool _dragging = false;
 };
 
 } // namespace profiling_gui

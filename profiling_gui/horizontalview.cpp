@@ -12,6 +12,7 @@ static const int DRAG_THRESHOLD = 10; // in px
 HorizontalView::HorizontalView(QWidget *parent) :
     QGraphicsView(parent)
 {
+    setDragMode(ScrollHandDrag);
 }
 
 void HorizontalView::showAll()
@@ -29,58 +30,6 @@ void HorizontalView::showAll()
 void HorizontalView::zoomOut()
 {
     // TODO
-}
-
-void HorizontalView::mousePressEvent(QMouseEvent* event)
-{
-    if (event->button() == Qt::LeftButton)
-    {
-        _dragging = true;
-        _dragStartPx = event->pos().x();
-        _dragStart = mapToScene(event->pos()).x();
-    }
-}
-
-void HorizontalView::mouseReleaseEvent(QMouseEvent* event)
-{
-    if (event->button() == Qt::LeftButton && _dragging)
-    {
-        _dragging = false;
-        if (qAbs(event->pos().x() - _dragStartPx) > DRAG_THRESHOLD)
-        {
-            scene()->invalidate();
-
-            _viewStart = _dragStart;
-            _viewEnd = mapToScene(event->pos()).x();
-            updateTransformation();
-        }
-    }
-}
-
-void HorizontalView::mouseMoveEvent(QMouseEvent* event)
-{
-    if (_dragging)
-    {
-        _dragEnd = mapToScene(event->pos()).x();
-        if (qAbs(event->pos().x() - _dragStartPx) > DRAG_THRESHOLD)
-        {
-            scene()->invalidate();
-        }
-    }
-}
-
-void HorizontalView::drawForeground(QPainter* painter, const QRectF& rect)
-{
-    if (_dragging)
-    {
-        // selection frame
-        QGraphicsScene* s = scene();
-        QRectF sceneRect = s->sceneRect();
-        QRectF selectionRect(_dragStart,sceneRect.top(), _dragEnd - _dragStart, sceneRect.height());
-
-        painter->fillRect(selectionRect, QColor(0, 0, 128, 32));
-        qDebug() << "drawing selection: " << selectionRect;
-    }
 }
 
 void HorizontalView::resizeEvent(QResizeEvent* event)
