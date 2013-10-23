@@ -103,6 +103,7 @@ void FlowDiagram::onRecord(const profiling_reader::record_type& record)
                 double exitX = ticksToTime(record.time);
                 double y = thread.y;
 
+                // block
                 auto* item = new QGraphicsRectItem(enterX, y-CORO_H, exitX-enterX, CORO_H*2);
                 item->setToolTip(coroutine.name);
                 item->setBrush(coroutine.color);
@@ -111,6 +112,21 @@ void FlowDiagram::onRecord(const profiling_reader::record_type& record)
                 pen.setCosmetic(true);
                 item->setPen(pen);
                 _scene->addItem(item);
+
+                // connection with previous one
+                if (!coroutine.lastExit.isNull())
+                {
+                    auto* item = new QGraphicsLineItem(coroutine.lastExit.x(), coroutine.lastExit.y(), enterX, y);
+                    QColor c = coroutine.color;
+                    c.setAlpha(128);
+                    QPen pen(c);
+                    pen.setWidth(2);
+                    pen.setCosmetic(true);
+                    item->setPen(pen);
+                    _scene->addItem(item);
+                }
+
+                coroutine.lastExit = QPointF(exitX, y);
             }
         }
     }

@@ -35,6 +35,7 @@ private:
         QColor color;
 
         QMap<std::size_t, double> enters;
+        QPointF lastExit;
     };
 
     void onRecord(const profiling_reader::record_type& record);

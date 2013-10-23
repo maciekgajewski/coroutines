@@ -13,6 +13,7 @@ HorizontalView::HorizontalView(QWidget *parent) :
     QGraphicsView(parent)
 {
     setDragMode(ScrollHandDrag);
+    setRenderHint(QPainter::Antialiasing);
 }
 
 void HorizontalView::showAll()
