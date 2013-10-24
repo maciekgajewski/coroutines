@@ -111,6 +111,7 @@ void FlowDiagram::onRecord(const profiling_reader::record_type& record)
                 QPen pen(Qt::black);
                 pen.setCosmetic(true);
                 item->setPen(pen);
+                item->setFlag(QGraphicsItem::ItemIsSelectable);
                 _scene->addItem(item);
 
                 // connection with previous one

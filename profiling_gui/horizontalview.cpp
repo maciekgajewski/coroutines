@@ -43,19 +43,26 @@ void HorizontalView::wheelEvent(QWheelEvent* event)
 {
     int d = event->angleDelta().y();
     double mousePos = mapToScene(event->pos()).x();
+    double viewStart =  mapToScene(QPoint(0, 0)).x();
+    double viewEnd = mapToScene(QPoint(width(), 0)).x();
+
+    qDebug() << "mouse px=" << event->pos().x();
+    qDebug() << "mouse=" << mousePos << "start=" << viewStart << "end-" << viewEnd;
+    qDebug() << "scene rect=" << scene()->sceneRect() << ", scene rect2=" << sceneRect();
+
     if (d > 0)
     {
         // zoom in
-        _viewStart = _viewStart + (mousePos-_viewStart)/3.0;
-        _viewEnd = _viewEnd - (_viewEnd-mousePos)/3.0;
+        _viewStart = viewStart + (mousePos-viewStart)/3.0;
+        _viewEnd = viewEnd - (viewEnd-mousePos)/3.0;
         updateTransformation();
     }
     else if (d < 0)
     {
         // zoom out
         QRectF sceneRect = scene()->sceneRect();
-        _viewStart = qMax(_viewStart- (mousePos-_viewStart)/2.0, sceneRect.left());
-        _viewEnd = qMin(_viewEnd + (_viewEnd-mousePos)/3.0, sceneRect.right());
+        _viewStart = qMax(viewStart- (mousePos-viewStart)/2.0, sceneRect.left());
+        _viewEnd = qMin(viewEnd + (viewEnd-mousePos)/3.0, sceneRect.right());
         updateTransformation();
     }
 }
