@@ -12,8 +12,9 @@ static const int DRAG_THRESHOLD = 10; // in px
 HorizontalView::HorizontalView(QWidget *parent) :
     QGraphicsView(parent)
 {
-    setDragMode(ScrollHandDrag);
+    //setDragMode(ScrollHandDrag);
     setRenderHint(QPainter::Antialiasing);
+    setCursor(Qt::ArrowCursor);
 }
 
 void HorizontalView::showAll()
@@ -45,10 +46,6 @@ void HorizontalView::wheelEvent(QWheelEvent* event)
     double mousePos = mapToScene(event->pos()).x();
     double viewStart =  mapToScene(QPoint(0, 0)).x();
     double viewEnd = mapToScene(QPoint(width(), 0)).x();
-
-    qDebug() << "mouse px=" << event->pos().x();
-    qDebug() << "mouse=" << mousePos << "start=" << viewStart << "end-" << viewEnd;
-    qDebug() << "scene rect=" << scene()->sceneRect() << ", scene rect2=" << sceneRect();
 
     if (d > 0)
     {

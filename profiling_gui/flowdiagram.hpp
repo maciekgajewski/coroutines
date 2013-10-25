@@ -36,6 +36,7 @@ private:
 
         QMap<std::size_t, double> enters;
         QPointF lastExit;
+        QList<QGraphicsItem*> items;
     };
 
     void onRecord(const profiling_reader::record_type& record);
