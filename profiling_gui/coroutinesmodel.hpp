@@ -64,7 +64,7 @@ private:
     static QPixmap iconFromColor(QColor color);
     static QString nanosToString(double ns);
 
-    QList<Record> _records;
+    QVector<Record> _records;
 
     QItemSelectionModel _selectionModel;
 };
