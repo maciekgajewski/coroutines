@@ -4,6 +4,7 @@
 
 #include <QGraphicsLineItem>
 #include <QGraphicsRectItem>
+#include <QGraphicsObject>
 #include <QPainter>
 #include <QGraphicsSceneMouseEvent>
 
@@ -101,12 +102,14 @@ protected:
 
 };
 
-class CoroutineGroup : public QGraphicsItem
+class CoroutineGroup : public QGraphicsObject
 {
+    Q_OBJECT
 public:
 
-    CoroutineGroup(QGraphicsItem* parent = nullptr)
-    : QGraphicsItem(parent)
+    CoroutineGroup(quintptr id, QGraphicsItem* parent = nullptr)
+    : QGraphicsObject(parent)
+    , _id(id)
     {
         setFlag(ItemIsSelectable);
     }
@@ -120,6 +123,23 @@ public:
         return QRectF();
     }
 
+public slots:
+
+    void onCoroutineSelected(quintptr id)
+    {
+        if (id == _id)
+        {
+            scene()->clearSelection();
+            blockSignals(true);
+            setSelected(true);
+            blockSignals(false);
+        }
+    }
+
+signals:
+
+    void coroSelected(quintptr id);
+
 protected:
 
     virtual QVariant itemChange(GraphicsItemChange change, const QVariant& value) override
@@ -128,7 +148,7 @@ protected:
         {
             if (value.toBool())
             {
-                qDebug() << "parent: selecting al children";
+                emit coroSelected(_id);
                 for(QGraphicsItem* item : childItems())
                 {
                     item->setSelected(true);
@@ -142,8 +162,10 @@ protected:
 
 private:
 
+    quintptr _id;
 };
 
+#include "flowdiagram.moc"
 
 FlowDiagram::FlowDiagram(QObject *parent) :
     QObject(parent)
@@ -177,7 +199,10 @@ void FlowDiagram::loadFile(const QString& path, QGraphicsScene* scene, Coroutine
     for(auto it = _coroutines.begin(); it != _coroutines.end(); it++)
     {
         const CoroutineData& coro = *it;
-        auto* group = new CoroutineGroup();
+        auto* group = new CoroutineGroup(it.key());
+
+        connect(&coroutinesModel, SIGNAL(coroSelected(quintptr)), group, SLOT(onCoroutineSelected(quintptr)));
+        connect(group, SIGNAL(coroSelected(quintptr)), &coroutinesModel, SLOT(onCoroutineSelected(quintptr)));
 
         for(QGraphicsItem* item : coro.items)
         {

@@ -4,12 +4,16 @@
 
 #include <QPixmap>
 #include <QPainter>
+#include <QDebug>
 
 namespace profiling_gui {
 
 CoroutinesModel::CoroutinesModel(QObject *parent) :
-    QAbstractListModel(parent)
+    QAbstractListModel(parent),
+
+    _selectionModel(this)
 {
+    connect(&_selectionModel, SIGNAL(currentRowChanged(QModelIndex,QModelIndex)), SLOT(onSelectionChanged(QModelIndex)));
 }
 
 void CoroutinesModel::Append(const CoroutinesModel::Record& record)
@@ -62,6 +66,21 @@ QVariant CoroutinesModel::headerData(int section, Qt::Orientation orientation, i
     }
 
     return QVariant();
+}
+
+void CoroutinesModel::onCoroutineSelected(quintptr id)
+{
+    auto it = std::find_if(_records.begin(), _records.end(), [id](const Record& r) { return r.id == id; });
+    int row = std::distance(_records.begin(), it);
+
+    blockSignals(true);
+    _selectionModel.setCurrentIndex(index(row), QItemSelectionModel::SelectCurrent | QItemSelectionModel::Rows);
+    blockSignals(false);
+}
+
+void CoroutinesModel::onSelectionChanged(QModelIndex index)
+{
+    emit coroSelected(_records[index.row()].id);
 }
 
 QPixmap CoroutinesModel::iconFromColor(QColor color)
