@@ -3,6 +3,8 @@
 #ifndef PROFILING_GUI_FLOWDIAGRAM_HPP
 #define PROFILING_GUI_FLOWDIAGRAM_HPP
 
+#include "profiling_gui/coroutinesmodel.hpp"
+
 #include "profiling_reader/reader.hpp"
 
 #include <QGraphicsScene>
@@ -18,7 +20,7 @@ public:
 
     explicit FlowDiagram(QObject *parent = nullptr);
     
-    void loadFile(const QString& path, QGraphicsScene* scene);
+    void loadFile(const QString& path, QGraphicsScene* scene, CoroutinesModel& coroutinesModel);
 
 private:
 
@@ -34,9 +36,10 @@ private:
         QString name;
         QColor color;
 
-        QMap<std::size_t, double> enters;
+        QMap<std::size_t, qint64> enters;
         QPointF lastExit;
         QList<QGraphicsItem*> items;
+        std::size_t totalTime = 0;
     };
 
     void onRecord(const profiling_reader::record_type& record);

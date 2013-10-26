@@ -16,6 +16,8 @@ MainWindow::MainWindow(QWidget *parent)
 {
     _ui->setupUi(this);
     _ui->mainView->setScene(&_scene);
+    _ui->coroutineView->setModel(&_coroutinesModel);
+
     connect(_ui->actionExit, SIGNAL(triggered()), QApplication::instance(), SLOT(quit()));
 }
 
@@ -28,16 +30,10 @@ void MainWindow::loadFile(const QString& path)
 {
     FlowDiagram builder;
     _scene.clear();
-    builder.loadFile(path, &_scene);
+    builder.loadFile(path, &_scene, _coroutinesModel);
 
-    // scale
-    //QRectF boundingRect = _scene.sceneRect();
-    //QTransform transformation;
-    //transformation.scale(1.0 / (boundingRect.width() / 100E+9), 1.0);
-    //transformation.scale(2000.0 / (boundingRect.width()), 1.0);
-
-    //_ui->mainView->setTransform(transformation, false);
     _ui->mainView->showAll();
+    _ui->coroutineView->resizeColumnToContents(0);
 }
 
 }

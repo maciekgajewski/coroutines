@@ -3,6 +3,8 @@
 #ifndef PROFILING_GUI_MAINWINDOW_HPP
 #define PROFILING_GUI_MAINWINDOW_HPP
 
+#include "profiling_gui/coroutinesmodel.hpp"
+
 #include <QMainWindow>
 #include <QGraphicsScene>
 
@@ -25,6 +27,8 @@ public:
 private:
     Ui::MainWindow *_ui;
     QGraphicsScene _scene;
+
+    CoroutinesModel _coroutinesModel;
 };
 
 }

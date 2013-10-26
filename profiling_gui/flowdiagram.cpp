@@ -43,12 +43,10 @@ protected:
 
     virtual void mousePressEvent(QGraphicsSceneMouseEvent* event)
     {
-        qDebug() << "rectange mouse press";
         if (parentItem())
         {
             if (!isSelected())
             {
-                qDebug() << "selecting parent";
                 scene()->clearSelection();
                 parentItem()->setSelected(true);
             }
@@ -152,7 +150,7 @@ FlowDiagram::FlowDiagram(QObject *parent) :
 {
 }
 
-void FlowDiagram::loadFile(const QString& path, QGraphicsScene* scene)
+void FlowDiagram::loadFile(const QString& path, QGraphicsScene* scene, CoroutinesModel& coroutinesModel)
 {
     _scene = scene;
     profiling_reader::reader reader(path.toStdString());
@@ -176,8 +174,9 @@ void FlowDiagram::loadFile(const QString& path, QGraphicsScene* scene)
     }
 
     // build coros
-    for(const CoroutineData& coro : _coroutines)
+    for(auto it = _coroutines.begin(); it != _coroutines.end(); it++)
     {
+        const CoroutineData& coro = *it;
         auto* group = new CoroutineGroup();
 
         for(QGraphicsItem* item : coro.items)
@@ -187,6 +186,14 @@ void FlowDiagram::loadFile(const QString& path, QGraphicsScene* scene)
         }
         scene->addItem(group);
 
+        // add to model
+        CoroutinesModel::Record r {
+            it.key(),
+            coro.name,
+            coro.color,
+            ticksToTime(coro.totalTime) // time executed, ns
+        };
+        coroutinesModel.Append(r);
     }
 }
 
@@ -236,8 +243,7 @@ void FlowDiagram::onRecord(const profiling_reader::record_type& record)
 
         if (record.event == "enter")
         {
-            //qWarning() << "Corotuine: enter. id=" << record.object_id << ", time= " << record.time << ",thread=" << record.thread_id;
-            coroutine.enters[record.thread_id] = ticksToTime(record.time);
+            coroutine.enters[record.thread_id] = record.time;
         }
 
         if (record.event == "exit")
@@ -248,8 +254,10 @@ void FlowDiagram::onRecord(const profiling_reader::record_type& record)
             }
             else
             {
-                double enterX =  coroutine.enters[record.thread_id];
+                quint64 enterTicks = coroutine.enters[record.thread_id];
                 coroutine.enters.remove(record.thread_id);
+
+                double enterX =  ticksToTime(enterTicks);
                 double exitX = ticksToTime(record.time);
                 double y = thread.y;
 
@@ -271,6 +279,7 @@ void FlowDiagram::onRecord(const profiling_reader::record_type& record)
                 }
 
                 coroutine.lastExit = QPointF(exitX, y);
+                coroutine.totalTime += record.time - enterTicks;
             }
         }
     }
