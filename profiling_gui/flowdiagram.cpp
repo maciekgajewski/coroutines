@@ -232,8 +232,8 @@ static QColor randomColor()
     static std::minstd_rand0 generator;
 
     int h = std::uniform_int_distribution<int>(0, 255)(generator);
-    int s = 172;
-    int v = 172;
+    int s = 172 + std::uniform_int_distribution<int>(0, 63)(generator);
+    int v = 172 + std::uniform_int_distribution<int>(-32, +32)(generator);
 
     return QColor::fromHsv(h, s, v);
 }
@@ -241,7 +241,8 @@ static QColor randomColor()
 void FlowDiagram::onRecord(const profiling_reader::record_type& record)
 {
     static const double THREAD_Y_SPACING = 100.0;
-    static const double CORO_H = 5;
+    static const double CORO_H = 5; // half-heights
+    static const double BLOCK_H = 2;
 
     if (!_threads.contains(record.thread_id))
     {
@@ -254,6 +255,36 @@ void FlowDiagram::onRecord(const profiling_reader::record_type& record)
 
     ThreadData& thread = _threads[record.thread_id];
     thread.maxTime = ticksToTime(record.time);
+
+    // processes
+    if (record.object_type == "processor")
+    {
+        if (record.event == "block")
+        {
+            thread.lastBlock = record.time;
+        }
+        else if (record.event == "unblock")
+        {
+            if (thread.lastBlock == std::numeric_limits<quint64>::min())
+            {
+                qWarning() << "Process: unblock withoiut block! id=" << record.object_id << "time=" << record.time;
+            }
+            else
+            {
+                double blockX = ticksToTime(thread.lastBlock);
+                double unblockX = ticksToTime(record.time);
+                double y = thread.y;
+
+                thread.lastBlock = std::numeric_limits<quint64>::min();
+
+                auto* item = new QGraphicsRectItem(blockX, y-BLOCK_H, unblockX-blockX, 2*BLOCK_H);
+                item->setBrush(Qt::black);
+                item->setToolTip("blocked");
+                item->setZValue(2.0);
+                _scene->addItem(item);
+            }
+        }
+    }
 
     // coroutines
     if (record.object_type == "coroutine")

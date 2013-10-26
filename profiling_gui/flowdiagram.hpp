@@ -10,6 +10,8 @@
 #include <QGraphicsScene>
 #include <QMap>
 
+#include <limits>
+
 namespace profiling_gui {
 
 // Flow diagram builder
@@ -29,6 +31,7 @@ private:
         double y;
         double minTime;
         double maxTime;
+        qint64 lastBlock = std::numeric_limits<quint64>::min();
     };
 
     struct CoroutineData
@@ -39,7 +42,7 @@ private:
         QMap<std::size_t, qint64> enters;
         QPointF lastExit;
         QList<QGraphicsItem*> items;
-        std::size_t totalTime = 0;
+        quint64 totalTime = 0;
     };
 
     void onRecord(const profiling_reader::record_type& record);
