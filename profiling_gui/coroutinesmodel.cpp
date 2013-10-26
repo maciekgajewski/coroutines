@@ -50,6 +50,36 @@ QVariant CoroutinesModel::data(const QModelIndex& index, int role) const
     return QVariant();
 }
 
+void CoroutinesModel::sort(int column, Qt::SortOrder order)
+{
+    //emit layoutAboutToBeChanged(QList<QPersistentModelIndex>(), VerticalSortHint);
+    beginResetModel();
+
+    if (column == 0)
+    {
+        qSort(_records.begin(), _records.end(), [order](const Record& a, const Record& b)
+        {
+            if (order == Qt::AscendingOrder)
+                return a.name > b.name;
+            else
+                return b.name < a.name;
+        });
+    }
+    else if (column == 1)
+    {
+        qSort(_records.begin(), _records.end(), [order](const Record& a, const Record& b)
+        {
+            if (order == Qt::AscendingOrder)
+                return a.timeExecuted > b.timeExecuted;
+            else
+                return b.timeExecuted < a.timeExecuted;
+        });
+    }
+
+    //emit layoutChanged(QList<QPersistentModelIndex>(), VerticalSortHint);
+    endResetModel();
+}
+
 QVariant CoroutinesModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
     if (orientation == Qt::Horizontal && role == Qt::DisplayRole)

@@ -16,6 +16,7 @@ MainWindow::MainWindow(QWidget *parent)
 {
     _ui->setupUi(this);
     _ui->mainView->setScene(&_scene);
+
     _ui->coroutineView->setModel(&_coroutinesModel);
     _ui->coroutineView->setSelectionModel(_coroutinesModel.selectionModel());
 

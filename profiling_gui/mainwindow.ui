@@ -58,7 +58,11 @@
    <widget class="QWidget" name="dockWidgetContents">
     <layout class="QVBoxLayout" name="verticalLayout_2">
      <item>
-      <widget class="QTreeView" name="coroutineView"/>
+      <widget class="QTreeView" name="coroutineView">
+       <property name="sortingEnabled">
+        <bool>true</bool>
+       </property>
+      </widget>
      </item>
     </layout>
    </widget>
