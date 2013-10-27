@@ -26,12 +26,14 @@ public:
 
 private:
 
+    static const qint64 INVALID_TICK_VALUE =  std::numeric_limits<quint64>::min();
+
     struct ThreadData
     {
         double y;
-        double minTime;
-        double maxTime;
-        qint64 lastBlock = std::numeric_limits<quint64>::min();
+        qint64 minTicks;
+        qint64 maxTicks;
+        qint64 lastBlock = INVALID_TICK_VALUE;
     };
 
     struct CoroutineData
@@ -45,7 +47,10 @@ private:
         quint64 totalTime = 0;
     };
 
-    void onRecord(const profiling_reader::record_type& record);
+    void onRecord(const profiling_reader::record_type& record); // master recvord dipatcher
+    void onCoroutineRecord(const profiling_reader::record_type& record, const ThreadData& thread);
+    void onProcessorRecord(const profiling_reader::record_type& record, ThreadData& thread);
+
     double ticksToTime(qint64 ticks) const;
 
     QGraphicsScene* _scene;

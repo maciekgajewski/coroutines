@@ -1,12 +1,7 @@
 // Copyright (c) 2013 Maciej Gajewski
 
 #include "profiling_gui/flowdiagram.hpp"
-
-#include <QGraphicsLineItem>
-#include <QGraphicsRectItem>
-#include <QGraphicsObject>
-#include <QPainter>
-#include <QGraphicsSceneMouseEvent>
+#include "profiling_gui/flowdiagram_items.hpp"
 
 #include <QDebug>
 
@@ -14,158 +9,12 @@
 
 namespace profiling_gui {
 
-// experimetnal - selectable rectagular element
-class SelectableRectangle : public QGraphicsRectItem
-{
-public:
-
-    SelectableRectangle(double l, double t, double w, double h) : QGraphicsRectItem(l, t, w, h)
-    {
-        setZValue(1.0);
-        setFlag(ItemIsSelectable);
-    }
-
-    virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem * option, QWidget * widget = 0)
-    {
-        QPen p(Qt::black);
-        p.setCosmetic(true);
-        if (isSelected())
-        {
-            p.setWidth(3);
-        }
-
-        painter->setPen(p);
-        painter->setBrush(brush());
-
-        painter->drawRect(rect());
-    }
-
-protected:
-
-    virtual void mousePressEvent(QGraphicsSceneMouseEvent* event)
-    {
-        if (parentItem())
-        {
-            if (!isSelected())
-            {
-                scene()->clearSelection();
-                parentItem()->setSelected(true);
-            }
-        }
-        else
-        {
-            event->ignore();
-        }
-    }
-
-    virtual void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override
-    {
-        event->ignore();
-    }
+static const double THREAD_Y_SPACING = 100.0;
+static const double CORO_H = 5; // half-heights
+static const double BLOCK_H = 2;
 
 
-};
 
-class SelectableLine : public QGraphicsLineItem
-{
-public:
-    SelectableLine(double x1, double y1, double x2, double y2) : QGraphicsLineItem(x1, y1, x2, y2)
-    {
-        setZValue(0.0);
-        setAcceptedMouseButtons(0);
-        setFlag(ItemIsSelectable);
-    }
-
-    virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem * option, QWidget * widget = 0)
-    {
-        QPen p;
-        QColor c = pen().color();
-        p.setCosmetic(true);
-        if (isSelected())
-        {
-            c.setAlpha(176);
-            p.setWidth(2);
-        }
-        else
-        {
-            p.setWidth(1);
-            c.setAlpha(128);
-        }
-        p.setColor(c);
-
-        painter->setPen(p);
-
-        painter->drawLine(line());
-    }
-
-protected:
-
-};
-
-class CoroutineGroup : public QGraphicsObject
-{
-    Q_OBJECT
-public:
-
-    CoroutineGroup(quintptr id, QGraphicsItem* parent = nullptr)
-    : QGraphicsObject(parent)
-    , _id(id)
-    {
-        setFlag(ItemIsSelectable);
-    }
-
-    virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem * option, QWidget * widget) override
-    {
-    }
-
-    virtual QRectF boundingRect() const override
-    {
-        return QRectF();
-    }
-
-public slots:
-
-    void onCoroutineSelected(quintptr id)
-    {
-        if (id == _id)
-        {
-            scene()->clearSelection();
-            blockSignals(true);
-            setSelected(true);
-            blockSignals(false);
-        }
-    }
-
-signals:
-
-    void coroSelected(quintptr id);
-
-protected:
-
-    virtual QVariant itemChange(GraphicsItemChange change, const QVariant& value) override
-    {
-        if (change == ItemSelectedChange)
-        {
-            if (value.toBool())
-            {
-                emit coroSelected(_id);
-                for(QGraphicsItem* item : childItems())
-                {
-                    item->setSelected(true);
-                }
-            }
-            return value;
-        }
-
-        return QGraphicsItem::itemChange(change, value);
-    }
-
-private:
-
-    quintptr _id;
-};
-
-#include "flowdiagram.moc"
 
 FlowDiagram::FlowDiagram(QObject *parent) :
     QObject(parent)
@@ -186,13 +35,25 @@ void FlowDiagram::loadFile(const QString& path, QGraphicsScene* scene, Coroutine
     });
 
     // build threads
-    for(const ThreadData& thread : _threads)
+    for(auto it = _threads.begin(); it != _threads.end(); it++)
     {
-        auto* item = new QGraphicsLineItem(thread.minTime, thread.y, thread.maxTime, thread.y);
+        ThreadData& thread = it.value();
+        auto* item = new QGraphicsLineItem(ticksToTime(thread.minTicks), thread.y, ticksToTime(thread.maxTicks), thread.y);
         QPen p(Qt::black);
         p.setCosmetic(true);
         item->setPen(p);
         scene->addItem(item);
+
+        // if there is unfinished block - finish it artificially at the end of thread
+        if (thread.lastBlock != INVALID_TICK_VALUE)
+        {
+            profiling_reader::record_type fakeRecord;
+            fakeRecord.object_id = it.key();
+            fakeRecord.thread_id = it.key();
+            fakeRecord.time = thread.maxTicks;
+            fakeRecord.event = "unblock";
+            onProcessorRecord(fakeRecord, thread);
+        }
     }
 
     // build coros
@@ -204,10 +65,28 @@ void FlowDiagram::loadFile(const QString& path, QGraphicsScene* scene, Coroutine
         connect(&coroutinesModel, SIGNAL(coroSelected(quintptr)), group, SLOT(onCoroutineSelected(quintptr)));
         connect(group, SIGNAL(coroSelected(quintptr)), &coroutinesModel, SLOT(onCoroutineSelected(quintptr)));
 
+        // if there is open coroutine, finish it at the thread's end
+        if (coro.enters.size() == 1)
+        {
+            auto enterIt = coro.enters.begin();
+            const ThreadData& thread = _threads[enterIt.key()];
+            // create a fake event
+            profiling_reader::record_type fakeRecord;
+            fakeRecord.object_id = it.key();
+            fakeRecord.thread_id = enterIt.key();
+            fakeRecord.time = thread.maxTicks;
+            fakeRecord.event = "exit";
+            onCoroutineRecord(fakeRecord, thread);
+        }
+        else if (coro.enters.size() > 1)
+        {
+            qWarning() << "Coroutine withj more than one unfinished enter. id=" << it.key();
+        }
+
+        // group all items and add to scene
         for(QGraphicsItem* item : coro.items)
         {
             item->setParentItem(group);
-            //group->addToGroup(item);
         }
         scene->addItem(group);
 
@@ -219,6 +98,21 @@ void FlowDiagram::loadFile(const QString& path, QGraphicsScene* scene, Coroutine
             ticksToTime(coro.totalTime) // time executed, ns
         };
         coroutinesModel.Append(r);
+    }
+
+    // fix scene rectangle height, s there is half-spacing margin above and below the firsrt and the last thread
+    QRectF sceneRect = _scene->sceneRect();
+    sceneRect.setTop(-THREAD_Y_SPACING/2);
+    sceneRect.setHeight( THREAD_Y_SPACING * _threads.size());
+    _scene->setSceneRect(sceneRect);
+
+    // now that we know the scene size, add line for each thread
+    for(const ThreadData& thread : _threads)
+    {
+        auto* item = new QGraphicsLineItem(sceneRect.left(), thread.y, sceneRect.right(), thread.y);
+        item->setPen(QPen(Qt::lightGray));
+        item->setZValue(-10);
+        _scene->addItem(item);
     }
 }
 
@@ -240,105 +134,110 @@ static QColor randomColor()
 
 void FlowDiagram::onRecord(const profiling_reader::record_type& record)
 {
-    static const double THREAD_Y_SPACING = 100.0;
-    static const double CORO_H = 5; // half-heights
-    static const double BLOCK_H = 2;
-
     if (!_threads.contains(record.thread_id))
     {
         ThreadData newThread;
-        newThread.minTime = ticksToTime(record.time);
+        newThread.minTicks = record.time;
         newThread.y = _threads.size() * THREAD_Y_SPACING;
 
         _threads.insert(record.thread_id, newThread);
     }
 
     ThreadData& thread = _threads[record.thread_id];
-    thread.maxTime = ticksToTime(record.time);
+    thread.maxTicks = record.time;
 
-    // processes
     if (record.object_type == "processor")
     {
-        if (record.event == "block")
-        {
-            thread.lastBlock = record.time;
-        }
-        else if (record.event == "unblock")
-        {
-            if (thread.lastBlock == std::numeric_limits<quint64>::min())
-            {
-                qWarning() << "Process: unblock withoiut block! id=" << record.object_id << "time=" << record.time;
-            }
-            else
-            {
-                double blockX = ticksToTime(thread.lastBlock);
-                double unblockX = ticksToTime(record.time);
-                double y = thread.y;
-
-                thread.lastBlock = std::numeric_limits<quint64>::min();
-
-                auto* item = new QGraphicsRectItem(blockX, y-BLOCK_H, unblockX-blockX, 2*BLOCK_H);
-                item->setBrush(Qt::black);
-                item->setToolTip("blocked");
-                item->setZValue(2.0);
-                _scene->addItem(item);
-            }
-        }
+        onProcessorRecord(record, thread);
     }
-
-    // coroutines
-    if (record.object_type == "coroutine")
+    else if (record.object_type == "coroutine")
     {
-        CoroutineData& coroutine = _coroutines[record.object_id];
+        onCoroutineRecord(record, thread);
+    }
+}
 
-        if (!coroutine.color.isValid())
-            coroutine.color = randomColor();
-
-        if (record.event == "created")
-            coroutine.name = QString::fromStdString(record.data);
-
-        if (record.event == "enter")
+void FlowDiagram::onProcessorRecord(const profiling_reader::record_type& record, ThreadData& thread)
+{
+    if (record.event == "block")
+    {
+        thread.lastBlock = record.time;
+    }
+    else if (record.event == "unblock")
+    {
+        if (thread.lastBlock == INVALID_TICK_VALUE)
         {
-            coroutine.enters[record.thread_id] = record.time;
+            qWarning() << "Process: unblock withoiut block! id=" << record.object_id << "time=" << record.time;
         }
-
-        if (record.event == "exit")
+        else
         {
-            if(!coroutine.enters.contains(record.thread_id))
-            {
-                qWarning() << "Corotuine: exit without enter! id=" << record.object_id << ", time= " << record.time << ",thread=" << record.thread_id;
-            }
-            else
-            {
-                quint64 enterTicks = coroutine.enters[record.thread_id];
-                coroutine.enters.remove(record.thread_id);
+            double blockX = ticksToTime(thread.lastBlock);
+            double unblockX = ticksToTime(record.time);
+            double y = thread.y;
 
-                double enterX =  ticksToTime(enterTicks);
-                double exitX = ticksToTime(record.time);
-                double y = thread.y;
+            thread.lastBlock = INVALID_TICK_VALUE;
 
-                // block
-                auto* item = new SelectableRectangle(enterX, y-CORO_H, exitX-enterX, CORO_H*2);
-                item->setToolTip(coroutine.name);
-                item->setBrush(coroutine.color);
-
-                coroutine.items.append(item);
-
-                // connection with previous one
-                if (!coroutine.lastExit.isNull())
-                {
-                    auto* item = new SelectableLine(coroutine.lastExit.x(), coroutine.lastExit.y(), enterX, y);
-                    QColor c = coroutine.color;
-                    QPen pen(c);
-                    item->setPen(pen);
-                    coroutine.items.append(item);
-                }
-
-                coroutine.lastExit = QPointF(exitX, y);
-                coroutine.totalTime += record.time - enterTicks;
-            }
+            auto* item = new QGraphicsRectItem(blockX, y-BLOCK_H, unblockX-blockX, 2*BLOCK_H);
+            item->setBrush(Qt::black);
+            item->setToolTip("blocked");
+            item->setZValue(2.0);
+            _scene->addItem(item);
         }
     }
 }
+
+void FlowDiagram::onCoroutineRecord(const profiling_reader::record_type& record, const ThreadData& thread)
+{
+    CoroutineData& coroutine = _coroutines[record.object_id];
+
+    if (!coroutine.color.isValid())
+        coroutine.color = randomColor();
+
+    if (record.event == "created")
+        coroutine.name = QString::fromStdString(record.data);
+
+    if (record.event == "enter")
+    {
+        coroutine.enters[record.thread_id] = record.time;
+    }
+
+    if (record.event == "exit")
+    {
+        if(!coroutine.enters.contains(record.thread_id))
+        {
+            qWarning() << "Corotuine: exit without enter! id=" << record.object_id << ", time= " << record.time << ",thread=" << record.thread_id;
+        }
+        else
+        {
+            quint64 enterTicks = coroutine.enters[record.thread_id];
+            coroutine.enters.remove(record.thread_id);
+
+            double enterX =  ticksToTime(enterTicks);
+            double exitX = ticksToTime(record.time);
+            double y = thread.y;
+
+            // block
+            auto* item = new SelectableRectangle(enterX, y-CORO_H, exitX-enterX, CORO_H*2);
+            item->setToolTip(coroutine.name);
+            item->setBrush(coroutine.color);
+
+            coroutine.items.append(item);
+
+            // connection with previous one
+            if (!coroutine.lastExit.isNull())
+            {
+                auto* item = new SelectableLine(coroutine.lastExit.x(), coroutine.lastExit.y(), enterX, y);
+                QColor c = coroutine.color;
+                QPen pen(c);
+                item->setPen(pen);
+                coroutine.items.append(item);
+            }
+
+            coroutine.lastExit = QPointF(exitX, y);
+            coroutine.totalTime += record.time - enterTicks;
+        }
+    }
+}
+
+
 
 }
