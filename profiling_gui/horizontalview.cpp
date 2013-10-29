@@ -64,6 +64,13 @@ void HorizontalView::wheelEvent(QWheelEvent* event)
     }
 }
 
+void HorizontalView::mousePressEvent(QMouseEvent* event)
+{
+    QGraphicsView::mousePressEvent(event);
+    static int c = 0;
+    qDebug() << c++ << "HorizontalView::mousePressEvent, accepted: " << event->isAccepted();
+}
+
 void HorizontalView::updateTransformation()
 {
     QRectF sceneRect = scene()->sceneRect();
