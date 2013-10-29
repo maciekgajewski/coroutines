@@ -31,7 +31,8 @@ private:
         double y;
         std::uint64_t minTime;
         std::uint64_t maxTime;
-        double lastBlock = 0;
+        std::uint64_t lastBlock = 0;
+        std::uint64_t lastLocking = 0;
     };
 
     struct CoroutineData

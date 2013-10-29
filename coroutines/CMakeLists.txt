@@ -5,7 +5,14 @@ if(ENABLE_PROFILING)
     message(STATUS "Profiling enabled")
     add_definitions(-DCOROUTINES_PROFILING)
     set(PROFILING_LIB profiling)
+
+    if(ENABLE_SPINLOCK_PROFILING)
+        message(STATUS "Spinlock profiling enabled")
+        add_definitions(-DCOROUTINES_SPINLOCKS_PROFILING)
+    endif()
+
 endif()
+
 
 add_library(coroutines STATIC
     algorithm.hpp

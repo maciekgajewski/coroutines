@@ -12,6 +12,7 @@ namespace profiling_gui {
 static const double THREAD_Y_SPACING = 100.0;
 static const double CORO_H = 5; // half-heights
 static const double BLOCK_H = 4;
+static const double WAIT_H = 3;
 
 
 
@@ -139,7 +140,7 @@ void FlowDiagram::onRecord(const profiling_reader::record_type& record)
     ThreadData& thread = _threads[record.thread_id];
     thread.maxTime = record.time_ns;
 
-    if (record.object_type == "processor")
+    if (record.object_type == "processor" || record.object_type == "spinlock")
     {
         onProcessorRecord(record, thread);
     }
@@ -155,6 +156,7 @@ void FlowDiagram::onProcessorRecord(const profiling_reader::record_type& record,
     {
         thread.lastBlock = record.time_ns;
     }
+
     else if (record.event == "unblock")
     {
         if (thread.lastBlock == 0)
@@ -174,6 +176,34 @@ void FlowDiagram::onProcessorRecord(const profiling_reader::record_type& record,
             c.setAlpha(128);
             item->setBrush(c);
             item->setToolTip("blocked");
+            item->setZValue(2.0);
+            _scene->addItem(item);
+        }
+    }
+
+    else if (record.event == "locking")
+    {
+        thread.lastLocking = record.time_ns;
+    }
+
+    else if (record.event == "locked")
+    {
+        if (thread.lastLocking == 0)
+        {
+            qWarning() << "Spinlock: unblock withoiut block! id=" << record.object_id << "time=" << record.time_ns;
+        }
+        else
+        {
+            double blockX = thread.lastLocking;
+            double unblockX = record.time_ns;
+            double y = thread.y;
+
+            thread.lastLocking = 0;
+
+            auto* item = new QGraphicsRectItem(blockX, y-WAIT_H, unblockX-blockX, 2*WAIT_H);
+            QColor c(Qt::black);
+            item->setBrush(c);
+            item->setToolTip(QString("waiting for mutex 0x%1").arg(record.object_id, 0 , 16));
             item->setZValue(2.0);
             _scene->addItem(item);
         }

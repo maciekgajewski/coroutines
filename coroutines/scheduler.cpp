@@ -207,6 +207,9 @@ void scheduler::schedule(InputIterator first,  InputIterator last)
     _global_queue.insert(_global_queue.end(), first, last);
 }
 
+template
+void scheduler::schedule<std::vector<coroutine_weak_ptr>::iterator>(std::vector<coroutine_weak_ptr>::iterator, std::vector<coroutine_weak_ptr>::iterator);
+
 void scheduler::go(coroutine_ptr&& coro)
 {
     CORO_LOG("SCHED: go '", coro->name(), "'");

@@ -3,6 +3,8 @@
 #ifndef COROUTINES_MUTEX_HPP
 #define COROUTINES_MUTEX_HPP
 
+#include "profiling/profiling.hpp"
+
 #include <mutex>
 #include <atomic>
 
@@ -19,8 +21,14 @@ public:
 
     void lock()
     {
+#ifdef COROUTINES_SPINLOCKS_PROFILING
+        CORO_PROF("spinlock", this, "locking");
+#endif
         while(_flag.test_and_set(std::memory_order_acquire))
             ; // spin
+#ifdef COROUTINES_SPINLOCKS_PROFILING
+        CORO_PROF("spinlock", this, "locked");
+#endif
     }
 
     bool try_lock()
