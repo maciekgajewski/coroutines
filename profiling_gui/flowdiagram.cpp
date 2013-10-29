@@ -11,7 +11,7 @@ namespace profiling_gui {
 
 static const double THREAD_Y_SPACING = 100.0;
 static const double CORO_H = 5; // half-heights
-static const double BLOCK_H = 2;
+static const double BLOCK_H = 4;
 
 
 
@@ -170,7 +170,9 @@ void FlowDiagram::onProcessorRecord(const profiling_reader::record_type& record,
             thread.lastBlock = 0;
 
             auto* item = new QGraphicsRectItem(blockX, y-BLOCK_H, unblockX-blockX, 2*BLOCK_H);
-            item->setBrush(Qt::black);
+            QColor c(Qt::lightGray);
+            c.setAlpha(128);
+            item->setBrush(c);
             item->setToolTip("blocked");
             item->setZValue(2.0);
             _scene->addItem(item);
