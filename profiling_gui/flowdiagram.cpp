@@ -26,8 +26,6 @@ void FlowDiagram::loadFile(const QString& path, QGraphicsScene* scene, Coroutine
     _scene = scene;
     profiling_reader::reader reader(path.toStdString());
 
-    _ticksPerNs = reader.ticks_per_ns();
-
     // collect data
     reader.for_each_by_time([this](const profiling_reader::record_type& record)
     {
@@ -38,19 +36,19 @@ void FlowDiagram::loadFile(const QString& path, QGraphicsScene* scene, Coroutine
     for(auto it = _threads.begin(); it != _threads.end(); it++)
     {
         ThreadData& thread = it.value();
-        auto* item = new QGraphicsLineItem(ticksToTime(thread.minTicks), thread.y, ticksToTime(thread.maxTicks), thread.y);
+        auto* item = new QGraphicsLineItem(thread.minTime, thread.y, thread.maxTime, thread.y);
         QPen p(Qt::black);
         p.setCosmetic(true);
         item->setPen(p);
         scene->addItem(item);
 
         // if there is unfinished block - finish it artificially at the end of thread
-        if (thread.lastBlock != INVALID_TICK_VALUE)
+        if (thread.lastBlock != 0)
         {
             profiling_reader::record_type fakeRecord;
+            fakeRecord.time_ns = thread.maxTime;
             fakeRecord.object_id = it.key();
             fakeRecord.thread_id = it.key();
-            fakeRecord.time = thread.maxTicks;
             fakeRecord.event = "unblock";
             onProcessorRecord(fakeRecord, thread);
         }
@@ -72,9 +70,9 @@ void FlowDiagram::loadFile(const QString& path, QGraphicsScene* scene, Coroutine
             const ThreadData& thread = _threads[enterIt.key()];
             // create a fake event
             profiling_reader::record_type fakeRecord;
+            fakeRecord.time_ns = thread.maxTime;
             fakeRecord.object_id = it.key();
             fakeRecord.thread_id = enterIt.key();
-            fakeRecord.time = thread.maxTicks;
             fakeRecord.event = "exit";
             onCoroutineRecord(fakeRecord, thread);
         }
@@ -95,7 +93,7 @@ void FlowDiagram::loadFile(const QString& path, QGraphicsScene* scene, Coroutine
             it.key(),
             coro.name,
             coro.color,
-            ticksToTime(coro.totalTime) // time executed, ns
+            coro.totalTime // time executed, ns
         };
         coroutinesModel.Append(r);
     }
@@ -116,11 +114,6 @@ void FlowDiagram::loadFile(const QString& path, QGraphicsScene* scene, Coroutine
     }
 }
 
-double FlowDiagram::ticksToTime(qint64 ticks) const
-{
-    return ticks / _ticksPerNs;
-}
-
 static QColor randomColor()
 {
     static std::minstd_rand0 generator;
@@ -137,14 +130,14 @@ void FlowDiagram::onRecord(const profiling_reader::record_type& record)
     if (!_threads.contains(record.thread_id))
     {
         ThreadData newThread;
-        newThread.minTicks = record.time;
+        newThread.minTime = record.time_ns;
         newThread.y = _threads.size() * THREAD_Y_SPACING;
 
         _threads.insert(record.thread_id, newThread);
     }
 
     ThreadData& thread = _threads[record.thread_id];
-    thread.maxTicks = record.time;
+    thread.maxTime = record.time_ns;
 
     if (record.object_type == "processor")
     {
@@ -160,21 +153,21 @@ void FlowDiagram::onProcessorRecord(const profiling_reader::record_type& record,
 {
     if (record.event == "block")
     {
-        thread.lastBlock = record.time;
+        thread.lastBlock = record.time_ns;
     }
     else if (record.event == "unblock")
     {
-        if (thread.lastBlock == INVALID_TICK_VALUE)
+        if (thread.lastBlock == 0)
         {
-            qWarning() << "Process: unblock withoiut block! id=" << record.object_id << "time=" << record.time;
+            qWarning() << "Process: unblock withoiut block! id=" << record.object_id << "time=" << record.time_ns;
         }
         else
         {
-            double blockX = ticksToTime(thread.lastBlock);
-            double unblockX = ticksToTime(record.time);
+            double blockX = thread.lastBlock;
+            double unblockX = record.time_ns;
             double y = thread.y;
 
-            thread.lastBlock = INVALID_TICK_VALUE;
+            thread.lastBlock = 0;
 
             auto* item = new QGraphicsRectItem(blockX, y-BLOCK_H, unblockX-blockX, 2*BLOCK_H);
             item->setBrush(Qt::black);
@@ -197,22 +190,21 @@ void FlowDiagram::onCoroutineRecord(const profiling_reader::record_type& record,
 
     if (record.event == "enter")
     {
-        coroutine.enters[record.thread_id] = record.time;
+        coroutine.enters[record.thread_id] = record.time_ns;
     }
 
     if (record.event == "exit")
     {
         if(!coroutine.enters.contains(record.thread_id))
         {
-            qWarning() << "Corotuine: exit without enter! id=" << record.object_id << ", time= " << record.time << ",thread=" << record.thread_id;
+            qWarning() << "Corotuine: exit without enter! id=" << record.object_id << ", time= " << record.time_ns << ",thread=" << record.thread_id;
         }
         else
         {
-            quint64 enterTicks = coroutine.enters[record.thread_id];
+            double enterX =  coroutine.enters[record.thread_id];
             coroutine.enters.remove(record.thread_id);
 
-            double enterX =  ticksToTime(enterTicks);
-            double exitX = ticksToTime(record.time);
+            double exitX = record.time_ns;
             double y = thread.y;
 
             // block
@@ -233,7 +225,7 @@ void FlowDiagram::onCoroutineRecord(const profiling_reader::record_type& record,
             }
 
             coroutine.lastExit = QPointF(exitX, y);
-            coroutine.totalTime += record.time - enterTicks;
+            coroutine.totalTime += record.time_ns - enterX;
         }
     }
 }

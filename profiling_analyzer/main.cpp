@@ -10,12 +10,12 @@
 struct processor_state
 {
     unsigned tasks_run = 0;
-    std::int64_t routine_started = 0;
-    std::int64_t time_in_coroutines = 0;
+    double routine_started = 0;
+    double time_in_coroutines = 0;
 
-    std::int64_t time_first_coro_start = 0;
-    std::int64_t time_last_coro_start = 0;
-    std::int64_t time_last_coro_end = 0;
+    double time_first_coro_start = 0;
+    double time_last_coro_start = 0;
+    double time_last_coro_end = 0;
 };
 
 void analyze(const profiling_reader::reader& reader)
@@ -29,7 +29,7 @@ void analyze(const profiling_reader::reader& reader)
         if (record.object_type == "processor" && record.event == "routine started")
         {
             processor_state& ps = processors[record.thread_id];
-            ps.routine_started = record.time;
+            ps.routine_started = record.time_ns;
         }
 
         if (record.object_type == "coroutine")
@@ -39,14 +39,14 @@ void analyze(const profiling_reader::reader& reader)
             if (record.event == "enter")
             {
                 if (ps.time_first_coro_start == 0)
-                    ps.time_first_coro_start = record.time;
-                ps.time_last_coro_start = record.time;
+                    ps.time_first_coro_start = record.time_ns;
+                ps.time_last_coro_start = record.time_ns;
                 ps.tasks_run++;
             }
             else if (record.event == "exit")
             {
-                ps.time_last_coro_end = record.time;
-                ps.time_in_coroutines += (record.time - ps.time_last_coro_start);
+                ps.time_last_coro_end = record.time_ns;
+                ps.time_in_coroutines += (record.time_ns - ps.time_last_coro_start);
             }
         }
     });
@@ -63,8 +63,8 @@ void analyze(const profiling_reader::reader& reader)
         std::cout << "  *                    thread id: " << p.first << std::endl;
         std::cout << "  *                    tasks run: " << ps.tasks_run << std::endl;
         std::cout << "  *              routine started: " << ps.routine_started << std::endl;
-        std::cout << "  *                time in coros: " << ps.time_in_coroutines / reader.ticks_per_ns() << " ns" << std::endl;
-        std::cout << "  * time from first to last coro: " << (ps.time_last_coro_end - ps.time_first_coro_start) / reader.ticks_per_ns() << " ns" << std::endl;
+        std::cout << "  *                time in coros: " << ps.time_in_coroutines << " ns" << std::endl;
+        std::cout << "  * time from first to last coro: " << (ps.time_last_coro_end - ps.time_first_coro_start) << " ns" << std::endl;
         std::cout << std::endl;
     }
 }

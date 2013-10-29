@@ -26,14 +26,12 @@ public:
 
 private:
 
-    static const qint64 INVALID_TICK_VALUE =  std::numeric_limits<quint64>::min();
-
     struct ThreadData
     {
         double y;
-        qint64 minTicks;
-        qint64 maxTicks;
-        qint64 lastBlock = INVALID_TICK_VALUE;
+        std::uint64_t minTime;
+        std::uint64_t maxTime;
+        double lastBlock = 0;
     };
 
     struct CoroutineData
@@ -41,20 +39,18 @@ private:
         QString name;
         QColor color;
 
-        QMap<std::size_t, qint64> enters;
+        QMap<std::size_t, double> enters;
         QPointF lastExit;
         QList<QGraphicsItem*> items;
-        quint64 totalTime = 0;
+        double totalTime = 0;
     };
 
+    // first param is time in ns adjusted
     void onRecord(const profiling_reader::record_type& record); // master recvord dipatcher
     void onCoroutineRecord(const profiling_reader::record_type& record, const ThreadData& thread);
     void onProcessorRecord(const profiling_reader::record_type& record, ThreadData& thread);
 
-    double ticksToTime(qint64 ticks) const;
-
     QGraphicsScene* _scene;
-    double _ticksPerNs;
     QMap<std::size_t, ThreadData> _threads;
     QMap<std::uintptr_t, CoroutineData> _coroutines;
 };

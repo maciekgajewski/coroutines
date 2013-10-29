@@ -20,25 +20,23 @@ reader::reader(const std::string& file_name)
 {
     std::ifstream file(file_name);
     file.exceptions(std::ios_base::eofbit);
+
     try
     {
         while(!file.eof())
         {
             record_type record;
 
-            read_until(file, record.time, ',');
+            read_until(file, record.time_ns, ',');
+            read_until(file, record.ticks, ',');
             read_until(file, record.thread_id, ',');
             read_until(file, record.object_type, ',');
             read_until(file, record.object_id, ',');
+            read_until(file, record.ordinal, ',');
             read_until(file, record.event, ',');
             read_until(file, record.data, '\n');
 
-            if (record.event == "clock calibration")
-            {
-                _ticks_per_ns = boost::lexical_cast<double>(record.data);
-            }
-
-            _by_time.insert(std::make_pair(record.time, record));
+            _by_time.insert(std::make_pair(record.time_ns, record));
         }
     }
     catch(const std::ios_base::failure&)
