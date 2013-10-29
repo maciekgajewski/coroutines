@@ -81,8 +81,8 @@ void SelectableLine::paint(QPainter* painter, const QStyleOptionGraphicsItem * o
 }
 
 CoroutineGroup::CoroutineGroup(quintptr id, QGraphicsItem* parent)
-: QGraphicsObject(parent)
-, _id(id)
+    : QGraphicsObject(parent)
+    , _id(id)
 {
     setFlag(ItemIsSelectable);
 }
@@ -124,6 +124,47 @@ QVariant CoroutineGroup::itemChange(GraphicsItemChange change, const QVariant& v
     }
 
     return QGraphicsObject::itemChange(change, value);
+}
+
+const static int SYMBOL_SIZE = 8;
+
+
+SelectableSymbol::SelectableSymbol(const QPointF& pos, SHAPE shape, const QColor color)
+    : _pos(pos)
+    , _color(color)
+    , _shape(shape)
+{
+    setFlag(ItemIsSelectable);
+    setFlag(ItemIgnoresTransformations);
+    setPos(pos);
+}
+
+void SelectableSymbol::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
+{
+    QPen p(Qt::black);
+    p.setCosmetic(true);
+    if (isSelected())
+    {
+        p.setWidth(2);
+    }
+
+    painter->setPen(p);
+    painter->setBrush(_color);
+
+    switch (_shape) {
+    case SHAPE_CIRCLE:
+
+        painter->drawEllipse(QPointF(0, 0), SYMBOL_SIZE/2, SYMBOL_SIZE/2);
+
+        break;
+    default:
+        ;
+    }
+}
+
+QRectF SelectableSymbol::boundingRect() const
+{
+    return QRectF(- SYMBOL_SIZE/2 - 1, - SYMBOL_SIZE/2 - 1, SYMBOL_SIZE + 2, SYMBOL_SIZE + 2);
 }
 
 

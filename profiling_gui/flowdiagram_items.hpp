@@ -26,6 +26,29 @@ protected:
     virtual void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
 };
 
+// simple symbol
+class SelectableSymbol : public QGraphicsItem
+{
+public:
+
+    enum SHAPE
+    {
+        SHAPE_CIRCLE
+    };
+
+    SelectableSymbol(const QPointF& pos, SHAPE shape, const QColor color);
+
+    virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget = nullptr) override;
+    virtual QRectF boundingRect() const override;
+
+private:
+
+    QPointF _pos;
+    QColor _color;
+    SHAPE _shape;
+};
+
+
 // non-clickable, selctable line
 class SelectableLine : public QGraphicsLineItem
 {
@@ -35,6 +58,7 @@ public:
     virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem * option, QWidget * widget = nullptr) override;
 };
 
+// invisible item grouping all items belonging to one coroutine
 class CoroutineGroup : public QGraphicsObject
 {
     Q_OBJECT

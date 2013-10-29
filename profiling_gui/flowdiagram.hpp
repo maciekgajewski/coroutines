@@ -40,7 +40,7 @@ private:
         QColor color;
 
         QMap<std::size_t, double> enters;
-        QPointF lastExit;
+        QPointF lastEvent;
         QList<QGraphicsItem*> items;
         double totalTime = 0;
     };

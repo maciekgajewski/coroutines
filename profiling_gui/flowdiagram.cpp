@@ -186,14 +186,23 @@ void FlowDiagram::onCoroutineRecord(const profiling_reader::record_type& record,
         coroutine.color = randomColor();
 
     if (record.event == "created")
+    {
         coroutine.name = QString::fromStdString(record.data);
 
-    if (record.event == "enter")
+        QPointF pos(record.time_ns, thread.y);
+        auto* item = new SelectableSymbol(pos, SelectableSymbol::SHAPE_CIRCLE, coroutine.color);
+        item->setToolTip(QString("created: " ) + coroutine.name);
+        coroutine.items.append(item);
+        coroutine.lastEvent = pos;
+
+    }
+
+    else if (record.event == "enter")
     {
         coroutine.enters[record.thread_id] = record.time_ns;
     }
 
-    if (record.event == "exit")
+    else if (record.event == "exit")
     {
         if(!coroutine.enters.contains(record.thread_id))
         {
@@ -215,16 +224,16 @@ void FlowDiagram::onCoroutineRecord(const profiling_reader::record_type& record,
             coroutine.items.append(item);
 
             // connection with previous one
-            if (!coroutine.lastExit.isNull())
+            if (!coroutine.lastEvent.isNull())
             {
-                auto* item = new SelectableLine(coroutine.lastExit.x(), coroutine.lastExit.y(), enterX, y);
+                auto* item = new SelectableLine(coroutine.lastEvent.x(), coroutine.lastEvent.y(), enterX, y);
                 QColor c = coroutine.color;
                 QPen pen(c);
                 item->setPen(pen);
                 coroutine.items.append(item);
             }
 
-            coroutine.lastExit = QPointF(exitX, y);
+            coroutine.lastEvent = QPointF(exitX, y);
             coroutine.totalTime += record.time_ns - enterX;
         }
     }
