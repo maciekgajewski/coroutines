@@ -19,16 +19,26 @@ public:
     : _flag(ATOMIC_FLAG_INIT)
     { }
 
+    spinlock(const char* name)
+    : _flag(ATOMIC_FLAG_INIT)
+    {
+        #ifdef COROUTINES_SPINLOCKS_PROFILING
+            CORO_PROF("spinlock", this, "created", name);
+        #else
+            (void)name;
+        #endif
+    }
+
     void lock()
     {
-#ifdef COROUTINES_SPINLOCKS_PROFILING
-        CORO_PROF("spinlock", this, "locking");
-#endif
+        #ifdef COROUTINES_SPINLOCKS_PROFILING
+            CORO_PROF("spinlock", this, "locking");
+        #endif
         while(_flag.test_and_set(std::memory_order_acquire))
             ; // spin
-#ifdef COROUTINES_SPINLOCKS_PROFILING
-        CORO_PROF("spinlock", this, "locked");
-#endif
+        #ifdef COROUTINES_SPINLOCKS_PROFILING
+            CORO_PROF("spinlock", this, "locked");
+        #endif
     }
 
     bool try_lock()

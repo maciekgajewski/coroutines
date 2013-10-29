@@ -115,13 +115,13 @@ void FlowDiagram::loadFile(const QString& path, QGraphicsScene* scene, Coroutine
     }
 }
 
-static QColor randomColor()
+static QColor randomColor(int baseV = 172)
 {
     static std::minstd_rand0 generator;
 
     int h = std::uniform_int_distribution<int>(0, 255)(generator);
     int s = 172 + std::uniform_int_distribution<int>(0, 63)(generator);
-    int v = 172 + std::uniform_int_distribution<int>(-32, +32)(generator);
+    int v = baseV + std::uniform_int_distribution<int>(-32, +32)(generator);
 
     return QColor::fromHsv(h, s, v);
 }
@@ -140,7 +140,11 @@ void FlowDiagram::onRecord(const profiling_reader::record_type& record)
     ThreadData& thread = _threads[record.thread_id];
     thread.maxTime = record.time_ns;
 
-    if (record.object_type == "processor" || record.object_type == "spinlock")
+    if (record.object_type == "spinlock")
+    {
+        onSpinlockRecord(record, thread);
+    }
+    if (record.object_type == "processor")
     {
         onProcessorRecord(record, thread);
     }
@@ -181,29 +185,54 @@ void FlowDiagram::onProcessorRecord(const profiling_reader::record_type& record,
         }
     }
 
+}
+
+void FlowDiagram::onSpinlockRecord(const profiling_reader::record_type& record, FlowDiagram::ThreadData& thread)
+{
+    SpinlockData& spinlock = _spinlocks[record.object_id];
+
+    if (!spinlock.color.isValid())
+        spinlock.color = randomColor(64);
+
+    if (record.event == "created")
+    {
+        spinlock.name = QString::fromStdString(record.data);
+    }
+
     else if (record.event == "locking")
     {
-        thread.lastLocking = record.time_ns;
+        spinlock.lastLockingTime = record.time_ns;
+        spinlock.lastLockingThread = record.thread_id;
     }
 
     else if (record.event == "locked")
     {
-        if (thread.lastLocking == 0)
+        if (spinlock.lastLockingTime == 0)
         {
-            qWarning() << "Spinlock: unblock withoiut block! id=" << record.object_id << "time=" << record.time_ns;
+            qWarning() << "Spinlock: 'locked' without 'locking'! id=" << record.object_id << "time=" << record.time_ns;
+        }
+        else if (spinlock.lastLockingThread != record.thread_id)
+        {
+            qWarning() << "Spinlock: 'locked' in different thread thatn 'locking'! id=" << record.object_id << "time=" << record.time_ns;
         }
         else
         {
-            double blockX = thread.lastLocking;
+            double blockX = spinlock.lastLockingTime;
             double unblockX = record.time_ns;
             double y = thread.y;
 
-            thread.lastLocking = 0;
+            spinlock.lastLockingTime = 0;
 
             auto* item = new QGraphicsRectItem(blockX, y-WAIT_H, unblockX-blockX, 2*WAIT_H);
-            QColor c(Qt::black);
-            item->setBrush(c);
-            item->setToolTip(QString("waiting for mutex 0x%1").arg(record.object_id, 0 , 16));
+            item->setBrush(spinlock.color);
+            if (spinlock.name.isEmpty())
+            {
+                item->setToolTip(QString("waiting for mutex 0x%1").arg(record.object_id, 0 , 16));
+            }
+            else
+            {
+                item->setToolTip(QString("waiting for mutex '%1' (0x%2)").arg(spinlock.name).arg(record.object_id, 0 , 16));
+            }
             item->setZValue(2.0);
             _scene->addItem(item);
         }

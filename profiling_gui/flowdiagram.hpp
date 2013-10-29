@@ -32,7 +32,6 @@ private:
         std::uint64_t minTime;
         std::uint64_t maxTime;
         std::uint64_t lastBlock = 0;
-        std::uint64_t lastLocking = 0;
     };
 
     struct CoroutineData
@@ -40,20 +39,32 @@ private:
         QString name;
         QColor color;
 
-        QMap<std::size_t, double> enters;
+        QMap<std::size_t, std::uint64_t> enters;
         QPointF lastEvent;
         QList<QGraphicsItem*> items;
         double totalTime = 0;
     };
 
+    struct SpinlockData
+    {
+        QString name;
+        QColor color;
+
+        std::uint64_t lastLockingTime = 0;
+        std::size_t lastLockingThread;
+    };
+
     // first param is time in ns adjusted
-    void onRecord(const profiling_reader::record_type& record); // master recvord dipatcher
+    void onRecord(const profiling_reader::record_type& record); // master record dipatcher
+
     void onCoroutineRecord(const profiling_reader::record_type& record, const ThreadData& thread);
     void onProcessorRecord(const profiling_reader::record_type& record, ThreadData& thread);
+    void onSpinlockRecord(const profiling_reader::record_type& record, ThreadData& thread);
 
     QGraphicsScene* _scene;
     QMap<std::size_t, ThreadData> _threads;
     QMap<std::uintptr_t, CoroutineData> _coroutines;
+    QMap< std::uintptr_t, SpinlockData> _spinlocks;
 };
 
 }

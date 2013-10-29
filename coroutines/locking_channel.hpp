@@ -112,6 +112,7 @@ locking_channel<T>::locking_channel(scheduler& sched, std::size_t capacity, cons
     , _capacity(capacity+1)
     , _producers_cv(sched)
     , _consumers_cv(sched)
+    , _mutex("channel mutex")
 
     , _read_checkpoint(name + " : reading")
     , _write_checkpoint(name + " : writing")
