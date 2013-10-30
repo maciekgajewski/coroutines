@@ -19,6 +19,9 @@ static thread_local coroutine* __current_coroutine = nullptr;
 coroutine::coroutine(scheduler& parent, std::string name, function_type&& fun)
     : _function(std::move(fun))
     , _stack(new char[DEFAULT_STACK_SIZE])
+#ifdef COROUTINES_SPINLOCKS_PROFILING
+    , _run_mutex(std::string(name + " run mutex").c_str())
+#endif
     , _parent(parent)
     , _name(std::move(name))
 {

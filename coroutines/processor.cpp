@@ -15,6 +15,7 @@ static thread_local processor* __current_processor= nullptr;
 
 processor::processor(scheduler& sched)
     : _scheduler(sched)
+    , _queue_mutex("processor queue mutex")
     , _thread([this]() { routine(); })
 {
 }

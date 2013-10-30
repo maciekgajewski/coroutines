@@ -10,7 +10,8 @@
 namespace coroutines {
 
 monitor::monitor(scheduler& sched)
-    : _scheduler(sched)
+    : _waiting_mutex("monitor")
+    , _scheduler(sched)
 {
 }
 
