@@ -16,14 +16,21 @@ public:
 public slots:
 
     void showAll();
-    void zoomOut();
+
+signals:
+
+    void rangeHighlighted(unsigned ns);
 
 protected:
+
+    virtual void paintEvent(QPaintEvent *event) override;
 
     virtual void resizeEvent(QResizeEvent* event) override;
     virtual void wheelEvent(QWheelEvent* event) override;
 
     virtual void mousePressEvent(QMouseEvent* event) override;
+    virtual void mouseReleaseEvent(QMouseEvent* event) override;
+    virtual void mouseMoveEvent(QMouseEvent* event) override;
 
 private:
 
@@ -31,6 +38,11 @@ private:
 
     double _viewStart;
     double _viewEnd;
+
+    bool _dragging = false;
+    int _dragStart;
+    int _dragEnd;
+
 };
 
 } // namespace profiling_gui

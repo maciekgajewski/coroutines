@@ -3,6 +3,8 @@
 #ifndef PROFILING_GUI_COROUTINES_MODEL_HPP
 #define PROFILING_GUI_COROUTINES_MODEL_HPP
 
+#include "profiling_gui/globals.hpp"
+
 #include <QAbstractListModel>
 #include <QColor>
 #include <QItemSelectionModel>
@@ -62,7 +64,6 @@ private slots:
 private:
 
     static QPixmap iconFromColor(QColor color);
-    static QString nanosToString(double ns);
 
     QVector<Record> _records;
 

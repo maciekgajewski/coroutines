@@ -2,6 +2,7 @@
 
 #include "profiling_gui/mainwindow.hpp"
 #include "profiling_gui/flowdiagram.hpp"
+#include "profiling_gui/globals.hpp"
 
 #include "ui_mainwindow.h"
 
@@ -21,6 +22,8 @@ MainWindow::MainWindow(QWidget *parent)
     _ui->coroutineView->setSelectionModel(_coroutinesModel.selectionModel());
 
     connect(_ui->actionExit, SIGNAL(triggered()), QApplication::instance(), SLOT(quit()));
+
+    connect(_ui->mainView, SIGNAL(rangeHighlighted(uint)), SLOT(timeRangeHighted(uint)));
 }
 
 MainWindow::~MainWindow()
@@ -36,6 +39,14 @@ void MainWindow::loadFile(const QString& path)
 
     _ui->mainView->showAll();
     _ui->coroutineView->resizeColumnToContents(0);
+}
+
+void MainWindow::timeRangeHighted(unsigned ns)
+{
+    if (ns > 0)
+        statusBar()->showMessage(QString("range: %1").arg(nanosToString(ns)));
+    else
+        statusBar()->clearMessage();
 }
 
 }

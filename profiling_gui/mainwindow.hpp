@@ -24,6 +24,10 @@ public:
 
     void loadFile(const QString& path);
 
+private slots:
+
+    void timeRangeHighted(unsigned ns);
+
 private:
     Ui::MainWindow *_ui;
     QGraphicsScene _scene;

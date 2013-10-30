@@ -125,16 +125,4 @@ QPixmap CoroutinesModel::iconFromColor(QColor color)
     return icon;
 }
 
-QString CoroutinesModel::nanosToString(double ns)
-{
-    static const char* suffixes[] = { "ns", "µs", "ms", "s" };
-
-    double value = ns;
-    auto it = std::begin(suffixes);
-    for(; it != std::end(suffixes)-1 && value > 1000.0; it++)
-        value /= 1000;
-
-    return QString::number(value, 'f', 2) + *it;
-}
-
 }

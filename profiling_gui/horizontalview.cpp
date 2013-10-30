@@ -14,7 +14,7 @@ HorizontalView::HorizontalView(QWidget *parent) :
 {
     //setDragMode(ScrollHandDrag);
     setRenderHint(QPainter::Antialiasing);
-    setCursor(Qt::ArrowCursor);
+    setCursor(Qt::CrossCursor);
 }
 
 void HorizontalView::showAll()
@@ -29,9 +29,32 @@ void HorizontalView::showAll()
     }
 }
 
-void HorizontalView::zoomOut()
+void HorizontalView::paintEvent(QPaintEvent* event)
 {
-    // TODO
+    QGraphicsView::paintEvent(event);
+
+    if (_dragging)
+    {
+        QPainter painter(viewport());
+
+        QRectF r(_dragStart, 0, _dragEnd-_dragStart, height());
+
+        QPen p(Qt::blue, 1);
+        p.setCosmetic(true);
+        QColor c(Qt::cyan);
+        c.setAlpha(32);
+
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(c);
+        painter.drawRect(r);
+
+        QLine l1(_dragStart, 0, _dragStart, height());
+        QLine l2(_dragEnd, 0, _dragEnd, height());
+
+        painter.setPen(Qt::black);
+        painter.drawLine(l1);
+        painter.drawLine(l2);
+    }
 }
 
 void HorizontalView::resizeEvent(QResizeEvent* event)
@@ -67,8 +90,41 @@ void HorizontalView::wheelEvent(QWheelEvent* event)
 void HorizontalView::mousePressEvent(QMouseEvent* event)
 {
     QGraphicsView::mousePressEvent(event);
-    static int c = 0;
-    qDebug() << c++ << "HorizontalView::mousePressEvent, accepted: " << event->isAccepted();
+
+    if (event->button() == Qt::LeftButton && !event->isAccepted())
+    {
+        _dragging = true;
+        _dragStart = event->pos().x();
+        _dragEnd = _dragStart;
+    }
+}
+
+void HorizontalView::mouseReleaseEvent(QMouseEvent* event)
+{
+    if (_dragging)
+    {
+        _dragging = false;
+        viewport()->update();
+        emit rangeHighlighted(0);
+    }
+}
+
+void HorizontalView::mouseMoveEvent(QMouseEvent* event)
+{
+    if (_dragging)
+    {
+        if (qAbs(_dragEnd - _dragStart) > 5)
+        {
+            viewport()->update();
+
+            QPointF startPoint = mapToScene(_dragStart, 0);
+            QPointF endPoint = mapToScene(_dragEnd, 0);
+
+            unsigned ns = qAbs(endPoint.x() - startPoint.x());
+            emit rangeHighlighted(ns);
+        }
+        _dragEnd = event->pos().x();
+    }
 }
 
 void HorizontalView::updateTransformation()

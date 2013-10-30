@@ -17,6 +17,7 @@ add_executable(profiling_gui
     flowdiagram_items.cpp flowdiagram_items.hpp
     horizontalview.cpp horizontalview.hpp
     coroutinesmodel.cpp coroutinesmodel.hpp
+    globals.cpp globals.hpp
 )
 
 
