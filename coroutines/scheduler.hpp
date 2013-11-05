@@ -41,7 +41,7 @@ public:
     template<typename T>
     channel_pair<T> make_channel(std::size_t capacity, const std::string& name)
     {
-        return locking_channel<T>::make(*this, capacity, name);
+        return channel_pair<T>::make(*this, capacity, name);
     }
 
     // wrties current status to stderr

@@ -3,31 +3,16 @@
 #ifndef COROUTINES_CHANNEL_HPP
 #define COROUTINES_CHANNEL_HPP
 
-#include <stdexcept>
+#include "coroutines/locking_channel.hpp"
+
 #include <memory>
 #include <utility>
 
 namespace coroutines {
 
-// Exception thrown when channel is closed
-struct channel_closed : public std::exception
-{
-    virtual const char* what() const noexcept { return "channel closed"; }
-};
 
-// wrtier implementation interface
-template<typename T>
-class i_writer_impl
-{
-public:
-    virtual ~i_writer_impl() = default;
-
-    virtual void put(T val) = 0;
-    virtual void writer_close() = 0;
-};
-
-// wrtier enppoint to a channel
-template<typename T>
+// writer enppoint to a channel
+template<typename T, typename implementation_type=typename locking_channel<T>::writer>
 class channel_writer
 {
 public:
@@ -39,11 +24,11 @@ public:
         std::swap(o._impl, _impl);
     }
 
-    channel_writer(std::shared_ptr<i_writer_impl<T>>&& impl) noexcept
+    channel_writer(std::shared_ptr<implementation_type>&& impl) noexcept
         : _impl(std::move(impl))
     { }
 
-    channel_writer(const std::shared_ptr<i_writer_impl<T>>& impl) noexcept
+    channel_writer(const std::shared_ptr<implementation_type>& impl) noexcept
         : _impl(impl)
     { }
 
@@ -51,7 +36,7 @@ public:
     {
     }
 
-    channel_writer<T>& operator=(channel_writer&& o)
+    channel_writer<T, implementation_type>& operator=(channel_writer&& o)
     {
         std::swap(o._impl, _impl);
         return *this;
@@ -85,23 +70,10 @@ public:
 
 private:
 
-    std::shared_ptr<i_writer_impl<T>> _impl;
+    std::shared_ptr<implementation_type> _impl;
 };
 
-//reader implementation interface
-template<typename T>
-class i_reader_impl
-{
-public:
-
-    virtual ~i_reader_impl() = default;
-
-    virtual T get() = 0;
-    virtual bool try_get(T& out) = 0;
-    virtual void reader_close() = 0;
-};
-
-template<typename T>
+template<typename T, typename implementation_type=typename locking_channel<T>::reader>
 class channel_reader
 {
 public:
@@ -113,17 +85,17 @@ public:
         std::swap(o._impl, _impl);
     }
 
-    channel_reader<T>& operator=(channel_reader&& o)
+    channel_reader<T, implementation_type>& operator=(channel_reader&& o)
     {
         std::swap(o._impl, _impl);
         return *this;
     }
 
-    channel_reader(std::shared_ptr<i_reader_impl<T>>&& impl) noexcept
+    channel_reader(std::shared_ptr<implementation_type>&& impl) noexcept
     : _impl(std::move(impl))
     { }
 
-    channel_reader(const std::shared_ptr<i_reader_impl<T>>& impl)
+    channel_reader(const std::shared_ptr<implementation_type>& impl)
     : _impl(impl)
     { }
 
@@ -160,12 +132,25 @@ public:
 
 private:
 
-    std::shared_ptr<i_reader_impl<T>> _impl;
+    std::shared_ptr<implementation_type> _impl;
 };
 
-template<typename T>
+template<typename T, typename channel_type=locking_channel<T>>
 struct channel_pair
 {
+    typedef channel_reader<T, typename channel_type::reader> reader_type;
+    typedef channel_writer<T, typename channel_type::writer> writer_type;
+
+    // factory
+    static channel_pair<T, channel_type > make(scheduler& sched, std::size_t capacity, const std::string& name)
+    {
+        std::shared_ptr<channel_type> channel(std::make_shared<channel_type>(sched, capacity, name));
+        std::shared_ptr<typename channel_type::writer> writer(std::make_shared<typename channel_type::writer>(channel));
+        std::shared_ptr<typename channel_type::reader> reader(std::make_shared<typename channel_type::reader>(channel));
+
+        return channel_pair<T, channel_type>(reader_type(reader), writer_type(writer));
+    }
+
     channel_pair(const channel_pair& o) = default;
 
     channel_pair(channel_pair&& o)
@@ -173,13 +158,13 @@ struct channel_pair
     , writer(std::move(o.writer))
     { }
 
-    channel_pair(channel_reader<T>&& r, channel_writer<T>&& w)
+    channel_pair(reader_type&& r, writer_type&& w)
     : reader(std::move(r))
     , writer(std::move(w))
     { }
 
-    channel_reader<T> reader;
-    channel_writer<T> writer;
+    reader_type reader;
+    writer_type writer;
 };
 
 }

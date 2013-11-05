@@ -17,6 +17,7 @@ endif()
 add_library(coroutines STATIC
     algorithm.hpp
     channel.hpp
+    channel_closed.hpp
     condition_variable.hpp
     coroutine.cpp coroutine.hpp
     generator.hpp

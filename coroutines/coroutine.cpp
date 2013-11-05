@@ -3,6 +3,7 @@
 #include "coroutines/channel.hpp"
 #include "coroutines/scheduler.hpp"
 
+//#define CORO_LOGGING
 #include "coroutines/logging.hpp"
 
 #include "profiling/profiling.hpp"

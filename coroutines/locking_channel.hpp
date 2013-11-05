@@ -1,9 +1,10 @@
 #ifndef COROUTINES_LOCKING_COROUTINE_CHANNEL_HPP
 #define COROUTINES_LOCKING_COROUTINE_CHANNEL_HPP
 
-#include "channel.hpp"
-#include "mutex.hpp"
-#include "condition_variable.hpp"
+#include "coroutines/channel.hpp"
+#include "coroutines/mutex.hpp"
+#include "coroutines/condition_variable.hpp"
+#include "coroutines/channel_closed.hpp"
 
 #include <boost/format.hpp>
 
@@ -19,19 +20,40 @@ class locking_channel
 {
 public:
 
-    // factory
-    static channel_pair<T> make(scheduler& sched, std::size_t capacity, const std::string& name)
-    {
-        std::shared_ptr<locking_channel<T>> me(new locking_channel<T>(sched, capacity, name));
-
-        std::shared_ptr<i_reader_impl<T>> rd = std::make_shared<locking_channel<T>::reader>(me);
-        std::shared_ptr<i_writer_impl<T>> wr = std::make_shared<locking_channel<T>::writer>(me);
-
-        return channel_pair<T>(channel_reader<T>(rd), channel_writer<T>(wr));
-    }
-
+    locking_channel(scheduler& _sched, std::size_t capacity, const std::string& name);
     locking_channel(const locking_channel&) = delete;
     ~locking_channel();
+
+    class writer
+    {
+    public:
+        writer(const std::shared_ptr<locking_channel>& impl)
+            : _impl(impl) { }
+
+        virtual void put(T v) { _impl->put(std::move(v)); }
+        virtual void writer_close() { _impl->writer_close(); }
+        virtual ~writer() { _impl->writer_close(); }
+
+    private:
+
+        std::shared_ptr<locking_channel> _impl;
+    };
+
+    class reader
+    {
+    public:
+        reader(const std::shared_ptr<locking_channel>& impl)
+            : _impl(impl) { }
+
+        virtual T get() { return std::move(_impl->get()); }
+        virtual bool try_get(T& b) { return _impl->try_get(b); }
+        virtual void reader_close() { _impl->reader_close(); }
+        virtual ~reader() { _impl->reader_close(); }
+
+    private:
+
+        std::shared_ptr<locking_channel> _impl;
+    };
 
     // called by producer
     void put(T v);
@@ -44,38 +66,6 @@ public:
 
 private:
 
-    class writer : public i_writer_impl<T>
-    {
-    public:
-        writer(const std::shared_ptr<locking_channel>& impl)
-            : _impl(impl) { }
-
-        virtual void put(T v) override { _impl->put(std::move(v)); }
-        virtual void writer_close() override { _impl->writer_close(); }
-        virtual ~writer() { _impl->writer_close(); }
-
-    private:
-
-        std::shared_ptr<locking_channel> _impl;
-    };
-
-    class reader : public i_reader_impl<T>
-    {
-    public:
-        reader(const std::shared_ptr<locking_channel>& impl)
-            : _impl(impl) { }
-
-        virtual T get() override { return std::move(_impl->get()); }
-        virtual bool try_get(T& b) override { return _impl->try_get(b); }
-        virtual void reader_close() { _impl->reader_close(); }
-        virtual ~reader() { _impl->reader_close(); }
-
-    private:
-
-        std::shared_ptr<locking_channel> _impl;
-    };
-
-    locking_channel(scheduler& _sched, std::size_t capacity, const std::string& name);
     void do_close();
 
     unsigned size() const
