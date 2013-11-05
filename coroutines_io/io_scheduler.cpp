@@ -39,7 +39,7 @@ void io_scheduler::wait_for_readable(int fd, const channel_writer<std::error_cod
 
 void io_scheduler::start()
 {
-    auto pair = _scheduler.make_channel<command>(10, "io service command channel");
+    auto pair = _scheduler.make_channel<command>(256, "io_scheduler command channel");
     _command_writer = std::move(pair.writer);
     _command_reader = std::move(pair.reader);
 
