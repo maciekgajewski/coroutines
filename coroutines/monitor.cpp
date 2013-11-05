@@ -7,6 +7,9 @@
 //#define CORO_LOGGING
 #include "coroutines/logging.hpp"
 
+#include "profiling/profiling.hpp"
+
+
 namespace coroutines {
 
 monitor::monitor(scheduler& sched)
@@ -23,6 +26,8 @@ monitor::~monitor()
 
 void monitor::wait(const std::string& checkopint_name, epilogue_type epilogue)
 {
+    CORO_PROF("monitor", this, "wait", checkopint_name.c_str());
+
     coroutine* coro = coroutine::current_corutine();
     assert(coro);
 
@@ -42,6 +47,7 @@ void monitor::wait(const std::string& checkopint_name, epilogue_type epilogue)
 
 void monitor::wake_all()
 {
+    CORO_PROF("monitor", this, "wake_all");
     CORO_LOG("MONITOR: wake_all");
 
     std::vector<coroutine*> waiting;
@@ -57,6 +63,7 @@ void monitor::wake_all()
 
 void monitor::wake_one()
 {
+    CORO_PROF("monitor", this, "wake_one");
     CORO_LOG("MONITOR: this=", this, " will wake one. q contains: '", _waiting.size())
 
     coroutine_weak_ptr waiting = nullptr;
