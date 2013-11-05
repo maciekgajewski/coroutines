@@ -33,10 +33,12 @@ public:
 
     enum SHAPE
     {
-        SHAPE_CIRCLE
+        SHAPE_CIRCLE,
+        SHAPE_TRIANGLE_LEFT,
+        SHAPE_TRIANGLE_RIGHT,
     };
 
-    SelectableSymbol(const QPointF& pos, SHAPE shape, const QColor color);
+    SelectableSymbol(const QPointF& pos, SHAPE shape, const QColor color, double size);
 
     virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget = nullptr) override;
     virtual QRectF boundingRect() const override;
@@ -46,6 +48,7 @@ private:
     QPointF _pos;
     QColor _color;
     SHAPE _shape;
+    double _size;
 };
 
 

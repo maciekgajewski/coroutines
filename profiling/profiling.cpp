@@ -20,7 +20,7 @@
 
 namespace profiling {
 
-static const unsigned DATA_SIZE = 32;
+static const unsigned DATA_SIZE = 64;
 
 static std::uint64_t __sys_tv_sec_base = 0;
 static std::uint64_t __clock_base; // first-ever tcs call
@@ -207,7 +207,7 @@ void profiling_event(const char* object_type, void* object_id, const char* event
     r->ordinal = ordinal;
     r->event = event;
     if (data)
-        std::strncpy(r->data, data, DATA_SIZE);
+        std::strncpy(r->data, data, DATA_SIZE-1);
     else
         r->data[0] = 0;
 }

@@ -144,13 +144,17 @@ void FlowDiagram::onRecord(const profiling_reader::record_type& record)
     {
         onSpinlockRecord(record, thread);
     }
-    if (record.object_type == "processor")
+    else if (record.object_type == "processor")
     {
         onProcessorRecord(record, thread);
     }
     else if (record.object_type == "coroutine")
     {
         onCoroutineRecord(record, thread);
+    }
+    else if (record.object_type == "monitor")
+    {
+        onMonitorRecord(record, thread);
     }
 }
 
@@ -239,6 +243,28 @@ void FlowDiagram::onSpinlockRecord(const profiling_reader::record_type& record, 
     }
 }
 
+void FlowDiagram::onMonitorRecord(const profiling_reader::record_type& record, FlowDiagram::ThreadData& thread)
+{
+    if (record.event == "wait")
+    {
+        QPointF pos(record.time_ns, thread.y);
+
+        auto* item = new SelectableSymbol(pos, SelectableSymbol::SHAPE_TRIANGLE_LEFT, Qt::white, 12);
+        item->setToolTip(QString("wait: %1").arg(QString::fromStdString(record.data)));
+        item->setZValue(2.0);
+        _scene->addItem(item);
+    }
+    else if (record.event == "wake_all" || record.event == "wake_one")
+    {
+        QPointF pos(record.time_ns, thread.y);
+
+        auto* item = new SelectableSymbol(pos, SelectableSymbol::SHAPE_TRIANGLE_RIGHT, Qt::white, 12);
+        item->setToolTip(QString::fromStdString(record.event));
+        item->setZValue(2.0);
+        _scene->addItem(item);
+    }
+}
+
 void FlowDiagram::onCoroutineRecord(const profiling_reader::record_type& record, const ThreadData& thread)
 {
     CoroutineData& coroutine = _coroutines[record.object_id];
@@ -251,7 +277,7 @@ void FlowDiagram::onCoroutineRecord(const profiling_reader::record_type& record,
         coroutine.name = QString::fromStdString(record.data);
 
         QPointF pos(record.time_ns, thread.y);
-        auto* item = new SelectableSymbol(pos, SelectableSymbol::SHAPE_CIRCLE, coroutine.color);
+        auto* item = new SelectableSymbol(pos, SelectableSymbol::SHAPE_CIRCLE, coroutine.color, 8);
         item->setToolTip(QString("created: " ) + coroutine.name);
         coroutine.items.append(item);
         coroutine.lastEvent = pos;

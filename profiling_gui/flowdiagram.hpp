@@ -60,6 +60,7 @@ private:
     void onCoroutineRecord(const profiling_reader::record_type& record, const ThreadData& thread);
     void onProcessorRecord(const profiling_reader::record_type& record, ThreadData& thread);
     void onSpinlockRecord(const profiling_reader::record_type& record, ThreadData& thread);
+    void onMonitorRecord(const profiling_reader::record_type& record, ThreadData& thread);
 
     QGraphicsScene* _scene;
     QMap<std::size_t, ThreadData> _threads;

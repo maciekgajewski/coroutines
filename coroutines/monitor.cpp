@@ -47,7 +47,6 @@ void monitor::wait(const std::string& checkopint_name, epilogue_type epilogue)
 
 void monitor::wake_all()
 {
-    CORO_PROF("monitor", this, "wake_all");
     CORO_LOG("MONITOR: wake_all");
 
     std::vector<coroutine*> waiting;
@@ -58,12 +57,15 @@ void monitor::wake_all()
 
     CORO_LOG("MONITOR: waking up ", waiting.size(), " coroutine(s)");
 
-    _scheduler.schedule(waiting.begin(), waiting.end());
+    if (!waiting.empty())
+    {
+        CORO_PROF("monitor", this, "wake_all");
+        _scheduler.schedule(waiting.begin(), waiting.end());
+    }
 }
 
 void monitor::wake_one()
 {
-    CORO_PROF("monitor", this, "wake_one");
     CORO_LOG("MONITOR: this=", this, " will wake one. q contains: '", _waiting.size())
 
     coroutine_weak_ptr waiting = nullptr;
@@ -78,6 +80,7 @@ void monitor::wake_one()
 
     if (waiting)
     {
+        CORO_PROF("monitor", this, "wake_one");
         CORO_LOG("MONITOR: this=", this, " waking up one coroutine ('", waiting->name(), "'), ", _waiting.size(), " left in q");
         _scheduler.schedule(std::move(waiting));
     }

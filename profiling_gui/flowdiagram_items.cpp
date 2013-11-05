@@ -126,17 +126,19 @@ QVariant CoroutineGroup::itemChange(GraphicsItemChange change, const QVariant& v
     return QGraphicsObject::itemChange(change, value);
 }
 
-const static int SYMBOL_SIZE = 8;
-
-
-SelectableSymbol::SelectableSymbol(const QPointF& pos, SHAPE shape, const QColor color)
+SelectableSymbol::SelectableSymbol(const QPointF& pos, SHAPE shape, const QColor color, double size)
     : _pos(pos)
     , _color(color)
     , _shape(shape)
+    , _size(size)
 {
     setFlag(ItemIsSelectable);
     setFlag(ItemIgnoresTransformations);
     setPos(pos);
+
+    QTransform t;
+    t.scale(_size/2, _size/2);
+    setTransform(t);
 }
 
 void SelectableSymbol::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
@@ -153,10 +155,17 @@ void SelectableSymbol::paint(QPainter* painter, const QStyleOptionGraphicsItem* 
 
     switch (_shape) {
     case SHAPE_CIRCLE:
-
-        painter->drawEllipse(QPointF(0, 0), SYMBOL_SIZE/2, SYMBOL_SIZE/2);
-
+        painter->drawEllipse(QPointF(0, 0), 1.0, 1.0);
         break;
+
+    case SHAPE_TRIANGLE_LEFT:
+        painter->drawPolygon(QPolygonF() << QPointF(0.5, 0.86) << QPointF(-1.0, 0) << QPointF(0.5, -0.86));
+        break;
+
+    case SHAPE_TRIANGLE_RIGHT:
+        painter->drawPolygon(QPolygonF() << QPointF(-0.5, 0.86) << QPointF(1.0, 0) << QPointF(-0.5, -0.86));
+        break;
+
     default:
         ;
     }
@@ -164,7 +173,7 @@ void SelectableSymbol::paint(QPainter* painter, const QStyleOptionGraphicsItem* 
 
 QRectF SelectableSymbol::boundingRect() const
 {
-    return QRectF(- SYMBOL_SIZE/2 - 1, - SYMBOL_SIZE/2 - 1, SYMBOL_SIZE + 2, SYMBOL_SIZE + 2);
+    return QRectF(-1, -1, 2, 2);
 }
 
 
