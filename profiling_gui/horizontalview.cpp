@@ -107,6 +107,10 @@ void HorizontalView::mouseReleaseEvent(QMouseEvent* event)
         viewport()->update();
         emit rangeHighlighted(0);
     }
+    else
+    {
+        QGraphicsView::mouseReleaseEvent(event);
+    }
 }
 
 void HorizontalView::mouseMoveEvent(QMouseEvent* event)

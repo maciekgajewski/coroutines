@@ -5,6 +5,8 @@
 #include <QGraphicsSceneMouseEvent>
 #include <QGraphicsScene>
 
+#include <QDebug>
+
 namespace profiling_gui {
 
 SelectableRectangle::SelectableRectangle(double l, double t, double w, double h) : QGraphicsRectItem(l, t, w, h)
@@ -25,7 +27,8 @@ void SelectableRectangle::paint(QPainter* painter, const QStyleOptionGraphicsIte
     painter->setPen(p);
     painter->setBrush(brush());
 
-    painter->drawRect(rect());
+    painter->drawRect(boundingRect());
+
 }
 
 
@@ -49,7 +52,6 @@ void SelectableRectangle::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 {
     event->ignore();
 }
-
 
 SelectableLine::SelectableLine(double x1, double y1, double x2, double y2) : QGraphicsLineItem(x1, y1, x2, y2)
 {

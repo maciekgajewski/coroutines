@@ -245,22 +245,27 @@ void FlowDiagram::onSpinlockRecord(const profiling_reader::record_type& record, 
 
 void FlowDiagram::onMonitorRecord(const profiling_reader::record_type& record, FlowDiagram::ThreadData& thread)
 {
+    QGraphicsPolygonItem* item = nullptr;
     if (record.event == "wait")
     {
-        QPointF pos(record.time_ns, thread.y);
-
-        auto* item = new SelectableSymbol(pos, SelectableSymbol::SHAPE_TRIANGLE_LEFT, Qt::white, 12);
+        item = new QGraphicsPolygonItem(QPolygonF() << QPointF(0.5, 0.86) << QPointF(-1.0, 0) << QPointF(0.5, -0.86));
         item->setToolTip(QString("wait: %1").arg(QString::fromStdString(record.data)));
-        item->setZValue(2.0);
-        _scene->addItem(item);
     }
     else if (record.event == "wake_all" || record.event == "wake_one")
     {
-        QPointF pos(record.time_ns, thread.y);
-
-        auto* item = new SelectableSymbol(pos, SelectableSymbol::SHAPE_TRIANGLE_RIGHT, Qt::white, 12);
+        item = new QGraphicsPolygonItem(QPolygonF() << QPointF(-0.5, 0.86) << QPointF(1.0, 0) << QPointF(-0.5, -0.86));
         item->setToolTip(QString::fromStdString(record.event));
+    }
+
+    if (item)
+    {
+        item->setPos(record.time_ns, thread.y);
+        item->setTransform(QTransform().scale(6, 6));
+        item->setFlag(QGraphicsItem::ItemIgnoresTransformations);
         item->setZValue(2.0);
+        QPen p(Qt::black);
+        p.setCosmetic(true);
+        item->setPen(p);
         _scene->addItem(item);
     }
 }
