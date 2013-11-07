@@ -20,8 +20,6 @@ void tcp_resolve(const std::string& hostname, const std::string& service, std::v
     addrinfo* result = nullptr;
     std::memset(&hints, 0, sizeof(addrinfo));
 
-    block("address resolution started");
-
     int r = getaddrinfo(
         hostname.c_str(),
         service.c_str(),
@@ -30,8 +28,6 @@ void tcp_resolve(const std::string& hostname, const std::string& service, std::v
 
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
-
-    unblock("address resolution finished");
 
     if (r != 0)
     {
