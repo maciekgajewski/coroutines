@@ -87,30 +87,38 @@ void scheduler::coroutine_finished(coroutine* coro)
 
 void scheduler::processor_starved(processor* pc)
 {
-    CORO_LOG("SCHED: processor ", pc, " idle");
+    CORO_LOG("SCHED: processor ", pc, " starved");
 
     {
         std::lock_guard<mutex> lock(_processors_mutex);
 
         unsigned index = _processors.index_of(pc);
-        if (index < _active_processors+_blocked_processors)
+        if (index < _active_processors + _blocked_processors)
         {
             // give him the global queue
             if (!_global_queue.empty())
             {
+                CORO_LOG("SCHED: scheduleing ", _global_queue.size(), " coros from global queue");
                 pc->enqueue(_global_queue.begin(), _global_queue.end());
                 _global_queue.clear();
             }
-
-            // try to steal
-            unsigned most_busy = _processors.most_busy_index(0, _active_processors);
-            std::vector<coroutine_weak_ptr> stolen;
-            _processors[most_busy].steal(stolen);
-            // if stealing successful - reactivate
-            if (!stolen.empty())
+            else
             {
-                CORO_LOG("SCHED: stolen ", stolen.size(), " coros for proc=", pc, " from proc=", &_processors[most_busy]);
-                pc->enqueue(stolen.begin(), stolen.end());
+                // try to steal
+                unsigned most_busy = _processors.most_busy_index(0, _active_processors);
+                std::vector<coroutine_weak_ptr> stolen;
+                _processors[most_busy].steal(stolen);
+                // if stealing successful - reactivate
+                if (!stolen.empty())
+                {
+                    CORO_LOG("SCHED: stolen ", stolen.size(), " coros for proc=", pc, " from proc=", &_processors[most_busy]);
+                    pc->enqueue(stolen.begin(), stolen.end());
+                }
+                else
+                {
+                    // ok, no global q, nothing stolen. This guy indeed is starved
+                    _starved_processors.push_back(pc);
+                }
             }
         }
         // else: I don't care, you are in exile
@@ -159,6 +167,11 @@ void scheduler::remove_inactive_processors()
         CORO_LOG("SCHED: processors: ", _processors.size(), ", blocked: ", _blocked_processors, ", cleaning up");
         if (_processors.back().stop_if_idle())
         {
+
+            _starved_processors.erase(
+                std::remove(_starved_processors.begin(), _starved_processors.end(), &_processors.back()),
+                _starved_processors.end());
+
             _processors.pop_back();
         }
         else
@@ -191,7 +204,18 @@ void scheduler::schedule(InputIterator first,  InputIterator last)
 
     std::lock_guard<mutex> lock(_processors_mutex);
 
-    CORO_LOG("SCHED: scheduling corountine, will add to random processor");
+    // first - if there is any starved processor - use it
+    if (!_starved_processors.empty())
+    {
+        CORO_LOG("SCHED: scheduling corountine, will add to starved processor");
+        processor_weak_ptr starved = _starved_processors.back();
+        _starved_processors.pop_back();
+        bool r = starved->enqueue(first, last);
+        assert(r); // ot so sure about it...
+        return;
+    }
+
+    CORO_LOG("SCHED: scheduling corountine, will try to add to random processor");
     unsigned index = random_index();
 
     for(unsigned i = 0; i < _active_processors + _blocked_processors; ++i)
