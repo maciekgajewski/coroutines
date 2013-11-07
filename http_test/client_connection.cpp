@@ -26,7 +26,7 @@ bool ci_equal(const StringA& a, const StringB& b)
 
 void client_connection::start()
 {
-    //std::cout << "conenction from: " << _socket.remote_endpoint() << std::endl;
+    //std::cout << "HTTP: conenction from: " << _socket.remote_endpoint() << std::endl;
 
     try
     {
@@ -40,10 +40,13 @@ void client_connection::start()
             http_request request(istream);
             try
             {
+                //std::cout << "HTTP: reading header..." << std::endl;
                 request.read_header();
+                //std::cout << "HTTP: header read OK" << std::endl;
             }
             catch(const Poco::Net::NoMessageException&)
             {
+                //std::cout << "HTTP: no message" << std::endl;
                 return;
             }
 

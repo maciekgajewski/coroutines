@@ -133,7 +133,7 @@ void locking_channel<T>::put(T v)
 {
     std::lock_guard<mutex> lock(_mutex);
 
-    _producers_cv.wait(_write_checkpoint, _mutex, [=]()// WARNING: the value of _Wr & _rd may be different before and after waiting (modified by another threads)
+    _producers_cv.wait(_write_checkpoint, _mutex, [=]()// WARNING: the value of _wr & _rd may be different before and after waiting (modified by another threads)
     {
         return _rd != wr_next() || _closed;
     });

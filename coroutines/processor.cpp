@@ -39,6 +39,8 @@ bool processor::enqueue(InputIterator first, InputIterator last)
         _queue.insert(_queue.end(), first, last);
     }
 
+    CORO_LOG("PROC=", this, " enqueued ", std::distance(first, last), " coros, waking up");
+
     _cv.notify_one();
     return true;
 }
@@ -110,7 +112,8 @@ processor* processor::current_processor()
 
 void processor::routine()
 {
-    CORO_PROF("processor", this, "routine started");
+    CORO_PROF("PROC=", this, "routine started");
+    CORO_LOG("PROC=", this, " routine started");
 
     __current_processor = this;
     struct scope_exit { ~scope_exit() { __current_processor = nullptr; } } exit;

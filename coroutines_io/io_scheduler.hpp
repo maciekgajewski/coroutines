@@ -19,7 +19,7 @@ public:
 
     scheduler& get_scheduler() { return _scheduler; }
 
-    // servuices provided
+    // services provided
     void wait_for_writable(int fd, const channel_writer<std::error_code>& writer);
     void wait_for_readable(int fd, const channel_writer<std::error_code>& writer);
 

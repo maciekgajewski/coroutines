@@ -27,12 +27,14 @@ io_scheduler::~io_scheduler()
 
 void io_scheduler::wait_for_writable(int fd, const channel_writer<std::error_code>& writer)
 {
+    CORO_LOG("SERV: wait for writable fd=", fd);
     _command_writer.put(command{fd, FD_WRITABLE, writer});
     _poller.wake();
 }
 
 void io_scheduler::wait_for_readable(int fd, const channel_writer<std::error_code>& writer)
 {
+    CORO_LOG("SERV: wait for readable fd=", fd);
     _command_writer.put(command{fd, FD_READABLE, writer});
     _poller.wake();
 }
@@ -108,6 +110,7 @@ void io_scheduler::loop()
             {
                 ec = std::error_code(err, std::system_category());
             }
+            CORO_LOG("SERV: sending event on fd=", it->second.fd, " ec=", ec);
 
             it->second.writer.put(ec);
             commands.erase(it);

@@ -43,6 +43,7 @@ void server()
         for(;;)
         {
             tcp_socket sock = acc.accept();
+            //std::cout << "HTTP: connection accepted" << std::endl;
             go("client connection", start_client_connection, std::move(sock));
         }
     }
