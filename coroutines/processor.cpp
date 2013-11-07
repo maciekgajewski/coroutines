@@ -105,6 +105,36 @@ unsigned processor::queue_size()
     return _queue.size() + _executing;
 }
 
+void processor::block()
+{
+    CORO_LOG("PROC=", this, " block");
+    CORO_PROF("processor", this, "block");
+
+    std::vector<coroutine_weak_ptr> queue;
+    {
+        std::lock_guard<mutex> lock(_queue_mutex);
+
+        queue.reserve(_queue.size());
+        std::copy(_queue.begin(), _queue.end(), std::back_inserter(queue));
+        _queue.clear();
+        _blocked = true;
+    }
+
+    _scheduler.processor_blocked(this, queue);
+}
+
+void processor::unblock()
+{
+    CORO_LOG("PROC=", this, " unblock");
+    CORO_PROF("processor", this, "unblock");
+
+    {
+        std::lock_guard<mutex> lock(_queue_mutex);
+        _blocked = false;
+    }
+    _scheduler.processor_unblocked(this);
+}
+
 processor* processor::current_processor()
 {
     return __current_processor;

@@ -300,6 +300,58 @@ void nonblocking_coro(std::atomic<int>& counter, int spawns)
     }
 }
 
+void test_blocking_coros()
+{
+    scheduler sched(4);
+    set_scheduler(&sched);
+
+    std::cout << "(this test should take approx. one second)" << std::endl;
+
+    std::atomic<int> nonblocking(0);
+    std::atomic<int> blocking(0);
+
+    const int SERIES = 10;
+    const int NON_BLOCKING_PER_SER = 10;
+    const int NON_BLOCKING_SPAWNS = 10;
+
+    for(int s = 0; s < SERIES; s++)
+    {
+        // start on that will block
+        go("test_blocking_coros blocking", [&blocking]()
+        {
+            blocking++;
+            block();
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            unblock();
+
+            blocking++;
+            block();
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            unblock();
+
+            blocking++;
+        });
+
+        // start some non-blocking coroutines
+        for(int i = 0; i < NON_BLOCKING_PER_SER; i++)
+        {
+            go("test_blocking_coros nonblocking", [&nonblocking]()
+            {
+                nonblocking_coro(nonblocking, NON_BLOCKING_SPAWNS);
+            });
+        }
+
+        // the entire test should block for bit more than 1 second
+    }
+
+
+    sched.wait();
+    set_scheduler(nullptr);
+
+    TEST_EQUAL(nonblocking, SERIES*NON_BLOCKING_PER_SER*NON_BLOCKING_SPAWNS);
+    TEST_EQUAL(blocking, SERIES*3);
+}
+
 void test_multiple_readers()
 {
     scheduler sched(4);
@@ -556,6 +608,7 @@ int main(int , char** )
     RUN_TEST(test_large_transfer);
     RUN_TEST(test_nestet_coros);
     RUN_TEST(test_muchos_coros);
+    RUN_TEST(test_blocking_coros);
     RUN_TEST(test_multiple_readers);
     RUN_TEST(test_multiple_writers);
     RUN_TEST(tree_traverse_test);

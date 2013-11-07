@@ -48,6 +48,7 @@ void scheduler::debug_dump()
     std::cerr << "          active coroutines now: " << _coroutines.size() << std::endl;
     std::cerr << "     max active coroutines seen: " << _max_active_coroutines << std::endl;
     std::cerr << "               no of processors: " << _processors.size();
+    std::cerr << "       no of blocked processors: " << _blocked_processors;
 
     std::cerr << std::endl;
     std::cerr << " Active coroutines:" << std::endl;
@@ -92,7 +93,7 @@ void scheduler::processor_idle(processor* pc)
         std::lock_guard<mutex> lock(_processors_mutex);
 
         unsigned index = _processors.index_of(pc);
-        if (index < _active_processors)
+        if (index < _active_processors+_blocked_processors)
         {
             // give him the global queue
             if (!_global_queue.empty())
@@ -116,10 +117,61 @@ void scheduler::processor_idle(processor* pc)
     }
 }
 
-// returns uniform random number between 0 and _active_processors-1
+void scheduler::processor_blocked(processor_weak_ptr pc, std::vector<coroutine_weak_ptr>& queue)
+{
+    // move to blocked, schedule coroutines
+    {
+        std::lock_guard<mutex> lock(_processors_mutex);
+
+        CORO_LOG("SCHED: proc=", pc, " blocked");
+
+        _blocked_processors++;
+
+        if (_processors.size() < _active_processors + _blocked_processors)
+        {
+            _processors.emplace_back(*this);
+        }
+    }
+    // the procesor will now continue in blocked state
+
+
+    // schedule coroutines
+    schedule(queue.begin(), queue.end());
+}
+
+void scheduler::processor_unblocked(processor_weak_ptr pc)
+{
+    std::lock_guard<mutex> lock(_processors_mutex);
+
+    CORO_LOG("SCHED: proc=", pc, " unblocked");
+
+    assert(_blocked_processors > 0);
+    _blocked_processors--;
+
+    remove_inactive_processors();
+}
+
+
+void scheduler::remove_inactive_processors()
+{
+    while(_processors.size() > _active_processors*2 + _blocked_processors)
+    {
+        CORO_LOG("SCHED: processors: ", _processors.size(), ", blocked: ", _blocked_processors, ", cleaning up");
+        if (_processors.back().stop_if_idle())
+        {
+            _processors.pop_back();
+        }
+        else
+        {
+            break; // some task is running, we'll come for him the next time
+        }
+    }
+}
+
+// returns uniform random number between 0 and _max_allowed_running_coros
 unsigned scheduler::random_index()
 {
-    std::uniform_int_distribution<unsigned> dist(0, _active_processors-1);
+    std::uniform_int_distribution<unsigned> dist(0, _active_processors+_blocked_processors-1);
     return dist(_random_generator);
 }
 
@@ -142,14 +194,14 @@ void scheduler::schedule(InputIterator first,  InputIterator last)
     CORO_LOG("SCHED: scheduling corountine, will add to random processor");
     unsigned index = random_index();
 
-    for(unsigned i = 0; i < _active_processors; ++i)
+    for(unsigned i = 0; i < _active_processors + _blocked_processors; ++i)
     {
         if (_processors[index].enqueue(first, last))
         {
             CORO_LOG("SCHED: scheduling corountines, added to proc=", &_processors[index], ", index=", index);
             return;
         }
-        index = (index + 1) % _active_processors;
+        index = (index + 1) % ( _active_processors + _blocked_processors);
     }
 
     // total failure, add to global queue?

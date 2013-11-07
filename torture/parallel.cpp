@@ -40,13 +40,17 @@ public:
 
     std::size_t read(void* buf, std::size_t max)
     {
-        std::size_t r = ::fread(buf, 1, max, _f);
+        block();
+            std::size_t r = ::fread(buf, 1, max, _f);
+        unblock();
         return r;
     }
 
     std::size_t write(void* buf, std::size_t size)
     {
-        std::size_t r = ::fwrite(buf, size, 1, _f);
+        block();
+            std::size_t r = ::fwrite(buf, size, 1, _f);
+        unblock();
         return r;
     }
 

@@ -91,7 +91,10 @@ void io_scheduler::loop()
 
         // poll!
         keys.clear();
-        _poller.wait(keys);
+        block([&]()
+        {
+            _poller.wait(keys);
+        });
 
         CORO_LOG("SERV: ", keys.size(), " events ready");
 

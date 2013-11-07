@@ -41,6 +41,10 @@ public:
     // number of tasks in the queue (including currently executed)
     unsigned queue_size();
 
+    // block/unblock
+    void block();
+    void unblock();
+
     static processor* current_processor();
 
 private:
