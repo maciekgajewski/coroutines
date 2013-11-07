@@ -85,7 +85,7 @@ void scheduler::coroutine_finished(coroutine* coro)
     }
 }
 
-void scheduler::processor_idle(processor* pc)
+void scheduler::processor_starved(processor* pc)
 {
     CORO_LOG("SCHED: processor ", pc, " idle");
 

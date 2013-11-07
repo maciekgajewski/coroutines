@@ -56,9 +56,8 @@ public:
     ///////
     // processor's interface
 
-    void processor_idle(processor* pr);
+    void processor_starved(processor* pr);
     void processor_blocked(processor_weak_ptr pr, std::vector<coroutine_weak_ptr>& queue);
-
     void processor_unblocked(processor_weak_ptr pr);
 
     void schedule(coroutine_weak_ptr coro);

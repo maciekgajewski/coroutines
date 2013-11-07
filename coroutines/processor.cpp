@@ -151,14 +151,15 @@ void processor::routine()
     for(;;)
     {
         // am I short on jobs?
-        bool no_jobs = false;
+        bool starved = false;
         {
             std::lock_guard<mutex> lock(_queue_mutex);
             _executing = false;
-            no_jobs = _queue.empty();
+            starved = _queue.empty();
         }
-        if(no_jobs)
-            _scheduler.processor_idle(this); // ask for more
+        // call scheduler outside of critical section
+        if(starved)
+            _scheduler.processor_starved(this); // ask for more
 
         // take coro from queue
         coroutine_weak_ptr coro = nullptr;
