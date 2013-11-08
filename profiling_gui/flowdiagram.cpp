@@ -8,8 +8,8 @@
 namespace profiling_gui {
 
 static const double THREAD_Y_SPACING = 100.0;
-static const double CORO_H = 5; // half-heights
-static const double BLOCK_H = 4;
+static const double CORO_H = 10; // half-heights
+static const double BLOCK_H = 9;
 static const double WAIT_H = 3;
 
 
@@ -242,6 +242,57 @@ void FlowDiagram::onSpinlockRecord(const profiling_reader::record_type& record, 
             item->setZValue(2.0);
             _scene->addItem(item);
         }
+
+        // it's also "locked"
+        if (spinlock.lastLockedTime.contains(record.thread_id))
+        {
+            qWarning() << "Spinlock: 'spinning end' while already locked id=" << record.object_id << "time=" << record.time_ns;
+        }
+        spinlock.lastLockedTime[record.thread_id] = record.time_ns;
+    }
+
+    else if (record.event == "locked")
+    {
+        if (spinlock.lastLockedTime.contains(record.thread_id))
+        {
+            qWarning() << "Spinlock: 'lockedd' while already locked id=" << record.object_id << "time=" << record.time_ns;
+        }
+        spinlock.lastLockedTime[record.thread_id] = record.time_ns;
+    }
+
+    else if (record.event == "unlocked" && !spinlock.name.endsWith("run mutex")) // run mutex is held for way too long
+    {
+        if (!spinlock.lastLockedTime.contains(record.thread_id))
+        {
+            qWarning() << "Spinlock: 'unlocked' without 'locked'! id=" << record.object_id << "time=" << record.time_ns;
+        }
+        else
+        {
+            double blockX = spinlock.lastLockedTime[record.thread_id];
+            double unblockX = record.time_ns;
+            double y = thread.y;
+
+            spinlock.lastLockedTime.remove(record.thread_id);
+
+            auto* item = new QGraphicsRectItem(blockX, y-WAIT_H, unblockX-blockX, 2*WAIT_H);
+            item->setBrush(spinlock.color);
+
+            QPen p(Qt::green);
+            p.setCosmetic(true);
+            item->setPen(p);
+
+            if (spinlock.name.isEmpty())
+            {
+                item->setToolTip(QString("holding mutex 0x%1").arg(record.object_id, 0 , 16));
+            }
+            else
+            {
+                item->setToolTip(QString("holding mutex '%1' (0x%2)").arg(spinlock.name).arg(record.object_id, 0 , 16));
+            }
+            item->setZValue(2.0);
+            _scene->addItem(item);
+        }
+
     }
 }
 

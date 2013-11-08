@@ -54,6 +54,7 @@ private:
 
         // per thread
         QHash<std::size_t ,std::uint64_t> lastSpinningBeginTime;
+        QHash<std::size_t ,std::uint64_t> lastLockedTime;
     };
 
     // first param is time in ns adjusted

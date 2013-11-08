@@ -46,11 +46,24 @@ public:
 
     bool try_lock()
     {
-        return !_flag.test_and_set(std::memory_order_acquire);
+        #ifdef COROUTINES_SPINLOCKS_PROFILING
+            if (!_flag.test_and_set(std::memory_order_acquire))
+            {
+                CORO_PROF("spinlock", this, "locked");
+                return true;
+            }
+            else
+                return false;
+        #else
+            return !_flag.test_and_set(std::memory_order_acquire);
+        #endif
     }
 
     void unlock()
     {
+        #ifdef COROUTINES_SPINLOCKS_PROFILING
+            CORO_PROF("spinlock", this, "unlocked");
+        #endif
         _flag.clear(std::memory_order_release);
     }
 
