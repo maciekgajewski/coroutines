@@ -9,6 +9,7 @@
 
 #include <QGraphicsScene>
 #include <QMap>
+#include <QHash>
 
 #include <random>
 #include <limits>
@@ -51,8 +52,8 @@ private:
         QString name;
         QColor color;
 
-        std::uint64_t lastSpinningBeginTime = 0;
-        std::size_t lastSpinningBeginThread;
+        // per thread
+        QHash<std::size_t ,std::uint64_t> lastSpinningBeginTime;
     };
 
     // first param is time in ns adjusted

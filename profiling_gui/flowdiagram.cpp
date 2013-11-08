@@ -203,30 +203,34 @@ void FlowDiagram::onSpinlockRecord(const profiling_reader::record_type& record, 
 
     else if (record.event == "spinning begin")
     {
-        spinlock.lastSpinningBeginTime = record.time_ns;
-        spinlock.lastSpinningBeginThread = record.thread_id;
+        if (spinlock.lastSpinningBeginTime.contains(record.thread_id))
+        {
+            qWarning() << "Spinlock: 'spinning begin' with one already open! id=" << record.object_id << "time=" << record.time_ns;
+        }
+        spinlock.lastSpinningBeginTime[record.thread_id] = record.time_ns;
     }
 
     else if (record.event == "spinning end")
     {
-        if (spinlock.lastSpinningBeginTime == 0)
+        if (!spinlock.lastSpinningBeginTime.contains(record.thread_id))
         {
             qWarning() << "Spinlock: 'spinning end' without 'spinning begin'! id=" << record.object_id << "time=" << record.time_ns;
         }
-        else if (spinlock.lastSpinningBeginThread != record.thread_id)
-        {
-            qWarning() << "Spinlock: 'spinning end' in different thread than 'spinning begin'! id=" << record.object_id << "time=" << record.time_ns;
-        }
         else
         {
-            double blockX = spinlock.lastSpinningBeginTime;
+            double blockX = spinlock.lastSpinningBeginTime[record.thread_id];
             double unblockX = record.time_ns;
             double y = thread.y;
 
-            spinlock.lastSpinningBeginTime = 0;
+            spinlock.lastSpinningBeginTime.remove(record.thread_id);
 
             auto* item = new QGraphicsRectItem(blockX, y-WAIT_H, unblockX-blockX, 2*WAIT_H);
             item->setBrush(spinlock.color);
+
+            QPen p(Qt::red);
+            p.setCosmetic(true);
+            item->setPen(p);
+
             if (spinlock.name.isEmpty())
             {
                 item->setToolTip(QString("waiting for mutex 0x%1").arg(record.object_id, 0 , 16));
