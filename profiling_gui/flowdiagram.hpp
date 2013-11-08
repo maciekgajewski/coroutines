@@ -51,8 +51,8 @@ private:
         QString name;
         QColor color;
 
-        std::uint64_t lastLockingTime = 0;
-        std::size_t lastLockingThread;
+        std::uint64_t lastSpinningBeginTime = 0;
+        std::size_t lastSpinningBeginThread;
     };
 
     // first param is time in ns adjusted

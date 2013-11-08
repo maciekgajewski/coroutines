@@ -32,12 +32,15 @@ public:
     void lock()
     {
         #ifdef COROUTINES_SPINLOCKS_PROFILING
-            CORO_PROF("spinlock", this, "locking");
+            // only report contested lock events
+            if (try_lock())
+                return;
+            CORO_PROF("spinlock", this, "spinning begin");
         #endif
         while(_flag.test_and_set(std::memory_order_acquire))
             ; // spin
         #ifdef COROUTINES_SPINLOCKS_PROFILING
-            CORO_PROF("spinlock", this, "locked");
+            CORO_PROF("spinlock", this, "spinning end");
         #endif
     }
 

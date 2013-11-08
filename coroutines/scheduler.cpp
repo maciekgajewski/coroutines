@@ -14,8 +14,8 @@ namespace coroutines {
 scheduler::scheduler(unsigned active_processors)
     : _active_processors(active_processors)
     , _processors()
-    , _processors_mutex("processor mutex")
-    , _coroutines_mutex("coroutines mutex")
+    , _processors_mutex("sched processors mutex")
+    , _coroutines_mutex("sched coroutines mutex")
     , _random_generator(std::random_device()())
 {
     assert(active_processors > 0);

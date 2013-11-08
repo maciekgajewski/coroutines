@@ -201,29 +201,29 @@ void FlowDiagram::onSpinlockRecord(const profiling_reader::record_type& record, 
         spinlock.name = QString::fromStdString(record.data);
     }
 
-    else if (record.event == "locking")
+    else if (record.event == "spinning begin")
     {
-        spinlock.lastLockingTime = record.time_ns;
-        spinlock.lastLockingThread = record.thread_id;
+        spinlock.lastSpinningBeginTime = record.time_ns;
+        spinlock.lastSpinningBeginThread = record.thread_id;
     }
 
-    else if (record.event == "locked")
+    else if (record.event == "spinning end")
     {
-        if (spinlock.lastLockingTime == 0)
+        if (spinlock.lastSpinningBeginTime == 0)
         {
-            qWarning() << "Spinlock: 'locked' without 'locking'! id=" << record.object_id << "time=" << record.time_ns;
+            qWarning() << "Spinlock: 'spinning end' without 'spinning begin'! id=" << record.object_id << "time=" << record.time_ns;
         }
-        else if (spinlock.lastLockingThread != record.thread_id)
+        else if (spinlock.lastSpinningBeginThread != record.thread_id)
         {
-            qWarning() << "Spinlock: 'locked' in different thread thatn 'locking'! id=" << record.object_id << "time=" << record.time_ns;
+            qWarning() << "Spinlock: 'spinning end' in different thread thatn 'spinning begin'! id=" << record.object_id << "time=" << record.time_ns;
         }
         else
         {
-            double blockX = spinlock.lastLockingTime;
+            double blockX = spinlock.lastSpinningBeginTime;
             double unblockX = record.time_ns;
             double y = thread.y;
 
-            spinlock.lastLockingTime = 0;
+            spinlock.lastSpinningBeginTime = 0;
 
             auto* item = new QGraphicsRectItem(blockX, y-WAIT_H, unblockX-blockX, 2*WAIT_H);
             item->setBrush(spinlock.color);
