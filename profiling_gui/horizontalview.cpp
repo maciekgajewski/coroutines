@@ -25,8 +25,6 @@ void HorizontalView::showAll()
         _viewStart = sceneRect.left();
         _viewEnd = sceneRect.right();
         updateTransformation();
-
-        qDebug() << "showAll:" << _viewStart << _viewEnd;
     }
 }
 

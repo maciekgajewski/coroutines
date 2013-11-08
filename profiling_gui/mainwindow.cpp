@@ -7,10 +7,13 @@
 #include "ui_mainwindow.h"
 
 #include <QFileDialog>
+#include <QSettings>
 
 #include <QDebug>
 
 namespace profiling_gui {
+
+static const int MAX_MRD = 5;
 
 MainWindow::MainWindow(QWidget *parent)
 :
@@ -24,9 +27,11 @@ MainWindow::MainWindow(QWidget *parent)
     _ui->coroutineView->setSelectionModel(_coroutinesModel.selectionModel());
 
     connect(_ui->actionExit, SIGNAL(triggered()), QApplication::instance(), SLOT(quit()));
-    connect(_ui->actionOpen, SIGNAL(triggered()), SLOT(openFileDialog()));
+//    connect(_ui->actionOpen, SIGNAL(triggered()), SLOT(openFileDialog()));
 
     connect(_ui->mainView, SIGNAL(rangeHighlighted(uint)), SLOT(timeRangeHighlighted(uint)));
+
+    loadSettings();
 }
 
 MainWindow::~MainWindow()
@@ -43,9 +48,16 @@ void MainWindow::loadFile(const QString& path)
 
     _ui->mainView->showAll();
     _ui->coroutineView->resizeColumnToContents(0);
+
+    // after successful load, add to mrd
+    _mrd.removeAll(path);
+    _mrd.push_front(path);
+    while (_mrd.size() > MAX_MRD)
+        _mrd.pop_back();
+    setMrd(_mrd);
 }
 
-void MainWindow::openFileDialog()
+void MainWindow::on_actionOpen_triggered()
 {
     QString fileName = QFileDialog::getOpenFileName(this, "Open profiling dump file");
     if (!fileName.isNull())
@@ -60,6 +72,54 @@ void MainWindow::timeRangeHighlighted(unsigned ns)
         statusBar()->showMessage(QString("range: %1").arg(nanosToString(ns)));
     else
         statusBar()->clearMessage();
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    QMainWindow::closeEvent(event);
+    writeSettings();
+}
+
+void MainWindow::loadSettings()
+{
+    QSettings settings("coroutines", "profiling_gui");
+
+    // mrd list
+    _mrd = settings.value("mrd").toStringList();
+    setMrd(_mrd);
+}
+
+void MainWindow::writeSettings()
+{
+    QSettings settings("coroutines", "profiling_gui");
+
+    settings.setValue("mrd", _mrd);
+}
+
+void MainWindow::setMrd(const QStringList& mrd)
+{
+    // clear previous actions
+    for(QAction* a : _mrdActions)
+    {
+        delete a;
+    }
+    _mrdActions.clear();
+
+    if (!mrd.empty())
+    {
+        _mrdActions.append(_ui->menuFile->insertSeparator(_ui->actionExit));
+
+        for(const QString& file : mrd)
+        {
+            QAction* action = new QAction(file, _ui->menuFile);
+            _ui->menuFile->insertAction(_ui->actionExit, action);
+
+            connect(action, &QAction::triggered, [this, file]() { this->loadFile(file); });
+            _mrdActions.append(action);
+        }
+
+        _mrdActions.append(_ui->menuFile->insertSeparator(_ui->actionExit));
+    }
 }
 
 }

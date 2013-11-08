@@ -215,7 +215,7 @@ void FlowDiagram::onSpinlockRecord(const profiling_reader::record_type& record, 
         }
         else if (spinlock.lastSpinningBeginThread != record.thread_id)
         {
-            qWarning() << "Spinlock: 'spinning end' in different thread thatn 'spinning begin'! id=" << record.object_id << "time=" << record.time_ns;
+            qWarning() << "Spinlock: 'spinning end' in different thread than 'spinning begin'! id=" << record.object_id << "time=" << record.time_ns;
         }
         else
         {
