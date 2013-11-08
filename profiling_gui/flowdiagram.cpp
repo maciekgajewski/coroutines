@@ -5,8 +5,6 @@
 
 #include <QDebug>
 
-#include <random>
-
 namespace profiling_gui {
 
 static const double THREAD_Y_SPACING = 100.0;
@@ -24,7 +22,9 @@ FlowDiagram::FlowDiagram(QObject *parent) :
 
 void FlowDiagram::loadFile(const QString& path, QGraphicsScene* scene, CoroutinesModel& coroutinesModel)
 {
+    _random_generator.seed();
     _scene = scene;
+    _scene->setSceneRect(QRectF());
     profiling_reader::reader reader(path.toStdString());
 
     // collect data
@@ -96,7 +96,7 @@ void FlowDiagram::loadFile(const QString& path, QGraphicsScene* scene, Coroutine
             coro.color,
             coro.totalTime // time executed, ns
         };
-        coroutinesModel.Append(r);
+        coroutinesModel.append(r);
     }
 
     // fix scene rectangle height, s there is half-spacing margin above and below the firsrt and the last thread
@@ -115,13 +115,11 @@ void FlowDiagram::loadFile(const QString& path, QGraphicsScene* scene, Coroutine
     }
 }
 
-static QColor randomColor(int baseV = 172)
+QColor FlowDiagram::randomColor(int baseV)
 {
-    static std::minstd_rand0 generator;
-
-    int h = std::uniform_int_distribution<int>(0, 255)(generator);
-    int s = 172 + std::uniform_int_distribution<int>(0, 63)(generator);
-    int v = baseV + std::uniform_int_distribution<int>(-32, +32)(generator);
+    int h = std::uniform_int_distribution<int>(0, 255)(_random_generator);
+    int s = 172 + std::uniform_int_distribution<int>(0, 63)(_random_generator);
+    int v = baseV + std::uniform_int_distribution<int>(-32, +32)(_random_generator);
 
     return QColor::fromHsv(h, s, v);
 }

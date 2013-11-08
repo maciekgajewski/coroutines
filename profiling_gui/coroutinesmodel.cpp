@@ -16,13 +16,20 @@ CoroutinesModel::CoroutinesModel(QObject *parent) :
     connect(&_selectionModel, SIGNAL(currentRowChanged(QModelIndex,QModelIndex)), SLOT(onSelectionChanged(QModelIndex)));
 }
 
-void CoroutinesModel::Append(const CoroutinesModel::Record& record)
+void CoroutinesModel::append(const CoroutinesModel::Record& record)
 {
     beginInsertRows(QModelIndex(), _records.size(), _records.size());
 
     _records.append(record);
 
     endInsertRows();
+}
+
+void CoroutinesModel::clear()
+{
+    beginResetModel();
+    _records.clear();
+    endResetModel();
 }
 
 QVariant CoroutinesModel::data(const QModelIndex& index, int role) const

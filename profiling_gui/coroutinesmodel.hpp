@@ -25,7 +25,8 @@ public:
         double timeExecuted;
     };
 
-    void Append(const Record& record);
+    void append(const Record& record);
+    void clear();
 
     virtual int rowCount(const QModelIndex& parent = QModelIndex()) const override
     {

@@ -10,6 +10,7 @@
 #include <QGraphicsScene>
 #include <QMap>
 
+#include <random>
 #include <limits>
 
 namespace profiling_gui {
@@ -62,10 +63,14 @@ private:
     void onSpinlockRecord(const profiling_reader::record_type& record, ThreadData& thread);
     void onMonitorRecord(const profiling_reader::record_type& record, ThreadData& thread);
 
+    QColor randomColor(int baseV = 172);
+
     QGraphicsScene* _scene;
     QMap<std::size_t, ThreadData> _threads;
     QMap<std::uintptr_t, CoroutineData> _coroutines;
     QMap< std::uintptr_t, SpinlockData> _spinlocks;
+
+    std::minstd_rand0 _random_generator;
 };
 
 }

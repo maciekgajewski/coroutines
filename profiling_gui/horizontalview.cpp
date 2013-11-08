@@ -12,7 +12,6 @@ static const int DRAG_THRESHOLD = 10; // in px
 HorizontalView::HorizontalView(QWidget *parent) :
     QGraphicsView(parent)
 {
-    //setDragMode(ScrollHandDrag);
     setRenderHint(QPainter::Antialiasing);
     setCursor(Qt::CrossCursor);
 }
@@ -26,6 +25,8 @@ void HorizontalView::showAll()
         _viewStart = sceneRect.left();
         _viewEnd = sceneRect.right();
         updateTransformation();
+
+        qDebug() << "showAll:" << _viewStart << _viewEnd;
     }
 }
 

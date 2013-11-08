@@ -26,7 +26,8 @@ public:
 
 private slots:
 
-    void timeRangeHighted(unsigned ns);
+    void openFileDialog();
+    void timeRangeHighlighted(unsigned ns);
 
 private:
     Ui::MainWindow *_ui;
