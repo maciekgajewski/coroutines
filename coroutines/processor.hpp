@@ -27,6 +27,12 @@ public:
     template<typename InputIterator>
     bool enqueue(InputIterator first, InputIterator last);
 
+    // variations that assume procesors availability
+    void enqueue_or_die(coroutine_weak_ptr coro);
+
+    template<typename InputIterator>
+    void enqueue_or_die(InputIterator first, InputIterator last);
+
     // shuts the processor down, returns true if no tasks in the queue and processor can be destroyed
     // if false returned, the processor will stop after exhaustingf the queue
     bool stop();
@@ -67,6 +73,20 @@ private:
 
 typedef std::unique_ptr<processor> processor_ptr;
 typedef processor* processor_weak_ptr;
+
+inline
+void processor::enqueue_or_die(coroutine_weak_ptr coro)
+{
+    if (!enqueue(coro))
+        std::terminate();
+}
+
+template<typename InputIterator>
+void processor::enqueue_or_die(InputIterator first, InputIterator last)
+{
+    if (!enqueue(first, last))
+        std::terminate();
+}
 
 
 } // namespace coroutines

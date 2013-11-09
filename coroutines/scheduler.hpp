@@ -77,15 +77,19 @@ private:
     unsigned _blocked_processors = 0;
 
     processor_container _processors;
-    std::vector<processor_weak_ptr> _starved_processors;
     mutex _processors_mutex;
+
+    std::vector<processor_weak_ptr> _starved_processors;
+    mutex _starved_processors_mutex;
 
     std::vector<coroutine_ptr> _coroutines;
     mutex _coroutines_mutex;
+
     std::condition_variable_any _coro_cv;
     std::size_t _max_active_coroutines = 0; // stat counter
 
     std::vector<coroutine_weak_ptr> _global_queue;
+    mutex _global_queue_mutex;
 
     std::minstd_rand _random_generator;
 };
