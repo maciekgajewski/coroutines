@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <thread>
+#include <chrono>
 
 #include <signal.h>
 
@@ -295,7 +296,7 @@ void nonblocking_coro(std::atomic<int>& counter, int spawns)
     if (spawns > 0)
     {
         counter++;
-        std::this_thread::sleep_for(std::chrono::milliseconds(10)); // they shoudl saturate all 4 threads for at least 500ms, so we need 2000 ms total
+        std::this_thread::sleep_for(std::chrono::milliseconds(10)); // they should saturate all 4 threads for at least 500ms, so we need 2000 ms total
         go("nonblocking nested", nonblocking_coro, std::ref(counter), spawns-1);
     }
 }
@@ -305,7 +306,7 @@ void test_blocking_coros()
     scheduler sched(4);
     set_scheduler(&sched);
 
-    std::cout << "(this test should take approx. one second)" << std::endl;
+    std::cout << " > this test should take approx. one second" << std::endl;
 
     std::atomic<int> nonblocking(0);
     std::atomic<int> blocking(0);
@@ -313,6 +314,8 @@ void test_blocking_coros()
     const int SERIES = 10;
     const int NON_BLOCKING_PER_SER = 10;
     const int NON_BLOCKING_SPAWNS = 10;
+
+    auto start = std::chrono::high_resolution_clock::now();
 
     for(int s = 0; s < SERIES; s++)
     {
@@ -344,9 +347,11 @@ void test_blocking_coros()
         // the entire test should block for bit more than 1 second
     }
 
-
     sched.wait();
     set_scheduler(nullptr);
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::cout << " > actual time: " << (end-start)/std::chrono::milliseconds(1) << " ms" << std::endl;
 
     TEST_EQUAL(nonblocking, SERIES*NON_BLOCKING_PER_SER*NON_BLOCKING_SPAWNS);
     TEST_EQUAL(blocking, SERIES*3);
