@@ -50,8 +50,13 @@ void MainWindow::loadFile(const QString& path)
     _ui->coroutineView->resizeColumnToContents(0);
 
     // after successful load, add to mrd
-    _mrd.removeAll(path);
-    _mrd.push_front(path);
+    QString absolutePath;
+    if (QDir::isAbsolutePath(path))
+        absolutePath = path;
+    else
+        absolutePath = QDir::current().absoluteFilePath(QDir::cleanPath(path));
+    _mrd.removeAll(absolutePath);
+    _mrd.push_front(absolutePath);
     while (_mrd.size() > MAX_MRD)
         _mrd.pop_back();
     setMrd(_mrd);
