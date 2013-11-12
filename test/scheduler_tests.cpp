@@ -5,6 +5,8 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <iostream>
+
 namespace coroutines { namespace tests {
 
 
@@ -95,7 +97,7 @@ static void nonblocking_coro(std::atomic<int>& counter, int spawns)
     if (spawns > 0)
     {
         counter++;
-        std::this_thread::sleep_for(std::chrono::milliseconds(10)); // they should saturate all 4 threads for at least 500ms, so we need 2000 ms total
+        std::this_thread::sleep_for(std::chrono::milliseconds(4)); // this will be called 100 times on 4 threads, we need to cover 1000ms they should saturate all 4 threads for at least 1000ms, so we need 2000 ms total
         go("nonblocking nested", nonblocking_coro, std::ref(counter), spawns-1);
     }
 }
@@ -147,6 +149,7 @@ BOOST_FIXTURE_TEST_CASE(test_blocking_coros, fixture)
 
     auto end = std::chrono::high_resolution_clock::now();
     std::cout << " > actual time: " << (end-start)/std::chrono::milliseconds(1) << " ms" << std::endl;
+    std::cout << " > total busy-block time per thread: " << nonblocking*4/4 << " ms" << std::endl;
 
     BOOST_CHECK_EQUAL(nonblocking, SERIES*NON_BLOCKING_PER_SER*NON_BLOCKING_SPAWNS);
     BOOST_CHECK_EQUAL(blocking, SERIES*3);

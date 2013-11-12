@@ -163,7 +163,7 @@ public:
 
     ~profiling_data()
     {
-        std::cout << "porfiling data destroyed" << std::endl;
+        // this is a good place to put any code that should be executed when thread finishes
     }
 
     record* get_next()
