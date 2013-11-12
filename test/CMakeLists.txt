@@ -4,8 +4,12 @@ add_definitions(-DBOOST_TEST_DYN_LINK)
 
 add_executable(test
     main.cpp
+    fixtures.cpp fixtures.hpp
+
     generator_tests.cpp generator_tests.hpp
+
     channel_tests.cpp
+    scheduler_tests.cpp
 )
 
 target_link_libraries(test

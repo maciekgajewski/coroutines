@@ -1,39 +1,11 @@
 // (c) 2013 Maciej Gajewski, <maciej.gajewski0@gmail.com>
 #include "coroutines/globals.hpp"
 
+#include "test/fixtures.hpp"
+
 #include <boost/test/unit_test.hpp>
 
-
 namespace coroutines { namespace tests {
-
-class fixture
-{
-public:
-
-    fixture()
-    : _sched(4)
-    {
-        set_scheduler(&_sched);
-    }
-
-    ~fixture()
-    {
-        _sched.wait();
-        set_scheduler(nullptr);
-    }
-
-protected:
-
-    void wait_for_completion()
-    {
-        _sched.wait();
-    }
-
-private:
-
-    scheduler _sched;
-};
-
 
 // simple reader-wrtier test, wrtier closes before reader finishes
 // expected: reader will read all data, and then throw channel_closed
@@ -194,5 +166,110 @@ BOOST_FIXTURE_TEST_CASE(test_large_transfer, fixture)
     BOOST_CHECK_EQUAL(last_read, MESSAGES-1);
 }
 
+BOOST_FIXTURE_TEST_CASE(test_multiple_readers, fixture)
+{
+    static const int MSGS = 10000;
+    static const int READERS = 100;
+    std::atomic<int> received(0);
+    std::atomic<int> closed(0);
+
+    channel_pair<int> pair = make_channel<int>(10);
+
+    go("test_multiple_readers writer", [](channel_writer<int>& writer)
+    {
+        for(int i = 0; i < MSGS; i++)
+        {
+            writer.put(i);
+        }
+    }, std::move(pair.writer));
+
+    for(int i = 0; i < READERS; i++)
+    {
+        go("test_multiple_readers reader", [&received, &closed](channel_reader<int> reader)
+        {
+            try
+            {
+                for(;;)
+                {
+                    reader.get();
+                    received++;
+                }
+            }
+            catch(const channel_closed&)
+            {
+                closed++;
+                throw;
+            }
+
+        }, pair.reader);
+    }
+
+    wait_for_completion();
+
+    BOOST_CHECK_EQUAL(closed, READERS);
+    BOOST_CHECK_EQUAL(received, MSGS);
+}
+
+BOOST_FIXTURE_TEST_CASE(test_multiple_writers, fixture)
+{
+    static const int MSGS_PER_WRITER = 100;
+    static const int WRITERS = 100;
+
+    std::atomic<int> received(0);
+
+    channel_pair<int> pair = make_channel<int>(10);
+
+    for(int i = 0; i < WRITERS; i++)
+    {
+        go(
+            boost::str(boost::format("test_multiple_readers writer %d") % i),
+            [](channel_writer<int> writer)
+        {
+            for(int i = 0; i < MSGS_PER_WRITER; i++)
+            {
+                writer.put(i);
+            }
+        }, pair.writer);
+    }
+    pair.writer.close();
+
+    go("test_multiple_readers reader", [&received](channel_reader<int>& reader)
+    {
+        for(;;)
+        {
+            reader.get();
+            received++;
+        }
+
+    }, std::move(pair.reader));
+
+    wait_for_completion();
+
+    BOOST_CHECK_EQUAL(received, WRITERS*MSGS_PER_WRITER);
+}
+
+BOOST_FIXTURE_TEST_CASE(test_non_blocking_read, fixture)
+{
+    auto pair = make_channel<double>(10);
+    int read = 0;
+    bool completed = false;
+
+    go([&]()
+    {
+        pair.writer.put(1.1);
+        pair.writer.put(2.2);
+        pair.writer.put(3.3);
+
+        double x;
+        while(pair.reader.try_get(x))
+            read++;
+        completed = true;
+    });
+
+    wait_for_completion();
+
+    BOOST_CHECK_EQUAL(read, 3);
+    BOOST_CHECK_EQUAL(completed, true);
+}
 
 }}
