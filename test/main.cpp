@@ -1,6 +1,9 @@
 // (c) 2013 Maciej Gajewski, <maciej.gajewski0@gmail.com>
 
 #include "coroutines/globals.hpp"
+
+#define BOOST_TEST_MODULE coroutines_test
+#include <boost/test/unit_test.hpp>
 #include <boost/format.hpp>
 
 #include <iostream>
@@ -22,125 +25,6 @@ void _TEST_EQUAL(const T1& a, const T2& b, long line, const char* msg)
 }
 #define TEST_EQUAL(a, b) _TEST_EQUAL(a, b,  __LINE__, #a "==" #b)
 
-// simple reader-wrtier test, wrtier closes before reader finishes
-// expected: reader will read all data, and then throw channel_closed
-void test_reading_after_close()
-{
-    scheduler sched(4);
-    set_scheduler(&sched);
-
-    // create channel
-    channel_pair<int> pair = make_channel<int>(10);
-
-    int last_written = -1;
-    int last_read = -1;
-
-    // writer coroutine
-    go(std::string("reading_after_close writer"), [&last_written](channel_writer<int>& writer)
-    {
-        for(int i = 0; i < 5; i++)
-        {
-            writer.put(i);
-            last_written = i;
-        }
-    }, std::move(pair.writer));
-
-    // reader coroutine
-    go(std::string("reading_after_close reader"), [&last_read](channel_reader<int>& reader)
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        for(;;)
-        {
-            try
-            {
-                last_read = reader.get();
-            }
-            catch(const channel_closed&)
-            {
-                break;
-            }
-        }
-    }, std::move(pair.reader));
-
-
-    // TEST
-    set_scheduler(nullptr);
-    sched.wait();
-
-    TEST_EQUAL(last_written, 4);
-    TEST_EQUAL(last_read, 4);
-}
-
-// Reader blocking:  reader should block until wrtier writes
-void test_reader_blocking()
-{
-    scheduler sched(4);
-    set_scheduler(&sched);
-
-    // create channel
-    channel_pair<int> pair = make_channel<int>(10);
-
-    bool reader_finished = false;
-    go(std::string("test_reader_blocking reader"), [&reader_finished](channel_reader<int>& r)
-    {
-        r.get();
-        reader_finished = true;
-    }, std::move(pair.reader));
-
-    TEST_EQUAL(reader_finished, false);
-
-    bool writer_finished = false;
-    go(std::string("test_reader_blocking writer"), [&writer_finished](channel_writer<int>& w)
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        w.put(7);
-        writer_finished = true;
-
-    }, std::move(pair.writer));
-
-    sched.wait();
-    set_scheduler(nullptr);
-
-    TEST_EQUAL(reader_finished, true);
-    TEST_EQUAL(writer_finished, true);
-}
-
-// test - writer.put() should exit with exception if reader closes channel
-void test_writer_exit_when_closed()
-{
-    scheduler sched(4);
-    set_scheduler(&sched);
-
-    // create channel
-    channel_pair<int> pair = make_channel<int>(1);
-
-
-    go(std::string("test_writer_exit_when_closed reader"), [](channel_reader<int>& r)
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        // do nothing, close the chanel on exit
-    }, std::move(pair.reader));
-
-    bool writer_threw = false;
-    go(std::string("test_writer_exit_when_closed writer"), [&writer_threw](channel_writer<int>& w)
-    {
-        try
-        {
-            w.put(1);
-            w.put(2); // this will block
-        }
-        catch(const channel_closed&)
-        {
-            writer_threw = true;
-        }
-
-    }, std::move(pair.writer));
-
-    sched.wait();
-    set_scheduler(nullptr);
-
-    TEST_EQUAL(writer_threw, true);
-}
 
 // send more items than channels capacity
 void test_large_transfer()
@@ -602,6 +486,7 @@ void signal_handler(int)
     }
 }
 
+/*
 int main(int , char** )
 {
     // install signal handler, for debugging
@@ -621,4 +506,4 @@ int main(int , char** )
 
     std::cout << "test completed" << std::endl;
 }
-
+*/
