@@ -102,7 +102,7 @@ public:
     // SharedLockable Concept
     void lock_shared()
     {
-        while (try_lock_shared())
+        while (!try_lock_shared())
             ;
     }
 
@@ -201,6 +201,25 @@ public:
 private:
 
     std::atomic<int32_t> _bits;
+};
+
+template<typename MutexType>
+class reader_guard
+{
+public:
+    reader_guard(MutexType& mutex)
+        : _mutex(mutex)
+    {
+        _mutex.lock_shared();
+    }
+
+    ~reader_guard()
+    {
+        _mutex.unlock_shared();
+    }
+private:
+
+    MutexType& _mutex;
 };
 
 }

@@ -10,6 +10,7 @@ add_executable(test
 
     channel_tests.cpp
     scheduler_tests.cpp
+    mutex_tests.cpp
 )
 
 target_link_libraries(test
