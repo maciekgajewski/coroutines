@@ -1,4 +1,4 @@
-find_package( Boost 1.54.0 COMPONENTS context)
+find_package( Boost 1.54.0 COMPONENTS context system)
 include_directories(${Boost_INCLUDE_DIRS})
 
 if(ENABLE_PROFILING)

@@ -69,7 +69,6 @@ public:
 private:
 
     void go(coroutine_ptr&& coro);
-    void remove_inactive_processors();
 
     unsigned random_index();
 

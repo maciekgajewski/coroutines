@@ -5,6 +5,8 @@
 //#define CORO_LOGGING
 #include "coroutines/logging.hpp"
 
+#include <boost/thread/locks.hpp>
+
 #include <cassert>
 #include <iostream>
 #include <cstdlib>
@@ -106,7 +108,7 @@ void scheduler::processor_starved(processor* pc)
 
     // step 2 - try to steal something
     {
-        std::lock_guard<shared_mutex> lock(_processors_mutex);
+        reader_guard<shared_mutex> lock(_processors_mutex);
 
         unsigned index = _processors.index_of(pc);
         if (index < _active_processors + _blocked_processors)
@@ -142,7 +144,8 @@ void scheduler::processor_blocked(processor_weak_ptr pc, std::vector<coroutine_w
 {
     // move to blocked, schedule coroutines
     {
-        std::lock_guard<shared_mutex> lock(_processors_mutex);
+        // TODO use reader here
+        boost::upgrade_lock<shared_mutex> lock(_processors_mutex);
 
         CORO_LOG("SCHED: proc=", pc, " blocked");
 
@@ -150,6 +153,7 @@ void scheduler::processor_blocked(processor_weak_ptr pc, std::vector<coroutine_w
 
         if (_processors.size() < _active_processors + _blocked_processors)
         {
+            boost::upgrade_to_unique_lock<shared_mutex> upgrade_lock(lock);
             _processors.emplace_back(*this);
         }
     }
@@ -162,22 +166,19 @@ void scheduler::processor_blocked(processor_weak_ptr pc, std::vector<coroutine_w
 
 void scheduler::processor_unblocked(processor_weak_ptr pc)
 {
-    std::lock_guard<shared_mutex> lock(_processors_mutex);
+    // TODO use reader here, upgrade if needed
+    boost::upgrade_lock<shared_mutex> lock(_processors_mutex);
 
     CORO_LOG("SCHED: proc=", pc, " unblocked");
 
     assert(_blocked_processors > 0);
     _blocked_processors--;
 
-    remove_inactive_processors();
-}
-
-
-void scheduler::remove_inactive_processors()
-{
     if (_processors.size() > _active_processors*3 + _blocked_processors) // if above high-water mark
     {
-        std::lock_guard<mutex> lock(_starved_processors_mutex);
+        std::lock_guard<mutex> starved_lock(_starved_processors_mutex);
+        boost::upgrade_to_unique_lock<shared_mutex> upgrade_lock(lock);
+
         while(_processors.size() > _active_processors*2 + _blocked_processors) // recduce to acceptable value
         {
             CORO_LOG("SCHED: processors: ", _processors.size(), ", blocked: ", _blocked_processors, ", cleaning up");
@@ -191,7 +192,7 @@ void scheduler::remove_inactive_processors()
             }
             else
             {
-                break; // some task is running, we'll come for him the next time
+                break; // some task is running, we'll come for it the next time
             }
         }
     }
