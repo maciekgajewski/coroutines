@@ -77,7 +77,7 @@ private:
     unsigned _blocked_processors = 0;
 
     processor_container _processors;
-    mutex _processors_mutex;
+    shared_mutex _processors_mutex;
 
     std::vector<processor_weak_ptr> _starved_processors;
     mutex _starved_processors_mutex;

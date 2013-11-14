@@ -24,7 +24,7 @@ scheduler::scheduler(unsigned active_processors)
 
     // setup
     {
-        std::lock_guard<mutex> lock(_processors_mutex);
+        std::lock_guard<shared_mutex> lock(_processors_mutex);
         for(unsigned i = 0; i < active_processors; i++)
         {
             _processors.emplace_back(*this);
@@ -36,7 +36,7 @@ scheduler::~scheduler()
 {
     wait();
     {
-        std::lock_guard<mutex> lock(_processors_mutex);
+        std::lock_guard<shared_mutex> lock(_processors_mutex);
         _processors.stop_all();
     }
     CORO_LOG("SCHED: destroyed");
@@ -106,7 +106,7 @@ void scheduler::processor_starved(processor* pc)
 
     // step 2 - try to steal something
     {
-        std::lock_guard<mutex> lock(_processors_mutex);
+        std::lock_guard<shared_mutex> lock(_processors_mutex);
 
         unsigned index = _processors.index_of(pc);
         if (index < _active_processors + _blocked_processors)
@@ -142,7 +142,7 @@ void scheduler::processor_blocked(processor_weak_ptr pc, std::vector<coroutine_w
 {
     // move to blocked, schedule coroutines
     {
-        std::lock_guard<mutex> lock(_processors_mutex);
+        std::lock_guard<shared_mutex> lock(_processors_mutex);
 
         CORO_LOG("SCHED: proc=", pc, " blocked");
 
@@ -162,7 +162,7 @@ void scheduler::processor_blocked(processor_weak_ptr pc, std::vector<coroutine_w
 
 void scheduler::processor_unblocked(processor_weak_ptr pc)
 {
-    std::lock_guard<mutex> lock(_processors_mutex);
+    std::lock_guard<shared_mutex> lock(_processors_mutex);
 
     CORO_LOG("SCHED: proc=", pc, " unblocked");
 

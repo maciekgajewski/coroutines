@@ -276,6 +276,8 @@ private:
     MutexType& _mutex;
 };
 
+typedef rw_spinlock shared_mutex;
+
 }
 
 #endif
