@@ -86,15 +86,39 @@ class rw_spinlock
 public:
     rw_spinlock() : _bits(0) {}
 
+    rw_spinlock(const char* name)
+    : _bits(0)
+    {
+        #ifdef COROUTINES_SPINLOCKS_PROFILING
+            CORO_PROF("rw_spinlock", this, "created", name);
+        #else
+            (void)name;
+        #endif
+    }
+
     void lock()
     {
-        while (!try_lock())
-            ;
+        #ifdef COROUTINES_SPINLOCKS_PROFILING
+            // only report contested lock events
+            if (try_lock())
+                return;
+            CORO_PROF("rw_spinlock", this, "spinning begin");
+        #else
+            while (!try_lock())
+                ;
+        #endif
+
+        #ifdef COROUTINES_SPINLOCKS_PROFILING
+            CORO_PROF("rw_spinlock", this, "spinning end");
+        #endif
     }
 
     // Writer is responsible for clearing up both the UPGRADED and WRITER bits.
     void unlock()
     {
+        #ifdef COROUTINES_SPINLOCKS_PROFILING
+            CORO_PROF("rw_spinlock", this, "unlocked");
+        #endif
         static_assert(READER > WRITER + UPGRADED, "wrong bits!");
         _bits.fetch_and(~(WRITER | UPGRADED), std::memory_order_release);
     }
@@ -102,12 +126,26 @@ public:
     // SharedLockable Concept
     void lock_shared()
     {
-        while (!try_lock_shared())
-            ;
+        #ifdef COROUTINES_SPINLOCKS_PROFILING
+            // only report contested lock events
+            if (try_lock_shared())
+                return;
+            CORO_PROF("rw_spinlock", this, "spinning begin");
+        #else
+            while (!try_lock_shared())
+                ;
+        #endif
+
+        #ifdef COROUTINES_SPINLOCKS_PROFILING
+            CORO_PROF("rw_spinlock", this, "spinning end");
+        #endif
     }
 
     void unlock_shared()
     {
+        #ifdef COROUTINES_SPINLOCKS_PROFILING
+            CORO_PROF("rw_spinlock", this, "unlocked shared");
+        #endif
         _bits.fetch_add(-READER, std::memory_order_release);
     }
 
@@ -157,7 +195,19 @@ public:
     bool try_lock()
     {
         std::int32_t expect = 0;
-        return _bits.compare_exchange_strong(expect, WRITER, std::memory_order_acq_rel);
+        #ifdef COROUTINES_SPINLOCKS_PROFILING
+            if (_bits.compare_exchange_strong(expect, WRITER, std::memory_order_acq_rel))
+            {
+                CORO_PROF("rw_spinlock", this, "locked");
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        #else
+            return _bits.compare_exchange_strong(expect, WRITER, std::memory_order_acq_rel);
+        #endif
     }
 
     // Try to get reader permission on the lock. This can fail if we
@@ -175,7 +225,11 @@ public:
         {
             _bits.fetch_add(-READER, std::memory_order_release);
             return false;
+
         }
+        #ifdef COROUTINES_SPINLOCKS_PROFILING
+            CORO_PROF("rw_spinlock", this, "locked shared");
+        #endif
         return true;
     }
 

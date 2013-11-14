@@ -138,7 +138,7 @@ void FlowDiagram::onRecord(const profiling_reader::record_type& record)
     ThreadData& thread = _threads[record.thread_id];
     thread.maxTime = record.time_ns;
 
-    if (record.object_type == "spinlock")
+    if (record.object_type == "spinlock" || record.object_type == "spinlock_rw")
     {
         onSpinlockRecord(record, thread);
     }
@@ -251,7 +251,7 @@ void FlowDiagram::onSpinlockRecord(const profiling_reader::record_type& record, 
         spinlock.lastLockedTime[record.thread_id] = record.time_ns;
     }
 
-    else if (record.event == "locked")
+    else if (record.event == "locked" || record.event == "locked shared")
     {
         if (spinlock.lastLockedTime.contains(record.thread_id))
         {
@@ -260,7 +260,7 @@ void FlowDiagram::onSpinlockRecord(const profiling_reader::record_type& record, 
         spinlock.lastLockedTime[record.thread_id] = record.time_ns;
     }
 
-    else if (record.event == "unlocked")
+    else if (record.event == "unlocked" || record.event == "unlocked shared")
     {
         if (!spinlock.lastLockedTime.contains(record.thread_id))
         {
@@ -280,16 +280,23 @@ void FlowDiagram::onSpinlockRecord(const profiling_reader::record_type& record, 
                 item->setBrush(spinlock.color);
 
                 QPen p(Qt::green);
+                QString type = "exclusive";
+                if (record.event == "unlocked shared")
+                {
+                    p.setColor(Qt::blue);
+                    type = "shared";
+                }
+
                 p.setCosmetic(true);
                 item->setPen(p);
 
                 if (spinlock.name.isEmpty())
                 {
-                    item->setToolTip(QString("holding mutex 0x%1").arg(record.object_id, 0 , 16));
+                    item->setToolTip(QString("holding %2 mutex 0x%1").arg(record.object_id, 0 , 16).arg(type));
                 }
                 else
                 {
-                    item->setToolTip(QString("holding mutex '%1' (0x%2)").arg(spinlock.name).arg(record.object_id, 0 , 16));
+                    item->setToolTip(QString("holding %3 mutex '%1' (0x%2)").arg(spinlock.name).arg(record.object_id, 0 , 16).arg(type));
                 }
                 item->setZValue(2.0);
                 _scene->addItem(item);
